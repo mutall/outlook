@@ -1,0 +1,143 @@
+/*
+The root element*/
+html{
+    /*
+    This is important; it ensures that the body, of which it is a child,
+    occupies the whole page.*/
+    height: 100%;
+}
+
+/*
+The document body*/
+body{
+    /*
+    Switch-off the scrollbar on the body*/
+    margin:0;
+    padding:0;
+    /*
+    Set the body to fill the screen*/
+    height:100%;
+    /*
+    Set the body to fill the screen*/
+    background-color: white;
+    /*
+    Divide the body into grid sections*/
+    display: grid;
+    /* 
+    Specify the size and the number of the page rows*/
+    grid-template-rows: 15% 80% 5%;
+    /*
+    Define the number and size of page columns. Why columns???*/
+    grid-template-columns: 100%;
+    /*
+    Specify the sections and their position on the page.    */
+    grid-template-areas: 
+        "header"
+        "content"
+        "footer"
+}
+
+#head{
+    /*
+    Position the head in the specified section.*/
+    grid-area: header;
+    background-color: beige;
+    padding-left: 30px;
+}
+/*
+Outlook of the content area */
+#content{
+    /*
+    Specify the position of the footer.*/
+    grid-area: content;
+    overflow-y: scroll;
+}
+
+
+table, th, td, tr {
+    /* #ddd sets the border to a light color */
+   border:1px solid #ddd;
+   border-collapse:collapse;
+}
+/*
+Specify the color to display for each table row.*/
+table tr:nth-child(even){
+    background-color:lightcyan;
+}
+/*
+Tr on hover */
+table tr:hover{
+    background-color:rgb(102, 102, 223);
+    color:white;
+}
+/*
+Table head formatting */
+th{
+    padding: 5px;
+    background-color: seagreen;
+    color: white;
+    text-align: center;
+}
+.TD{
+    /*
+    Highlight a selected field in the table with a specific color.*/
+    background-color: #99ffff;
+}
+.TR{
+   /*    
+    Highlight the selected row*/
+   background: greenyellow;
+}
+
+
+/*
+Styling full columns using colgroup*/
+.TH{
+    background-color: cyan;
+}
+/*
+Style entirity of a crud table */
+table{
+    font-size: 15px;
+}
+/*
+Normal mode of viewing the crud page*/
+.normal{
+    /*
+    The cursor of the normal mode is a pointer*/
+    cursor:pointer;
+}
+
+/* For tracking modifications*/
+td.edited>input{
+    background-color: rgba(255, 0, 0, 0.247);
+}
+
+/*Mark the childre of the primary td red to show an error*/
+tr.report>span{
+    background-color: red;
+    color: yellow;
+}
+
+/*Style our error message color to light red*/
+#error, .error{
+    background-color: red;
+    color: white;
+}
+.footer {
+    grid-area: footer; 
+   display: grid;
+ }
+ /* The following rules are for controlling the behavior of the file io */
+
+ /* hide and show the LOCAL section for a file input. 
+ The remote is local*/
+ .local{
+     display: block;
+ }
+
+ /* hide and show the REMOTE section for the file inputs
+ By default this is hidden */
+ .remote{
+
+ }

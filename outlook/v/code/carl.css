@@ -1,0 +1,38 @@
+table {
+    width:100%
+}
+thead {
+    width:100%
+}
+table, th, td {
+     /* #ddd sets the border to a light color */
+    border:1px solid #ddd;
+    border-collapse:collapse;
+}
+th, td {
+    padding: 2px;
+     text-align: center;
+}
+th{
+    background-color: bisque;  
+    font-family: "Times New Roman", Times, serif;
+    font-weight: normal;
+    font-size: 32px;
+}
+tr:nth-child(even) {
+    background-color: beige;
+}
+td {
+    font-family:  monospace;
+    font-weight: normal;
+    font-size: 18px;
+}
+h1{
+    text-align: center;
+    font-size: 40px;
+    font-weight: bold;
+}
+/*t01{
+    //width:100%;
+       // background-color: salmon; 
+}*/

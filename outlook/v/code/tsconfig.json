@@ -1,0 +1,7 @@
+{
+  "extends": "../../../library/v/code/tsconfig.json",
+  "compilerOptions": {
+      //"moduleResolution": "node"
+  }
+  
+}

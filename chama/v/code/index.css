@@ -1,0 +1,168 @@
+html {
+  height: 100%;
+}
+/*Grid design and styling procedure*/
+body {
+  height: 100%;
+  width:100%;
+  font-family:Gadugi;
+  margin:0;
+  overflow: hidden;
+  padding: 5px;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: 20% 60% 20%;
+  grid-template-rows: 10% 35% 40% 15%;
+  grid-template-areas:
+    "header header header"
+    "services content welcome"
+    "services content whatsup"
+    "footer footer footer";
+}
+.header {
+  grid-area: header;
+  display: grid;
+  grid-template-columns: 20% 80%;
+  background-color: lightblue; 
+}
+#logo {
+  grid-row: header;
+  float:left;
+  padding-left: 10px;
+  padding-bottom: 10px;
+}
+#selection{
+    width:120px;
+    float:right;
+    display: block;
+    margin:0 auto;  
+}
+#company{
+  grid-row: header;
+  font-family:Cooper;
+  float: left;
+  font-weight: bold;
+  font-size: 42px;
+  place-self: center;
+  padding-right: 50%;
+  text-shadow:1px 1px 1px white;
+}
+
+/*this is the start of the body element*/
+#welcome {
+  grid-area: welcome;
+  overflow: scroll;
+  overflow-x: hidden;
+  background-color: whitesmoke;
+}
+#content {
+  grid-area: content;
+  background-color:lightcyan;
+  overflow:scroll;
+}
+#services {
+  grid-area: services;
+  background-color:whitesmoke;
+  overflow: scroll;
+  overflow-x: hidden;
+}
+#whatsup {
+  grid-area: whatsup;
+  background-color: lightgoldenrodyellow;
+}
+
+#about{
+    grid-row: header;
+    font-weight: bold;
+    font-size: 14px;
+    place-self: center;
+}
+/*
+* Test1
+*
+* Anchor link for logging in...
+*
+* ...Below shows a normal, unvisited link. */
+.a{
+    text-decoration: underline;
+    color: blue;
+    font-weight: bold;
+}
+/* 
+Convert the cursor to a pointer. */
+.a:hover{
+    cursor: pointer;
+}
+.footer {
+  grid-area: footer;
+  display: grid;
+  grid-template-columns: 25% 35% 40%;
+  background-color: lightgoldenrodyellow;
+}
+#developer {
+  grid-row: footer;
+  padding-left: 10px;
+  padding-bottom: 10px;
+}
+.img_dev {
+  width: 25%;
+  max-height: 100%;
+  margin-left: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
+#signature {
+  grid-row: footer;
+  place-self: center;
+}
+/*#company {
+  grid-row: footer;
+  place-self: center;
+}*/
+/*
+
+Specify border for the table*/
+
+table {
+  width:100%
+}
+/* thead {
+  width:100%
+} */
+table, th, td {
+   /* #ddd sets the border to a light color */
+  border:1px solid rgba(0, 0, 0, 0.747);
+  border-collapse:collapse;
+}
+th, td {
+  padding: 2px;
+/*   text-align: center;*/
+}
+th{
+  background-color: lightgoldenrodyellow;  
+  font-family: Franklin Gothic;
+  font-size: 16px;
+  height:30px;
+}
+tr:nth-child(even) {
+  background-color: whitesmoke;
+}
+td {
+  font-family: Microsoft Sans Serif;
+  font-weight: normal;
+  font-size: 16px;
+}
+
+/*t01{
+  //width:100%;
+     // background-color: salmon; 
+}*/
+/* th,td{
+    border: 1px solid black;
+} */
+/*
+By default the applications theme table is displayed in the 
+normal mode*/
+.edit{
+    display: none;
+}

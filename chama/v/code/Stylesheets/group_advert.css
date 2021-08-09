@@ -1,0 +1,174 @@
+.advert{
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 1fr;
+    height: 100vh;
+    background-color: #fff;
+    background-position: center;
+    background-size: cover;
+    transition: all .5s;
+}
+.display{
+    display: none;
+}
+.second_display{
+    display: none;
+}
+.sidebar_nav li:hover .display{
+    display: block;
+}
+.sidebar_nav li li:hover .second_display{
+    display: block;
+}
+.sidebar_nav{
+    grid-area: 1/1;
+    position: fixed;
+    height: 80vh;
+    width: 20%;
+    background: #18B9D5;
+    transition: all .5s ease;
+    overflow: scroll;
+    overflow-x: hidden;
+    border-radius: 5px;
+}
+.sidebar_nav ul{
+    list-style: none;
+}
+.sidebar_nav ul a i{
+    margin-right: 16px;
+}
+.sidebar_nav ul{
+    display: block;
+    height: 100%;
+    width: 80%;
+    text-decoration: none;
+    line-height: 60px;
+    font-size: 20px;
+    color: white;
+    padding-left: 30px; 
+    transition: 0.8s;
+}
+ul li:hover {
+    padding-left: 20px;
+    text-decoration: none;
+}
+section:not(.active){
+    display: none;
+}
+
+.sidebar_nav ul a{
+    color: white;
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    box-sizing: border-box;
+    border-top: 1px solid rgba(255, 255,255,.1);
+    border-bottom: 1px solid blue; 
+    border-radius: 5px;
+}
+.container{
+    grid-area: 1/2;
+    box-sizing: border-box;
+    border-radius: 5px;
+    padding-left: 13%;
+    background-color: #84C4E6;
+    overflow: auto;
+    height: 80vh;
+}
+.footer{
+    grid-area: 2/1/span1/ span2;
+    position: relative;
+    display: flex;
+    background: #0099ff;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+.footer_item{
+    display: block;
+    margin: auto;
+    padding: 10px;
+}
+.footer_item ul{
+    list-style: none;
+    color: #fff;
+}
+.footer_item h2{
+    padding-left: 38px;
+    color: #fff;
+}
+/*
+.advert{
+   
+}
+.sidebar_nav{
+    position: fixed;
+    left: -250px;
+    width: 250px;
+    height: 100%;
+    background: #042331;
+    transition: all .5s ease; 
+}
+.sidebar_nav header{
+    font-size: 22px;
+    color: white;
+    text-align: center;
+    line-height: 70px;
+    background: #063146;
+    user-select: none;
+}
+.sidebar_nav ul{
+    list-style: none;
+}
+
+#check{
+    display: none;
+}
+label #btn, label #cancel{
+    position: absolute;
+    cursor: pointer;
+    background: #042331;
+    border-radius: 3px;
+} 
+label #btn{
+    left: 40px;
+    top: 25px;
+    font-size: 35px;
+    color: white;
+    padding: 6px 12px;
+    transition: all .5s;
+}
+label #cancel{
+    z-index: 1111;
+    left: -195px;
+    top: 17px;
+    font-size: 30px;
+    color: #0a5275;
+    padding: 4px 9px;
+    transition: all .5s ease;
+}
+#check:checked ~ .sidebar_nav{
+    left: 0;
+}
+#check:checked ~ label #btn{
+    left: 250;
+    opacity: 0;
+    pointer-events: none;
+}
+#check:checked ~ label #cancel{
+    left: 195px;
+}
+#check:checked ~ .advert{
+    margin-left: 250px;
+}
+.container{
+    display: flex;
+    align-content: center;
+    border-radius: 15px;
+    box-sizing: border-box;
+    border: 2px solid black;
+    overflow-x: hidden;
+    padding-top: 100px;
+    padding-left: 400px;
+    height: 100vh;
+}*/

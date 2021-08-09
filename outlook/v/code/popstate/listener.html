@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        function multi_listener(){
+            // 
+            //Get the button to add the listeners 
+            const btn = document.getElementById("test");
+            btn.setAttribute("pk",null);
+            const attr= btn.getAttribute("pk");
+            console.log(typeof attr );
+            console.log(attr );
+
+        }
+    </script>
+</head>
+<body onload="multi_listener()">
+    <button id="test">Test</button>
+</body>
+</html>

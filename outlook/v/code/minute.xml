@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workshop>
+    <meetings>
+        <meeting>
+            <date>24thSep2020</date>
+            <officials></officials>
+            <agenda>
+                <item id="review">
+                    <name>Review of last session`s minutes</name>
+                    <minutes>
+                        <min type="decision">
+                            1.1 Instead of writing code snippets in minutes, e,g 
+                            when there`s no power, take a picture and reference it within the 
+                            minutes.
+                        </min>
+                        <min type="lesson">
+                            1.2 get and get_roles() are different in the sense that, one is 
+                            a property whereas the other is a method. With get, you return 
+                            a class property, get_roles() represents a function implementation.
+                            Consider the get_roles:role because we know what we want rather 
+                            than using the setter.
+                        </min>
+                        <min type="decision">
+                            1.3 Win property in class app is not optional..it`s mandatory.
+                            i,e it`s already defined. 
+                        </min>
+                        <min type="todo">
+                            1.4 Kaniu to have an updated presentation timetable
+                        </min>
+                        <min type="lesson">
+                            1.5 Static methods are public and thus can be accessed from 
+                            anywhere.
+                            1.6 Think carefully on where to put event listeners-> locally or 
+                            logically
+                        </min>
+                        <min type="decision">
+                            1.7 We shall be reviewing the coding done by the previous 
+                                programmer in the morning.
+                            1.8 We discussed how we can tag the captured snapshot in xml to 
+                                display them along with the minutes.
+                            1.9 We should incorporate our coding continuously to avoid bits 
+                                of code from lagging thus saving time.
+                            1.10 We discussed terminologies that can be represented as a 
+                                cicle in our model(type, interface, trait)
+                            and you can`t treat them the same way.
+                            1.11 At the application level is where the roles are held, and 
+                                only the role_ids are at the user.
+                            for user to access the services in the roles at the app level, 
+                                he needs to supply the role_id.
+                            1.12 Incorporate the projector css for projection 
+                            purposes. This will actively test the media query workgroup
+                        </min>
+                        <min type="lesson">
+                            1.13 Table format is a variation of the label format..
+                            We also discussed that comments represent the various columns.
+                        </min>
+                    </minutes>
+                </item>
+                <item id="models">
+                    <name>Review of class and data models</name>
+                    <minutes>
+                        <min type="todo">
+                            2.1 Lawrence tasked to add an id field in the workshop 
+                            entity in tracker new db model and ensure all entities 
+                            have indexes.
+                        </min>
+                
+                        <min type="decision">
+                            2.2 Mr Muraya suggested that we do the tracker model as a class
+                                model to enable easier changes
+                            and help us express ourselves and capture all our thoughts.    
+                        </min> 
+                    </minutes>
+                </item>
+                <item id="todos">
+                    <name>Address todos</name>
+                    <minutes>
+                        <min type="todo">
+                            3.1 Assist Kaniu in designing what we want the homepage to 
+                            look like with the services in place.
+                            Best approach would be painting the service panel on the 
+                            homepage with records
+                            from our model.
+
+                            In our case, services are within the logic. i.e the role 
+                            interface->(the literal)
+                            Point to note..Within our logic, we can define all the 
+                            services for each role.
+                            We as well have an entity within our data model that holds 
+                            all the rocords of the services
+                            we are offering..if we need to add or update a service, 
+                            do we modify our literal
+                            or our dbase service entity or both????
+                            How about we populate our literal within our logic, with 
+                            what we have in the dbase since
+                            it seems like we`re hardwiring the services...deliberate on 
+                            this.
+
+                            Think about what to display as the services given the role 
+                            the user has opted to play...
+                            Have general services visible to all roles played. e.g,
+
+                                    General services.
+                            a)View minutes.
+                            b)View assignments.
+                            c)View proceedings.
+                            d)View officials.
+                            e)View participants.
+
+                                    Developer/Programmer/Participant
+                            a)Record one to one assignments. i.e CRUD todos. 
+                            e.g update completion status of an assignemnt.
+                            b)View code snippets.
+                            c)CRUD assignment.
+                            d)Self Registration.
+
+                                    Secretary 
+                            a)Record minutes.
+                            b)Load previous minutes.
+
+                                    Chairman/Convener/Director
+                            a)CRUD Timetable.
+                            i.e View, Update timetable
+                            b)CRUD officials.
+                            c)CRUD workgroup.
+                        </min>
+                    </minutes>
+                </item>
+                <item id="development">
+                    
+                    <minutes>
+                        <name>ServerSide Development
+                            <min type="presentation">
+                            Lawrence did a presentation on d.ts.
+                            He explained exactly what a d.ts is and how it will assist 
+                                us while working with typescript,
+                            intention being to develop a clientserver interface.
+
+                            Need for a d.ts-> reduce files needed 
+                                              file population 
+                                              link php and javascript.
+                            user.php method signatures will find their way into dts  
+                            A d.ts contains the class names in our php file as well as 
+                                the method signatures 
+                            As of now, the d.ts will enable typescript to flag errors 
+                                when methods 
+                            don`t correspond to what we have in the php file.
+                            The group will continue deliberating and on the next 
+                                presentation explain how the actual php
+                            methods will be implemented.
+                        </min>
+                        <min type="decision">
+                            4.1 Have one file for all server operations.
+                        </min>
+                        <min type="todo">
+                            4.2 Modify the is_registered method to make data optional 
+                            by giving it default values, there
+                            are two ways of providing inputs->globally or directly 
+                            passed from js.
+                        </min>
+                        </name>
+                    <name>ClientSide Development
+                        <min type="todo">
+                            4.3 We developed the export_data method.
+                            Started by making correct comments to retrieve_roles() 
+                            this are roles that user has filled from the form.
+                            4.4 We converted checkboxes into an array to allow us to 
+                            use array methods.
+                            4.5 Checked if roles are checked, if not prompt user to 
+                            choose atleast one.
+                            4.7 Added the get_document of this window using a getter.
+                        </min>
+                        <min type="decision">
+                            4.6 We discussed that the mutall error will be our first 
+                            d.ts class.
+                        </min>
+                    </name>
+                    </minutes>
+                </item>
+                <item id="house_k">
+                    <name>House keeping</name>
+                </item>
+            </agenda>
+        </meeting>
+        <meeting>
+            <date>25thSep2020</date>
+            <officials></officials>
+            <agenda>
+                <item1>Review of last session`s minutes</item1>
+                <item2>Review of class and data models</item2>
+                <item3>Address todos</item3>
+                <item4>Service development</item4>
+                <item5>House keeping</item5>
+            </agenda>
+            <min1>
+                <decision>
+                    1.1 We agreed to have previous day(24/9/2020) minutes and 
+                    those of Friday the 25th read on Monday.
+                </decision>
+            </min1>
+            <min2>
+                <decision>
+                    2.1 Time allocated to this agenda item was used for client 
+                    side development.
+                </decision>
+            </min2>
+            <min3>
+                <todo>
+                    3.1 Lawrence presented the tracker model as a class model 
+                    and incorporated the snippet class
+                    we had talked about. The snippet class was intended to take 
+                    note of pictures taken from 
+                    our continued sessions when there`s a power outage. 
+                </todo>
+            </min3>
+            <min4>
+                <item>Client Side Development
+                    <decision>
+                    4.1 Client side development was done as the first thing in the morning.
+                    </decision> 
+                    <lesson>
+                    4.2 We discussed that get_roles must by all means return a 
+                        value (roles)
+                    and t get that as that outcome, think of what you want to 
+                        happen as a 
+                    flow of logical steps. At the very last step, it`s either you 
+                        have the results or not.
+                    If you do, return the results otherwise throw an exception..
+                        this will alert the program of 
+                    what has happened.Such as when the user clicks the cancel 
+                        button intentionally.
+                    4.2 When working with a method that has a void as the return 
+                        type but 
+                    has implementation that yields values i.e., results, you`ll 
+                        have to set a class property
+                    to the method`s returned values. The drawback of this, is 
+                        that you can`t tell when the property is set..
+                    i.e whether the property has a value(sometimes it might be 
+                        empty|undefined) thus losing control 
+                    and end up spending days debugging.
+                    This brings about the need for a promise.
+                    With promises, you get to resolve a value...and can wait for 
+                        the value at a later time. The other 
+                    advantage is-> it doesn`t stop the script from executing thus 
+                        no boming out.
+                   
+                    4.3 If an event is used for resolving a promise, then do not wire it directly in 
+                                        a view, otherwise do.
+                    4.4 If you want to know the nature of a variable..you can use typeof and find out 
+                                        its data type e.g
+                    string, boolean etc but for a class, like it`s the case with a Promise, you use 
+                    instanceof.
+                     </lesson>
+                     <decision>
+                      4.2 We reverted popup back to an abstract class therefore 
+                         every class that extends popup will have
+                    to implement popup abstract methods such as (check, execute and retrieve)
+                    4.3 We decided to have the roles as part of our homepage within the services panel 
+                                        thus doing
+                    away with the need for a popup..i.e., it`s not the ideal feature when you factor 
+                                        in user interaction
+                    A user doesn`t have to see a new popup. It might imply he/she has been shifted 
+                                        from what he was doing.
+                    4.3 We created a role namespace that contains the roles interface
+                    4.4 We discussed about programming principles i.e DRY and WET.
+                    DRY->Dont Repeat Yourself
+                    WET->Write Everything Twice otherwise reffered to as Waste Everybody`s Time.
+                    </decision>
+                </item>
+            </min4>
+        </meeting>
+        <meeting>
+            <date></date>
+            <officials></officials>
+            <agenda>
+                <item1>Review of last session`s minutes</item1>
+                <item2>Review of class and data models</item2>
+                <item3>Address todos</item3>
+                <item4>Service development</item4>
+                <item5>House keeping</item5>
+            </agenda>
+        </meeting>
+    </meetings>
+    
+</workshop>

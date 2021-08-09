@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Document</title>
+    <script>
+        var btn;
+        var html;
+        function test(){
+            btn= document.getElementById("test");
+            html=document.documentElement.innerHTML
+            document.documentElement.innerHTML="<span onclick='test2()'>html changed</span>"
+        }
+        //
+        // 
+        function test2(){
+            document.documentElement.innerHTML=html;
+            btn.textContent="back";
+            console.log(btn);
+        }
+    </script>
+</head>
+<body onload="test()">
+    <button id="test">go</button>
+</body>
+</html>

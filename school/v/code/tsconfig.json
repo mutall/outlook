@@ -1,0 +1,6 @@
+{
+  "extends": "../../../library/v/code/tsconfig.json",
+  "compilerOptions": {
+  }
+  
+}

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Basic -->
+<head>
+    <!-- Site Metas -->
+    <title>shule</title>
+    <!-- Site Icons -->
+    <link rel="shortcut icon" href="#" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="#" />
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <!-- Pogo Slider CSS -->
+    <link rel="stylesheet" href="css/pogo-slider.min.css" />
+    <!-- Site CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+    <!-- Responsive CSS -->
+    <link rel="stylesheet" href="css/responsive.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/custom.css" />
+    <!-- my own custom grid to suit outlook-->
+    <link rel="stylesheet" href="index.css" />
+    <script type="module">
+        //
+        //Importing this file boot straps the outlook applicaton
+        import school from "./school.js";
+        window.school=school;
+        //
+        //This import resolves the app class reference
+        import {app} from "../../../outlook/v/code/app.js";
+        // 
+        //Make the app public to resolve the onclick listener 
+        //at the login button.
+        window.app=app;
+        //
+        //Resolve the crud namespace reference required by the 
+        //crud page.
+        import * as crud from "../../../outlook/v/code/crud.js"
+        //
+        //Make the namespace public 
+        window.crud=crud; 
+    </script>
+    
+    <!-- Marker for styling columns -->
+    <style id="columns"></style>
+</head>
+
+<body id="home" data-spy="scroll" data-target="#navbar-wd" data-offset="98">
+    <!-- Start header -->
+    <header class="top-header">
+        <nav class="navbar header-nav navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="index.html"><img src="images/logo.png" alt="image"></a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-wd" aria-controls="navbar-wd" aria-expanded="false" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="collapse navbar-collapse justify-content-end" id="navbar-wd">
+                    <ul class="navbar-nav">
+                        <li><a class="nav-link active" href="index.html">Home</a></li>
+                        <li><a class="nav-link" href="about.html">About</a></li>
+						<li><a class="nav-link" href="contact.html">Contact us</a></li>
+                    </ul>
+                </div>
+                <div class="search-box">
+                    <input type="text" class="search-txt" placeholder="Search">
+                    <a class="search-btn">
+                        <img src="images/search_icon.png" alt="#" />
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <!-- end header -->
+	<!-- servicse section -->
+    <div class="services" id="services">
+    </div>
+	<!-- end service section -->
+	<!-- 
+    content section -->
+    <div id="content">
+    </div>
+	<!-- end content section -->
+	<!-- 
+     welcome section -->
+    <div class="wecome" id="welcome">
+        <div class="container">
+            <div>
+                Please <button onclick="app.current.login()">login</button> to access 
+                various services
+            </div>
+        </div>
+    </div>
+	<!-- end section -->
+
+    <!-- Start Footer -->
+    <footer class="footer-box footer">
+    </footer>
+    <!-- End Footer -->
+</body>
+
+</html>

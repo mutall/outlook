@@ -1,0 +1,172 @@
+.bronchure{
+    display: grid;
+    grid-gap:2px;
+    height: 100vh;
+    width: 100vw;
+    grid-template-columns: 25% 50% 25%;
+    grid-template-rows: 10% 10% 35% 45%; 
+    
+}
+.head{
+    grid-column: 1/5;
+    grid-row: 1/2;
+    background-color: #0099ff;
+}
+.head logo{
+    grid-column: 1/2;
+    grid-row: 1/2;
+}
+.logo img{
+    height: 50px;
+    border-radius: 5px;
+    display: block;
+}
+.logo_nm{
+    grid-column: 2/3;
+    grid-row: 1/2;
+}
+.logo_nm p{
+    font-style: italic;
+    font-size: 200%;
+    padding-bottom: 10px;
+    padding-top: 5px;
+    margin: 0;
+}
+.objectives{
+    grid-column: 1/2;
+    grid-row: 3/5;
+    background-color: #66ccff;
+}
+.objectives p{
+    font-style:  italic;
+    font-weight: bold;
+    font-size: 20px;
+    margin: 0;
+    color: blue;
+}
+.objectives_des{
+    list-style-type: upper-alpha;
+}
+.objective_theme{
+    padding-left: 5px;
+}
+.statement{
+    display: flex;
+    grid-column: 1/5;
+    grid-row: 2/3;
+    background-color:  #0099ff;
+}
+.mission{
+    padding-left: 10%;
+}
+
+.statement p{
+    padding-left: 5px;
+    font-style:  italic;
+    font-weight: bold;
+    font-size: 20px;
+    height: 50px;
+}
+.events{
+    background-color: #66ccff;
+    grid-column: 3/3;
+    grid-row: 3/5;
+}
+.events p{
+    font-style:  italic;
+    font-weight: bold;
+    font-size: 20px;
+    margin: 0;
+    color: blue;
+}
+.offe{
+    grid-column: 2/3;
+    grid-row: 3/4;
+    background-color: #66ccff;
+}
+.off{
+    font-style: italic;
+    font-size: 20px;
+    color: #0033ff;
+}
+.office{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.office p{
+    display: block;
+    font-style:  italic;
+    font-weight: bold;
+    font-size: 10px;
+    margin: 0;
+    
+}
+.official{
+   padding: 15px;
+    height: 200px;
+    width: 20%;
+}
+.official p{
+    width: 10%;
+}
+.official img{
+    height: 150px;
+    border-radius: 5px;
+}
+.membr{
+    grid-column: 2/3;
+    grid-row: 4/5;
+    background-color: #66ccff;
+}
+.mem{
+   font-style: italic;
+    font-size: 20px;
+    padding-bottom: 10px;
+    color: #0033ff;
+}
+.members{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    height: 80%;
+    overflow-style: scrollbar;
+    overflow-x: hidden;
+}
+
+.member{
+    padding: 10px;
+    height: 150px; 
+    display: inline-block;
+}
+.member img{
+    height: 100px;
+    border-radius: 5px;
+}
+.member_name{
+    display: block;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

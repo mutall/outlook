@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Document</title>
+    <script>
+        function set_inputs(){
+            document.getElementById("datetime").value=new Date();
+            document.getElementById("correct").value= new Date("9999-12-11")
+            document.getElementById("date").value="9999-12-11"
+        }
+    </script>
+</head>
+<body onload="set_inputs()">
+    <label>datetime: <input type="datetime" id="datetime"></label>
+    <label>date: <input type="date" id="correct"></label>
+    <label>date object: <input type="date" id="date"></label> 
+</body>
+</html>

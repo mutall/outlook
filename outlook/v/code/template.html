@@ -1,0 +1,123 @@
+<html>
+    <head>
+        <title>Templates</title>
+        <link rel="stylesheet" href="app.css">
+        <link rel="stylesheet" href="display.css">
+        <link rel="stylesheet" href="crud.css">
+    </head>
+    <body id="templates">
+        <div class="template">
+            <!--App template-->
+            <div class="app">
+                <fieldset id="app">
+
+                    <!--Title of the field set-->
+                    <legend> Assignment:</legend>
+
+                    <!-- This will show the assignments assigned per person-->
+                    <label>
+                        <input
+                            type="radio"
+                            id="individual"
+                            name="todo"
+                            >
+                        Show Individual To do
+                    </label>
+                    <!--The select element is used to create a drop-down list.
+                     to collect user input.
+                    -->
+                    <select id="developers" name="developers" >
+                        <!-- An option tag goes inside a select-->
+                        <option value="samuel">Samuel</option>
+                        <option value="joyce">Joyce</option>
+                        <option value="daniel">Daniel</option>
+                        <option value="kibet">Kibet</option>
+                        <option value="lawrence">Lawrence</option>
+                        <option value="jeremiah">Jeremiah</option>
+                        <option value="ralph">Ralph</option>
+                        <option value="solomon">Solomon</option>
+                        <option value="mose">Mose</option>
+                    </select>
+                    <!--This will the show the assignments that will be assigned as a group-->
+                    <label>
+                        <input
+                            type="radio"
+                            id="joint"
+                            name="todo"
+                            >
+                        Show Joint To do
+                    </label>
+                    <!-- after selecting you can proceed by pressing the button-->
+                    <button id="go">Go</button>
+                </fieldset>
+            </div>
+
+            <!--Service template-->
+            <div class="servive">
+                <fieldset id='Services'>
+                    <legend>Available sevices</legend>
+                    <fieldset id="general">
+                        <legend>General</legend>
+                        <ol>
+                            <li>Login</li>
+                            <li>Detailed Registration</li>
+                            <li>Service 3</li>
+                        </ol>
+                    </fieldset>
+
+                    <fieldset id="provider">
+                        <legend>Services To Providers/Agents</legend>
+                        <ol>
+                            <li>Sending bills to client through emails and sms </li>
+                            <li>Daily water Reading</li>
+                            <li>Estimate Client Consumption bills</li>
+                            <li>Generating Rental Contracts</li>
+                            <li>Bills printing</li>
+                            <li>Book keeping </li>
+                        </ol>
+                    </fieldset>
+                    <fieldset id="consumer">
+                        <legend>Sevices To Tenants/Consumer</legend>
+                        <ol>
+                            <li>Access to Bill statements</li>
+                            <li>Acess to rental details including rent, deposit, contract start & end dates and utility meter details</li>
+                            <li>Communication access by means of sms or email through the system.</li>
+                        </ol>
+                    </fieldset>
+                </fieldset>
+            </div>
+            <!--Crud template-->
+            <div class="crud">
+                <fieldset id="crud">
+                    <legend>Perform the following 
+                        <span class="record">
+                            Chama
+                        </span> operations</legend>
+                    <label>
+                        <input type="radio" name="crud" id="create"/>
+                        Create/Add a new <span class="record">Chama</span> 
+                    </label>
+                    <label>
+                        <input type="radio" name="crud" id="edit"/>
+                        Edit/Update/Modify the selected 
+                        <span class="record">Chama</span> 
+                    </label>
+                    <label>
+                        <input type="radio" name="crud" id="delete"/>
+                        Delete the selected <span class="record">Chama</span> 
+                    </label>
+                </fieldset>
+                <button id="go">Go/Execute the operation</button>
+            </div>
+            <!--Basic template-->
+            <div class="basic">
+                <fieldset id="basic">
+                    <legend>Basic</legend>
+                    <input type="radio" name="basic" id="developer">Developer</br>
+                    <input type="radio" name="basic" id="task_pk">Task Pk</br>
+                    <button id="go">Go</button>
+                </fieldset>
+            </div>
+        </div>
+    </body>
+</html>
