@@ -737,6 +737,77 @@ export class theme extends outlook.panel {
             case "table": this.scroll_table(outcome); break;
         }
     }
+    // 
+    //Scrolls page number of records in a given direction.
+    private scroll_page(outcome:key_outcome):void{
+       // 
+       //Get the selected tr if any
+       let tr = this.document.querySelector(".TR");
+       //
+       //If tr is not defined get the last tr in that view
+       if(!(tr instanceof HTMLTableRowElement)){
+           //
+           alert("Please select a tr");
+           throw new Error("No tr was selected");
+       }
+        // 
+        //
+        //Get the tr to be scrollled into view.
+        const scroll_tr= this.get_page_tr(tr, outcome.dir);
+       //
+       // Scroll the given tr to either top or bottom
+       const block = outcome.dir=== "up"?"end":"start";
+       //
+       //
+       scroll_tr.scrollIntoView({block:block});
+       // 
+       // 
+       theme.select(scroll_tr);
+    }
+    //
+    //return the tr to either be the first or the last in the view depending
+    //on the scroll direction
+    private get_page_tr(tr:HTMLTableRowElement, dir:"up"|"down"):HTMLTableRowElement{
+        //
+        //
+        let scroll_tr:HTMLTableRowElement;
+        // 
+        //Get the parent div that was used for scrolling
+        const div = tr.parentElement?.parentElement?.parentElement;
+        // // 
+        // //if the tr element is in view i.e., not at the top or bottom 
+        // if(inview)return tr;
+        //
+        //The tr is at the bottom or at the top 
+        //
+        //Get the number of elements in the view 
+        //const count_el =this.count_view_elements(div);
+        //for now we assume our view has 6 
+        const count =6;
+        // 
+        //Get the current row index
+        const currentIndex = tr.rowIndex;
+        let newIndex:number;
+        // 
+        //Return the given tr 
+        //
+        if(dir==="up"){
+            // 
+            //Get the first tr in the view
+            newIndex=currentIndex-count<1?0:currentIndex-count
+        }
+        else{
+            // 
+            //Get the first tr in the view
+            newIndex=currentIndex-count<1?0:currentIndex+count
+        }
+        
+        scroll_tr= (<HTMLTableSectionElement>tr.parentElement!).rows[newIndex]
+        //
+        //Return the promised tr
+        return scroll_tr;
+
+    }
     //
     //Returns one out of 6 outcomes of pressing a scrolling key including 
     //doing nothing when we are at the extreme boundaries of a view.
@@ -821,7 +892,7 @@ export class theme extends outlook.panel {
         //
         //If there's no new row to scroll to, decide if you want to get more 
         //data or not. For this version, simply return.
-        if(tr === null)return "do_nothing";
+        if(tr === null && move !== "page")return "do_nothing";
         //
         //Compile the outcome for row movement (up | down).
         return {move, dir, tr}
