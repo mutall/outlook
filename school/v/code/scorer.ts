@@ -30,8 +30,10 @@ export abstract class panel extends view {
     //The CSS to describe the targeted element on the base page
     public css: string,
     //
-    //The base view on that is the home of the panel
-    public base: view
+    //The base view that is the home of the panel: it must be protected to avoid
+    //potential recursion because the view akes reference to this panel as a 
+    //child.
+    protected base: view
   ) {
     //The ur is that of the base
     super(base.config, base.url);
@@ -71,27 +73,92 @@ export abstract class panel extends view {
   }
 }
 //
+//There are two possible layouts:tabular or label.
+type layout=
+    //
+    //The tabular layouts are known to be characterized by the following three
+    //elements, tbody,tr,and td.
+    "tabular"
+    //
+    //For label layouts, we need three HTML element tag names
+    |{
+        //
+        //This is the root element of the data being displayed
+        body:HTMLElementTagName,
+        //
+        //This is the element for tagging one record whose parent is the body
+        barrel:HTMLElementTagName,
+        //
+        //This is the element for tagging a child of a barrel.
+        tin:HTMLElementTagName
+    };
 //
+//A lister is a panel that can be used for presenting data in tabular or label
+//format.
 abstract class lister extends panel{
-  // 
-  public table: HTMLTableElement;
-  // 
+  //
+  //This method allows us to run asynchronous methods whose natural point of call
+  //would have been at the constructor level.the programmer is expected to call
+  //this method before he implements any public method of this class.
+  abstract inititialize(): Promise<void>
+  //
+  //??? it is the base that should be protected 
   protected header?: barrel;
   //
-  // 
+  //The following properties and methods are relevant for tabular layouts only.
+  public table: HTMLTableElement;
+  //
+  //This method paints the header of a table layout;it is not valid for label 
+  //layout.  
+  abstract paint_header(): Promise<barrel>;
+  //
+  //
   constructor(
+    //
+    //This css describes the location (on the base page) where the panel the
+    //anchored
     css: string,
+    //
+    //This is the view that is the parent of this panel.
     base: view,
-    public udf_meta?: { [cname: string]: udf_meta }
+    //
+    //This is a user defined metadata that shapes the relationships between the
+    // key and their data values. 
+    public udf_meta?: { [cname: string]: udf_meta },
+    //
+    //This is the general format of the data i.e. either tabular of label.
+    public layout?: layout
   ) {
-    super(css, base);
-    this.table = create_element(this.anchor, 'table', {});
-    // 
-    //Create the thead
-    create_element(this.table, "thead", {});
-    // 
-    //Create the tbody
-    create_element(this.table, "tbody", {});
+        //
+        //Initialize the parent panel class
+        super(css, base);
+        //
+        //Create the necessary HTML elements depending on the layouts.
+        if (layout === "tabular"){
+            //
+            this.table = create_element(this.anchor, 'table', {});
+            // 
+            //Create the thead
+            create_element(this.table, "thead", {});
+            // 
+            //Create the tbody
+            create_element(this.table, "tbody", {});
+        }
+        //
+        //else if the layout is label,then use the supplied html tag names
+        // to create the elemenets
+        else if(????){
+            //
+            //Create the body element
+        }
+        //
+        //else the layout specification must be invalid
+        else{
+            //
+            //convert the layout specification to a string
+            const str= String(layout);
+            throw new mutall_error(`invalid layout specification,`+str);
+        }
   }
   // 
   async paint(): Promise<void>{
@@ -103,33 +170,29 @@ abstract class lister extends panel{
     //
     await this.paint_body(Ifuel)
   }
-  // 
-  abstract paint_header(): Promise<barrel>;
-  
-  abstract inititialize(): Promise<void>
-  
-  async paint_body(Ifuel):Promise<void>{} 
-  // 
-  //Loop over all the ifuel to create barrel
-  for(const Ibarrel of Ifuel) {
+  async paint_body(Ifuel):Promise<void>{ 
+    // 
+    //Loop over all the ifuel to create barrel
+    for(const Ibarrel of Ifuel) {
+    //
     // 
     const body_barrel = new barrel(this);
-    body_barrel.tins = [];
-    // 
-    for (const htin of this.header){
-      // 
-      //Create jthe data tins 
-      const Tin = new tin(Barrel);
-      // 
-      //The general io for an sql is read only
-      Tin.Io = new readonly(Tin.anchor);
-      Tin.Io.value = Ibarrel[htin.dposition];
-      // 
-      // 
-      body_barrel.tins.push(Tin)
-    }
-    body_barrel.paint();
-  }
+        body_barrel.tins = [];
+        // 
+        for (const htin of this.header){
+          // 
+          //Create jthe data tins 
+          const Tin = new tin(Barrel);
+          // 
+          //The general io for an sql is read only
+          Tin.Io = new readonly(Tin.anchor);
+          Tin.Io.value = Ibarrel[htin.dposition];
+          // 
+          // 
+          body_barrel.tins.push(Tin)
+        }
+        body_barrel.paint();
+      }
 }
 // 
 abstract class scroller extends lister{
