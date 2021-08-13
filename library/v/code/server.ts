@@ -162,7 +162,7 @@ export async function post_file(
     return output;
 }
 //
-//Fetching static methods
+//The ifetch function is used for executing static methods on php class
 export async function ifetch<
     //
     //Define a type for... 
@@ -183,7 +183,6 @@ export async function ifetch<
         Extract<$class[method_name], (...args: any) => any>,
         "prototype"
     >,
-
     // 
     //...input parameters of a method of a class in the library namespace 
     $parameters extends Parameters<method>,
@@ -241,9 +240,9 @@ export async function ifetch<
         return result;
     }
     //
-    //Invalid json;this must be an error
+    //Invalid json;this must be an error. Show the original error.
     catch (ex) {
-        throw new mutall_error((<Error> ex).message);
+        throw new mutall_error(text);
     }
 }
 
