@@ -38,7 +38,7 @@ abstract class node extends mutall {
         $this->size= filesize($this->full_name);
     }
     //Form a complete node structure using the initial path and return 
-    //a node.
+    //the node.
     static function export(
         //
         //The initial path is either a file or a folder depending on the 

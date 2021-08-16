@@ -1,0 +1,18 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 8111,
+            "driver": "MariaDB",
+            "username": "root",
+            "name": "MariaDB",
+            "password": "1031997",
+            "database": "mutall_chama"
+        }
+    ],
+    "git.ignoreLimitWarning": true
+}
