@@ -1277,7 +1277,52 @@ class function_ implements expression{
     }
    
 }
-
-
-
-
+//
+//The registrar class extends the editor to allow advanced data entry
+//(for the chosen subjects) fit for registering new users
+class registrar extends editor{
+    function __construct(
+        //
+        //This is the entity name from which we are doing the selection
+        string $ename,
+        //
+        //The name of the database in which the entity is defined
+        string $dbname
+    ){
+        //
+        parent::__construct($ename, $dbname);
+        //
+        //Expand the editor columns and joins to get the registrar
+        //
+        //Loop through all the pointer and for each one of them...
+        foreach ($this->pointers() as $pointer){
+            //
+            //
+            //Formulate the rod query; it is an aggregated view of a selector based
+            //on the given pointer.
+            $rod= new view($from, $columns, $join, $dbname);
+            //
+            //...add a pointer column
+            this.add_column($pointer,$rod);        
+            //
+            //...add a pointer leftjoin
+            this.add_leftjoin($pointer,$rod);
+        }  
+    }
+    //
+    //  Add a pointer column to the registrar
+    function add_column(pointer $pointer){
+        //
+        //Get the name of the pointer column; it is the name of the home entity 
+        //of the pointer
+        $cname= $pointer->home()->name;
+        //
+        //Construct the new field
+        $field=new field(
+            $this->dbname,
+            $this->name,
+            $cname,
+            $exp
+        );            
+    }
+}

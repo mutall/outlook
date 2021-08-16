@@ -1567,21 +1567,21 @@ abstract class entity extends schema implements expression {
     }
 
     //Returns an array of pointers as all the foreigners that reference this 
-    //entity. Simolar to foreigensrs(), output of this function cannot be 
+    //entity. Similar to foreigners(), output of this function cannot be 
     //buffered, because, with abiliy to add view to the database, the pointers 
     //of an entity can change
     function pointers(): \Generator/* pointers[] */ {
         //
-        //The search for pinters will be limited to the currently open
-        // databases; otherwise we woulud have to open all the databse on the 
+        //The search for pointers will be limited to the currently open
+        // databases; otherwise we would have to open all the databases on the 
         //server.
         foreach (database::$current as $dbase) {
             foreach ($dbase->entities as $entity) {
                 foreach ($entity->foreigners() as $foreigner) {
                     //
-                    //A foreigner is a pointer to this entity if its reference match
-                    //this entity. The reference match if...
-                    if (
+                    //A foreigner is a pointer to this entity if its reference matches
+                    //this entity. The reference is a match if...
+                    if(
                     //...database names must match...
                             $foreigner->ref->db_name === $this->dbname
                             //
