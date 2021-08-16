@@ -670,7 +670,7 @@ export class theme extends outlook.panel {
         else {
             // 
             //Get the first tr in the view
-            newIndex = currentIndex - count < 1 ? 0 : currentIndex + count;
+            newIndex = currentIndex + count;
         }
         scroll_tr = tr.parentElement.rows[newIndex];
         //

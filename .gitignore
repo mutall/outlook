@@ -1,0 +1,20 @@
+#files
+/accounting
+/DDL support_1
+/Homepage
+/Insuredge
+/metavisuo
+/Other files
+/outlook_
+/pictures
+/public_html
+/testing
+/Other Files
+# sub folders
+/chama/nbproject
+/library/nbproject
+/outlook/nbproject
+/tracker/nbproject
+/school/nbproject
+#files
+test.php

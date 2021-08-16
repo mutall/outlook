@@ -3,6 +3,7 @@
 import { choices } from '../../../outlook/v/code/outlook.js';
 import { app } from "../../../outlook/v/code/app.js";
 import config from './config.js';
+import * as server from "../../../library/v/code/server.js";
 //
 //The school model that link teacher, pupils and parents
 export default class chama extends app {
@@ -89,10 +90,10 @@ export default class chama extends app {
     group_selector() {
         //
         //1. List all available Chama
-        //const chama = get_sqldata;
+        const chama = server.exec("database", ["mutall_chama"], "get_sql_data", ["select `name` from `group`"]);
         //
-        //2. Select one or more
-        const selector = s;
+        //2. Select one or more groups
+        //
         //3. Update the Databases in both "user" and "application"
         //
         //4. Respect the business selector to all crud sql's

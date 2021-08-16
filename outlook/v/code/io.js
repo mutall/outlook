@@ -3,7 +3,7 @@
 import * as schema from "../../../library/v/code/schema.js";
 import * as crud from "./crud.js";
 //
-//Added to alllo access to a view
+//Added to allow access to a view
 //import * as outlook from "./outlook.js";
 // 
 //Resolve the tree methods needed for browser
