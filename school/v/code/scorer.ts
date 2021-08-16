@@ -78,10 +78,10 @@ type layout=
     //
     //The tabular layouts are known to be characterized by the following three
     //elements, tbody,tr,and td.
-    "tabular"
+    {type:"tabular"}
     //
-    //For label layouts, we need three HTML element tag names
-    |{
+    //For label layouts, we need three HTML element tag git names
+    |{type:"label",
         //
         //This is the root element of the data being displayed
         body:HTMLElementTagName,
@@ -108,9 +108,32 @@ abstract class lister extends panel{
   //The following properties and methods are relevant for tabular layouts only.
   public table: HTMLTableElement;
   //
-  //This method paints the header of a table layout;it is not valid for label 
-  //layout.  
-  abstract paint_header(): Promise<barrel>;
+  //The body element is the parent of all the barrels on this panel
+  public body: HTMLElement;
+  //
+  //Returns the barrel that represents the lister heasder.  
+  abstract get_header_barrel(): Promise<barrel>;
+  //
+  //Get the current barrel tag name
+  get barrel_tag_name(){
+      return this.layout.type === "tabular" ? "tr" : this.layout.barrel;
+  }
+  //
+  //Get the current tin tag name
+  get tin_tag_name(){
+      return this.layout.type === "tabular" ? "td" : this.layout.tin;
+  }
+  //
+  //Run any asynchronous methods that may be required to complete 
+  //the definition of a lister.Typically these are operations that would
+  //logically be called from the constructor.
+  abstract initialize():Promise<void>;
+  // 
+  //Get Ifuel i.e.,the data to paint to the body 
+  abstract get_Ifuel():Promise<Ifuel>;
+  //
+  //Returns the io of the given header tin
+  abstract get_io(header_tin:tin):io;
   //
   //
   constructor(
@@ -122,77 +145,100 @@ abstract class lister extends panel{
     //This is the view that is the parent of this panel.
     base: view,
     //
+    //This is the general format of the data i.e. either tabular of label.
+    public layout: layout,
+    //
     //This is a user defined metadata that shapes the relationships between the
     // key and their data values. 
-    public udf_meta?: { [cname: string]: udf_meta },
-    //
-    //This is the general format of the data i.e. either tabular of label.
-    public layout?: layout
+    public udf_meta?: { [cname: string]: udf_meta }
   ) {
         //
         //Initialize the parent panel class
         super(css, base);
         //
         //Create the necessary HTML elements depending on the layouts.
-        if (layout === "tabular"){
+        let body:HTMLElementTagName;
+        switch(layout.type){
             //
-            this.table = create_element(this.anchor, 'table', {});
-            // 
-            //Create the thead
-            create_element(this.table, "thead", {});
-            // 
-            //Create the tbody
-            create_element(this.table, "tbody", {});
-        }
-        //
-        //else if the layout is label,then use the supplied html tag names
-        // to create the elemenets
-        else if(????){
+            //For the tabular case the elements are well known
+            case "tabular":
+                //
+                this.table = create_element(this.anchor, 'table', {});
+                // 
+                //Create the thead
+                create_element(this.table, "thead", {});
+                //
+                //The body elementTagName of a tabular layout is tbody
+                body= "tbody";
+                break;
             //
-            //Create the body element
+            //For the label case the elements are user supplied
+            case "label":
+                //
+                //The body elementTagName of the label layout is user defined
+                body= layout.body;
+            break;
         }
-        //
-        //else the layout specification must be invalid
-        else{
-            //
-            //convert the layout specification to a string
-            const str= String(layout);
-            throw new mutall_error(`invalid layout specification,`+str);
-        }
-  }
-  // 
-  async paint(): Promise<void>{
-    await this.initialize();
-    this.header = await this.paint_header();
-      // 
-  //Get the data to paint to the body 
-    const Ifuel = await this.get_fuel();
-    //
-    await this.paint_body(Ifuel)
-  }
-  async paint_body(Ifuel):Promise<void>{ 
-    // 
-    //Loop over all the ifuel to create barrel
-    for(const Ibarrel of Ifuel) {
-    //
-    // 
-    const body_barrel = new barrel(this);
-        body_barrel.tins = [];
         // 
-        for (const htin of this.header){
-          // 
-          //Create jthe data tins 
-          const Tin = new tin(Barrel);
-          // 
-          //The general io for an sql is read only
-          Tin.Io = new readonly(Tin.anchor);
-          Tin.Io.value = Ibarrel[htin.dposition];
-          // 
-          // 
-          body_barrel.tins.push(Tin)
+        //Create the boby element for this panel
+        this.body= create_element(this.table, body, {});
+  }
+  //
+  //Display or show this panel on its base view
+  async paint(): Promise<void>{
+        //
+        //Run any asynchronous methods that may be required to complete 
+        //the definition of a lister
+        await this.initialize();
+        //
+        //Get and set the lister header
+        this.header = await this.get_header_barrel();
+        //
+        //Show or display the header.It is necessary if the layout
+        //is tabular
+        if (this.layout.type=== "tabular")this.header.paint();
+        // 
+        //Get Ifuel i.e.,the data to paint to the body 
+        const Ifuel = await this.get_Ifuel();
+        //
+        //Use the fuel to paint the lister body
+        this.paint_body(Ifuel)
+  }
+  //
+  //Use the given Ifuel(data)to show or display the panels body.This is a double
+  //loop that iterates over the barrels in the fuel and the tins in the barrels
+  paint_body(Ifuel:Ifuel):void { 
+        // 
+        //Loop over all the ifuel to paint the barrels
+        for(const Ibarrel of Ifuel) {
+            //
+            //Create the barrel 
+            const body_barrel = new barrel(this);
+            //
+            //Assuming that the header tins are already sorted by the data
+            //position loop through all the tins in the header barrels  
+            for (const htin of this.header!.tins){
+                // 
+                //Create the data tinl 
+                const Tin = new tin(body_barrel);
+                // 
+                //Get and set the tin's io.
+                Tin.io = this.get_io(htin);
+                //
+                //Get the value to be associated with this tin
+                const value= Ibarrel[htin.dposition!];
+                //
+                //Set the tins value
+                Tin.value = value; 
+                // 
+                //Add the tin to the barrel
+                body_barrel.tins.push(Tin)
+            }
+            //
+            //Paint or show or display the body's barrel
+            body_barrel.paint();
         }
-        body_barrel.paint();
-      }
+    }
 }
 // 
 abstract class scroller extends lister{
@@ -383,19 +429,23 @@ class metamod extends lister{
 class tin{
   // 
   // 
-  public Io?: io;
+  public io?: io;
   public anchor: HTMLElement;
   public uposition?: number
   public name?: string;
   public dposition?:number,
   // 
-  // 
+  //A tin has a value which is only accessible through its io.
+  get value(){return this.io!.value;}
+  set value(v){this.io!.value=v;}
+  //
+  //
   constructor(protected Barrel:barrel) {
     this.anchor = create_element(this.Barrel.get_parent().document, "td", {})
   }
   paint() {
     this.Barrel.anchor.appendChild(this.anchor);
-    this.Io!.paint()
+    this.io!.paint()
   }
     
 }
