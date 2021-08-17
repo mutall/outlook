@@ -100,7 +100,7 @@ abstract class lister extends panel{
   //This method allows us to run asynchronous methods whose natural point of call
   //would have been at the constructor level.the programmer is expected to call
   //this method before he implements any public method of this class.
-  abstract inititialize(): Promise<void>
+  abstract initialize(): Promise<void>
   //
   //??? it is the base that should be protected 
   protected header?: barrel;
@@ -123,11 +123,6 @@ abstract class lister extends panel{
   get tin_tag_name(){
       return this.layout.type === "tabular" ? "td" : this.layout.tin;
   }
-  //
-  //Run any asynchronous methods that may be required to complete 
-  //the definition of a lister.Typically these are operations that would
-  //logically be called from the constructor.
-  abstract initialize():Promise<void>;
   // 
   //Get Ifuel i.e.,the data to paint to the body 
   abstract get_Ifuel():Promise<Ifuel>;
