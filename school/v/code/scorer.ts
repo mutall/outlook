@@ -73,6 +73,9 @@ export abstract class panel extends view {
   }
 }
 //
+//This is an array of basic values used for constructing the Ifuel
+type Ibarrel= Array<basic_value>;
+//
 //There are two possible layouts:tabular or label.
 type layout=
     //
@@ -111,12 +114,9 @@ abstract class lister extends panel{
   //The body element is the parent of all the barrels on this panel
   public body: HTMLElement;
   //
-  //Returns the barrel that represents the lister heasder.  
-  abstract get_header_barrel(): Promise<barrel>;
-  //
   //Get the current barrel tag name
   get barrel_tag_name(){
-      return this.layout.type === "tabular" ? "tr" : this.layout.barrel;
+    return this.layout.type === "tabular" ? "tr" : this.layout.barrel;
   }
   //
   //Get the current tin tag name
@@ -131,6 +131,7 @@ abstract class lister extends panel{
   abstract get_io(header_tin:tin):io;
   //
   //
+  abstract get_header_Ibarrel():Promise<Ibarrel>;
   constructor(
     //
     //This css describes the location (on the base page) where the panel the
