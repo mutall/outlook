@@ -100,7 +100,7 @@ abstract class lister extends panel{
   //This method allows us to run asynchronous methods whose natural point of call
   //would have been at the constructor level.the programmer is expected to call
   //this method before he implements any public method of this class.
-  abstract inititialize(): Promise<void>
+  abstract initialize(): Promise<void>
   //
   //??? it is the base that should be protected 
   protected header?: barrel;
@@ -123,11 +123,6 @@ abstract class lister extends panel{
   get tin_tag_name(){
       return this.layout.type === "tabular" ? "td" : this.layout.tin;
   }
-  //
-  //Run any asynchronous methods that may be required to complete 
-  //the definition of a lister.Typically these are operations that would
-  //logically be called from the constructor.
-  abstract initialize():Promise<void>;
   // 
   //Get Ifuel i.e.,the data to paint to the body 
   abstract get_Ifuel():Promise<Ifuel>;
@@ -205,6 +200,51 @@ abstract class lister extends panel{
         this.paint_body(Ifuel)
   }
   //
+  //It returns the row of data for painting the header 
+  async get_header_barrel(): Promise<barrel>{
+    // 
+    //Get the header column names
+    const Ibarrel = await this.get_header_Ibarrel();
+    //
+    //Create the header barrel for this panel
+    const header_barrel = new barrel(this);
+    //
+    //Use the header barrel to convert the column names to tins of this barrel
+    const tins= Ibarrel.map((cname,dposition)=>{
+        const Tin= new tin(header_barrel);
+        //
+        //Add the default data position to the tin
+        tin.dposition= dposition;
+        //
+        //Add the user-defined metadata that matches this tin
+        const udf = this.udf_meta![cname];
+        //
+        //Assign the Metadata to the tin if it is valid
+        if (udf !== undefined) Object.assign(tin, udf);
+        //
+        //Header tins are always displayed are always displayed in readonly mode 
+        Tin.io = new readonly(Tin.anchor);
+        //
+        //The value of the header tin is the column name
+        Tin.value = cname;
+        //
+        return(Tin);
+    });
+    // 
+    //Sort the tins by order of the ascending data position
+    tins.sort((a:tin, b:tin) => a.dposition! - b.dposition!);
+    //
+    //Attach the tins to the barrel 
+    header_barrel.tins= tins;
+    //  
+    //Create the header barrel
+    const Barrel = new barrel(this);
+    //
+    //Return the header barrel
+    return header_barrel;
+  }
+  //
+  //
   //Use the given Ifuel(data)to show or display the panels body.This is a double
   //loop that iterates over the barrels in the fuel and the tins in the barrels
   paint_body(Ifuel:Ifuel):void { 
@@ -257,72 +297,7 @@ abstract class scroller extends lister{
   // 
   //Every scroller must be associated with an sql 
   abstract get_sql(): Promise<sql>;
-  // 
-  async paint_header(): Promise<barrel>{
-    // 
-    //At this point we need to get the sql.
-    this.sql = await this.get_sql();
-    // 
-    //Execute the sql to get the databased column metadata
-    const dcolumns: Array<column_meta> = this.exec("database", [this.sql.dbname], "get_sql_metadata", [this.sql.stmt]);
-    //
-    //commbine the user defined metadata with the database once
-    const c_columns = this.udf_meta === undefined
-      ? dcolumns
-      : dcolumns.map((col, dposition) => {
-        // 
-        //Save the column data position
-        col.dposition = dposition;
-        // 
-        //Get any metadata from the udf that matches the name of this colum
-        const udf = this.udf_meta[col.name];
-        if (udf !== undefined) {
-          // 
-          //Add the user defined metadata to the column
-          Object.assign(col, udf);
-        }
-      });
-    // 
-    //Sort the columns by order of ascending user position
-    c_columns.sort((a, b) => {
-      // 
-      //If the user defined position is not provided then use the data one.
-      //Get the user defined position of a 
-      const pa = a.uposition ?? a.dposition;
-      // 
-      //Get the user position of b 
-      const pb = b.uposition ?? b.dposition;
-      // 
-      //Return the comparison result.
-      if (pa === pb) return 0;
-      if (pa > pb) return 1;
-      return -1;
-    });
-    // 
-    //Create the header barrel
-    const Barrel = new barrel(this);
-    // 
-    //Step through all the columns and display each one of them
-    for (const col of c_columns) {
-      // 
-      //Create a header tin out of the columns
-      const Tin = new tin(col.name, col.dposition, Barrel);
-      // 
-      //Ofload all column data to the tin
-      Object.assign(Tin, col);
-      // 
-      Tin.Io = new readonly(Tin.anchor);
-      Tin.Io.value = col.name;
-      Barrel.tins?.push(Tin);
-    }
-    Barrel.paint();
-    return Barrel;
-  }
-
-  get_fuel() {
-    return  this.exec("database", [""], "get_sql_data", [this.sql]);
-  }
-  // 
+   
   // 
   
   
