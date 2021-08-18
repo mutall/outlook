@@ -44,6 +44,13 @@ export default class chama extends app {
                 title: "Super User Table Editor",
                 id: "edit_table",
                 listener: ['post_defined', `app.current.edit_table()`]
+            },
+            //
+            //Select a group or groups you belong to
+            select_group: {
+                title: "Select a group",
+                id: "select_group",
+                listener: ['post_defined', `app.current.group_selector()`]
             }
         };
         //
@@ -87,12 +94,12 @@ export default class chama extends app {
     }
     //
     //Adding the Business Selector
-    group_selector() {
+    async group_selector() {
         //
-        //1. List all available Chama
+        //1. List all available
         const chama = server.exec("database", ["mutall_chama"], "get_sql_data", ["select `name` from `group`"]);
         //
-        //2. Select one or more groups
+        //2. Select one or more
         //
         //3. Update the Databases in both "user" and "application"
         //
