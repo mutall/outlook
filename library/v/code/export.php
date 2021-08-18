@@ -75,6 +75,7 @@ try{
     include_once  $path.'sql.php';
     include_once  $path.'capture.php';
     include_once  $path.'tree.php';
+    include_once  $_SERVER['DOCUMENT_ROOT'].'/outlook/v/code/app.php';
     //
     //Include application specific file to support
     //extension of outlook with user defined classes 

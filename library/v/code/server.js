@@ -113,7 +113,7 @@ export async function post_file(file, path) {
     return output;
 }
 //
-//Fetching static methods
+//The ifetch function is used for executing static methods on php class
 export async function ifetch(
 //
 //The class of the php object to use.
@@ -162,8 +162,8 @@ margs) {
         return result;
     }
     //
-    //Invalid json;this must be an error
+    //Invalid json;this must be an error. Show the original error.
     catch (ex) {
-        throw new mutall_error(ex.message);
+        throw new mutall_error(text);
     }
 }

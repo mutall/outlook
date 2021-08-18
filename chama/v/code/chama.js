@@ -3,6 +3,7 @@
 import { choices } from '../../../outlook/v/code/outlook.js';
 import { app } from "../../../outlook/v/code/app.js";
 import config from './config.js';
+import * as server from "../../../library/v/code/server.js";
 //
 //The school model that link teacher, pupils and parents
 export default class chama extends app {
@@ -43,6 +44,13 @@ export default class chama extends app {
                 title: "Super User Table Editor",
                 id: "edit_table",
                 listener: ['post_defined', `app.current.edit_table()`]
+            },
+            //
+            //Select a group or groups you belong to
+            select_group: {
+                title: "Select a group",
+                id: "select_group",
+                listener: ['post_defined', `app.current.group_selector()`]
             }
         };
         //
@@ -86,13 +94,20 @@ export default class chama extends app {
     }
     //
     //Adding the Business Selector
-    group_selector() {
+    async group_selector() {
         //
         //1. List all available Chama
-        //const chama = get_sqldata;
+        const chama = await server.exec("database", ["mutall_chama"], "get_sql_data", ["select `name` from `group`"]);
         //
-        //2. Select one or more
-        const selector = s;
+        //
+        const pairs = chama.map(pair => { return { key: "name", value: String(pair.name) }; });
+        //
+        // 1.1 Use the listed chamas to create a popup
+        const Choice = new choices(this.config, pairs, "chama", null, "#content", "single");
+        //
+        //2. Select one or more groups
+        const selected = Choice.administer();
+        //
         //3. Update the Databases in both "user" and "application"
         //
         //4. Respect the business selector to all crud sql's
