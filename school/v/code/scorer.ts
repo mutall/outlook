@@ -16,7 +16,9 @@ interface udf_meta{
 // 
 //This is the coomponets of an sql statement
 type sql= {stmt:string,dbname:string}
-
+//
+//This type is used for constraining a string to a valid name of a html element.
+type HTMLElementTagName= keyof HTMLElementTagNameMap;
 //
 //A panel is a targeted section of a view. It can be painted 
 //independently
@@ -105,11 +107,9 @@ abstract class lister extends panel{
   //this method before he implements any public method of this class.
   abstract initialize(): Promise<void>
   //
-  //??? it is the base that should be protected 
-  protected header?: barrel;
-  //
   //The following properties and methods are relevant for tabular layouts only.
-  public table: HTMLTableElement;
+  //This property is made private because it is relevant when the layout is set
+  private table: HTMLTableElement;
   //
   //The body element is the parent of all the barrels on this panel
   public body: HTMLElement;
@@ -130,8 +130,14 @@ abstract class lister extends panel{
   //Returns the io of the given header tin
   abstract get_io(header_tin:tin):io;
   //
+  //Returns the header column names, technically referred to as an Ibarrel.
+  abstract get_col_names():Promise<Array<string>>;
   //
-  abstract get_header_Ibarrel():Promise<Ibarrel>;
+  //This is a user defined metadata that shapes the relationships between the
+  // key and their data values.  
+  abstract get_udf_meta():{ [cname: string]: udf_meta };
+  //
+  //
   constructor(
     //
     //This css describes the location (on the base page) where the panel the
@@ -142,11 +148,7 @@ abstract class lister extends panel{
     base: view,
     //
     //This is the general format of the data i.e. either tabular of label.
-    public layout: layout,
-    //
-    //This is a user defined metadata that shapes the relationships between the
-    // key and their data values. 
-    public udf_meta?: { [cname: string]: udf_meta }
+    public layout: layout
   ) {
         //
         //Initialize the parent panel class
@@ -154,6 +156,11 @@ abstract class lister extends panel{
         //
         //Create the necessary HTML elements depending on the layouts.
         let body:HTMLElementTagName;
+        //
+        //This is parent of the body element
+        let target: HTMLElement;
+        //
+        //
         switch(layout.type){
             //
             //For the tabular case the elements are well known
@@ -166,6 +173,9 @@ abstract class lister extends panel{
                 //
                 //The body elementTagName of a tabular layout is tbody
                 body= "tbody";
+                //
+                //The target for the body is the table element
+                target = this.table;
                 break;
             //
             //For the label case the elements are user supplied
@@ -173,11 +183,14 @@ abstract class lister extends panel{
                 //
                 //The body elementTagName of the label layout is user defined
                 body= layout.body;
+                //
+                //The target of a label layout is the panel
+                target= this.target;
             break;
         }
         // 
         //Create the boby element for this panel
-        this.body= create_element(this.table, body, {});
+        this.body= create_element(target, body, {});
   }
   //
   //Display or show this panel on its base view
@@ -209,6 +222,9 @@ abstract class lister extends panel{
     //
     //Create the header barrel for this panel
     const header_barrel = new barrel(this);
+    //
+    //Get the user defined metadata
+    const udf_meta= this.get_udf_meta;
     //
     //Use the header barrel to convert the column names to tins of this barrel
     const tins= Ibarrel.map((cname,dposition)=>{
@@ -305,20 +321,88 @@ abstract class scroller extends lister{
   }
 }
 // 
-// 
+//This class models an input panel used for modifying the look of a crud page.ie.
+//what columns are visible,the positions of the columns relative to each other,
+//their widths e.t.c. This is controlled by a set of metadata that is modified
+// by this panel.
 class metamod extends lister{
-  // 
-  constructor(
-    base: view,
-    css: string,
-    public caller:scroller
-  ) {
-    super(css, base);
-    
-  }
-  // 
-  // 
-  async paint_header(): Promise<barrel>{
+    // 
+    //
+    constructor(
+        css: string,
+        base: view,
+        //
+        //This is the panel whose look is being modified
+        public caller:scroller
+    ){  
+        //
+        //The typical layout of a metamod panel is tabular
+        super(css, base,{type:"tabular"}); 
+    }
+    //
+    //There are no asynchronous methods pending after constructing this panel
+    async initialize(): Promise<void>{};
+    //
+    //The column names of metamod are very well known
+    async get_col_names(): Promise<Array<string>>{
+        return ["cname","hidden","position","length","region"];
+    }
+    //
+    //Returns the io that matches the given tin
+    get_io(header_tin: tin):io{
+        //
+        //Get the anchor element for the tin
+        const anchor = header_tin.anchor;
+        //
+        //Return the io depending on the tins column name
+       switch (header_tin.name) {
+          case "cname":
+            return new readonly(anchor);;
+          case "position":
+            return new input("number", anchor);
+          case "hidden":
+            return new checkbox(anchor);
+          case "region":
+           return new select(anchor, ["page", "verticles", "horizantals", "intersects"]);
+          case "length": 
+            return new input("number", anchor);
+        } 
+    }
+    //
+    //Returns the data that constitutes the body of this panel. This data comes
+    // from the metadata of the caller panel.
+    async get_Ifuel(): Promise<Ifuel>{
+        //
+        //Get the column metadata from the caller
+        const col_meta:Array<column_meta>= this.caller.get_col_meta();
+        //
+        //Convert the array of col_meta to an array of Ibarrels,i.e., the Ifuel
+        return col_meta.map(col=> this.get_data_Ibarrel(col));
+    }
+    //
+    //We dont expect to change the appearance of the metamod panel so it doesn't
+    //have metadata of its own
+    async get_udf_meta():{ [cname: string]: udf_meta }{return{}}
+    //
+    //Derive the barrel from the caller scroller
+    get_data_Ibarrel(column: column_meta): Ibarrel{
+        //
+        //Initialize the value to return
+        const meta= {};
+        //
+        //Get all the column names of this panel
+        const col_names= await this.get_col_names();
+        //
+        //
+        for(let cname of col_names){
+            //
+            //***get_col_meta derives the metdata from the caller
+            meta[cname]= this.get_col_meta(cname);
+        }
+    }
+    //
+    // 
+    async paint_header(): Promise<barrel>{
     // 
     //Create the header barrel
     const hbarrel = new barrel(this);
@@ -374,28 +458,7 @@ class metamod extends lister{
     const anchor = Tin.anchor;
     const Udf_meta=this.udf_meta[htin.name]
     
-    switch (htin.name) {
-      case "cname":
-        Tin.Io = new readonly(anchor);
-        Tin.Io.value=htin.name
-        break;
-      case "order":
-        Tin.Io = new input("number", anchor);
-        Tin.Io.value = Udf_meta.uposition===undefined? Tin.dposition:Udf_meta.uposition;
-        break;
-      case "hidden":
-        Tin.Io = new checkbox(anchor);
-        Tin.Io.value =this.get_hidden_status()
-          //Udf_meta.hidden === undefined ? false : Udf_meta.hidden;
-        break;
-      case "region":
-        Tin.Io = new select(anchor, ["page", "verticles", "horizantals", "intersects"]);
-        Tin.Io.value = Udf_meta.region === undefined ? "horizontals" : Udf_meta.region;
-        break;
-      case "size": Tin.Io = new input("number", anchor);
-        Tin.Io.value = Udf_meta.size === undefined ? metadata.len : Udf_meta.size;
-        break;
-    }
+    
     // 
     return  Tin
   }
