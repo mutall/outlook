@@ -739,74 +739,111 @@ export class theme extends outlook.panel {
     }
     // 
     //Scrolls page number of records in a given direction.
-    private scroll_page(outcome:key_outcome):void{
+    private scroll_page(dir:"up"|"down"):void{
        // 
        //Get the selected tr if any
-       let tr = this.document.querySelector(".TR");
+       const tr = this.document.querySelector(".TR");
        //
-       //If tr is not defined get the last tr in that view
-       if(!(tr instanceof HTMLTableRowElement)){
+       //Something must be wrong if no tr is selected because you could not have
+       //gotten to this stage.
+       if( tr === null){
            //
            alert("Please select a tr");
-           throw new Error("No tr was selected");
-       }
-        // 
+           throw new Error("No tr is currently selected");
+       } 
         //
         //Get the tr to be scrollled into view.
-        const scroll_tr= this.get_page_tr(tr, outcome.dir);
+        const scroll_tr= this.get_page_tr(tr, dir);
        //
        // Scroll the given tr to either top or bottom
-       const block = outcome.dir=== "up"?"end":"start";
+       const block = dir=== "up"?"end":"start";
        //
-       //
+       //Scroll the row into view...
        scroll_tr.scrollIntoView({block:block});
        // 
-       // 
+       //and select it 
        theme.select(scroll_tr);
     }
     //
-    //return the tr to either be the first or the last in the view depending
+    //Return the tr to either be the first or the last in the view depending
     //on the scroll direction
     private get_page_tr(tr:HTMLTableRowElement, dir:"up"|"down"):HTMLTableRowElement{
         //
-        //
+        //This is the new tr element
         let scroll_tr:HTMLTableRowElement;
         // 
-        //Get the parent div that was used for scrolling
-        const div = tr.parentElement?.parentElement?.parentElement;
-        // // 
-        // //if the tr element is in view i.e., not at the top or bottom 
-        // if(inview)return tr;
+        //If the tr element is in view i.e., not at the top or bottom then it 
+        //does not change
+        if(this.inview(tr))return tr;
         //
-        //The tr is at the bottom or at the top 
+        //The tr is at the bottom or at the top of the client window so it is 
+        //outside of the range, we need to get a fresh one which is as far away
+        //as the height of the client window depending on the direction.
         //
-        //Get the number of elements in the view 
-        //const count_el =this.count_view_elements(div);
-        //for now we assume our view has 6 
-        const count =6;
-        // 
-        //Get the current row index
-        const currentIndex = tr.rowIndex;
-        let newIndex:number;
-        // 
-        //Return the given tr 
+        //1. Get the direction factor i.e. +1 or -1
+        const factor= dir==="up"?-1:+1;
         //
-        if(dir==="up"){
-            // 
-            //Get the first tr in the view
-            newIndex=currentIndex-count<1?0:currentIndex-count
+        //The number of pixels to scroll by
+        const amount = this.target!.clientHeight*factor;
+        //
+        //Scroll by this amount in the y direction
+        this.target!.scrollBy(0, amount);
+        //
+        //Get the new tr by counting from the current tr in the factor direction
+        //until we get out of view. Return the row at which we get out of view.
+        //
+        //Get the current table's body
+        const tbody= <HTMLTableSectionElement>tr.parentElement!;
+        //
+        //Step through all the table rows until you get out of the view.
+        //Note that the current i=0 and the next one i=1 are outside of the view
+        //by definition, hence the initial setting of i=2.
+        for(let i=2;;i++){
+            //
+            //Get the tr at the next i'th position
+            scroll_tr = tbody.rows[tr.rowIndex + i*factor];
+            //
+            //Test if the new row is still valid; we may be on the edge of the 
+            //view
+            if(scroll_tr === undefined){
+                //
+                //Retrieve more data if necessary; if not, return the original
+                //tr which effectively does nothing.INVESTIGATE IF SCROLLING
+                //BY A CERTAIN AMOUNT INVOKES THE SCROLL EVENT.
+                throw new Error("Please investigate this scrolling error");
+                break;
+            }
+            //
+            //When the tr is valid, check whether it is inside or outside of the
+            //client window view
+            //
+            //If its not within view, then we must have arrived at the tr we 
+            //required
+            if(!this.inview(scroll_tr)) return scroll_tr; 
         }
-        else{
-            // 
-            //Get the first tr in the view
-            newIndex=currentIndex-count<1?0:currentIndex+count
-        }
-        
-        scroll_tr= (<HTMLTableSectionElement>tr.parentElement!).rows[newIndex]
+    }
+    //
+    //Test if the given tr is in view or not. A tr is in view if it is between 
+    //the top and the bottom boundaries of the client window
+    public inview(tr:HTMLTableRowElement):boolean{
         //
-        //Return the promised tr
-        return scroll_tr;
-
+        //Get the top boundary of client window.
+        const top_boundary = this.target!.scrollTop;
+        //
+        //Get the bottom boundary of client window.
+        const bottom_boundary = this.target!.scrollTop + this.target!.clientHeight;
+        //
+        // Get the tr's top edge
+        const top_edge = tr.offsetTop;
+        //
+        //Get the tr's bottom edge
+        const bottom_edge = top_edge + tr.offsetHeight;
+        //
+        //If the given tr is within view we do nothing; it is within view if:
+        //      if its top edge is below the top boundary and
+        //      its bottom edge is above the bottom boundary
+        if (top_edge > top_boundary && bottom_edge< bottom_boundary)return true;
+        return false;
     }
     //
     //Returns one out of 6 outcomes of pressing a scrolling key including 
