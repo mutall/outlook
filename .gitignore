@@ -18,3 +18,4 @@
 /school/nbproject
 #files
 .gitignore
+*.js
