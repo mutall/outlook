@@ -4,9 +4,6 @@
 //extension of outlook with user defined classes 
 //e.g include_once '/tracker/v/code/tracker.php'
 function add_udf_files(){
-    // 
-    //Get the website $path(PK) 
-    //keywords HTTP server 
     //
     //1. Create a variable string on which to a
     $path = "";

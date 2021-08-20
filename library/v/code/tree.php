@@ -49,12 +49,19 @@ abstract class node extends mutall {
         string /*"file"|"folder"*/ $target
     ): node {
         //
-        //1. Make the initial path absolute. 
-        //e.g /pictures/water/logo.jpeg.
-        $abs_path= $this->get_absolute_path($initial_path);
+        //1. Make the initial path absolute by canonicalizing it
+        //e.g.,  pictures/water/logo.jpeg. 
+        //  becomes 
+        //  /pictures/logo.jpeg
+        $abs_path= $this->realpath($initial_path);
+        //
+        //
+        if ($abs_path === false){
+            throw new Exception("This path '$abs_path' is not valid");
+        }
         //
         //2.Separate the target file and the node path from the initial absolute 
-        //path. e.g /pictures/water,  logo.jpeg
+        //path, e.g., /pictures/water, logo.jpeg
         //
         //2.1) the node path 
         $node_path_str= pathinfo($abs_path, PATHINFO_DIRNAME);

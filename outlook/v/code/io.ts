@@ -759,7 +759,7 @@ export class file extends input{
                 //
                 //Paparazzi, please save the folder/files path structure here
                 //after you are done.
-                onclick: async () => await this.browse( String(this.value))
+                onclick: async (evt: Event) => await this.browse( evt, String(this.value))
         });
         
         //
