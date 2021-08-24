@@ -993,11 +993,11 @@ class join extends mutall{
     //This list is constructed when a join is executed
     public \Ds\Map /*joint[pename]*/$joints;
     //
-    //joins are created with on optional parameter of path i.e an array of foreigners
-    //though this paths at the constructor level are optional it is important to note that 
-    //we cannot have a join without a path so users can define the paths latter 
+    //Joins are created with an optional parameter of path,i.e., an array of 
+    //foreign keys, at the constructor level. It is important to note that 
+    //we cannot have a join without a path so users can define the paths later 
     //using the import method 
-    function __construct(array /*Array<foreigner>*/ $paths) {
+    function __construct( /*Array<foreigner>|null*/ $paths= null) {
         //
         //Save the constructor defined paths 
         $this->paths=$paths;
@@ -1009,10 +1009,10 @@ class join extends mutall{
         //path is empty.
         $this->joints = new \Ds\Map();
         //
-        //Now build the target
-        $this->build_joints();
+        //Now build the target joins if necessary
+        if (!is_null($paths))$this->build_joints();
     }
-    
+    //
     //Execute a join to assimilate the connection paths to the join targets
     function build_joints(){     
         //
@@ -1029,7 +1029,6 @@ class join extends mutall{
             }
         }
     }
-    
     //
     //deconstruct the join 
     function deconstruct(string $sql){
@@ -1038,7 +1037,7 @@ class join extends mutall{
         $this->execute();
         $this->network->deconstruct($sql);
     }
-    
+    //
     //Returns a complete join clause, i.e., 'inner join $target1 on a.b=b.b and ...'
     function stmt() :string/*join clause*/{
         //
