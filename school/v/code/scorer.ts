@@ -355,9 +355,9 @@ class metamod extends lister{
         const anchor = header_tin.anchor;
         //
         //Return the io depending on the tins column name
-       switch (header_tin.name) {
+        switch (header_tin.name) {
           case "cname":
-            return new readonly(anchor);;
+            return new readonly(anchor);
           case "position":
             return new input("number", anchor);
           case "hidden":
@@ -366,6 +366,8 @@ class metamod extends lister{
            return new select(anchor, ["page", "verticles", "horizantals", "intersects"]);
           case "length": 
             return new input("number", anchor);
+          default:
+            return new readonly(anchor);
         } 
     }
     //
@@ -385,19 +387,54 @@ class metamod extends lister{
     async get_udf_meta():{ [cname: string]: udf_meta }{return{}}
     //
     //Derive the barrel from the caller scroller
-    get_data_Ibarrel(column: column_meta): Ibarrel{
+    get_data_Ibarrel(col_meta: column_meta): Array<basic_value>{
         //
-        //Initialize the value to return
-        const meta= {};
+        //Initialize the list of basic values to return
+        const Ibarrel= [];
         //
         //Get all the column names of this panel
         const col_names= await this.get_col_names();
         //
-        //
+        //Loop through each column and derive its value
         for(let cname of col_names){
             //
-            //***get_col_meta derives the metdata from the caller
-            meta[cname]= this.get_col_meta(cname);
+            //*get_col_meta derives the metdata from the caller
+            Ibarrel.push(this.get_col_value(cname, col_meta)) ;
+        }
+        //
+        //Return the compiled list of values
+        return Ibarrel;
+    }
+    //
+    //Get the column position
+    get_col_position(data_cname){
+        //
+    }
+    //
+    //Get the column status .i.e., its hidden status
+    is_col_hidden(data_cname){
+        //
+        //    
+    }
+    get _col_size(data_cname){
+        //
+        //
+    }
+    //
+    //Get the value that corresponds to the given column of a metamod row.
+    get_col_value(meta_cname: string, row:col_meta): basic_value{
+        //
+        //Get the name of the row of the metadata being considered
+        const data_cname= row.name;
+        //
+        //
+        switch (meta_cname){
+          case "cname": return data_cname;
+          case "position": return this.caller.get_col_position(data_cname) ;
+          case "hidden": return this.caller.is_col_hidden(data_cname);
+          case "region": return "verticals";
+          case "size": return this.caller.get_col_size(data_cname);
+          default: throw new Error(`Column ${meta_cname} not known`); 
         }
     }
     //
