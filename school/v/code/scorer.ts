@@ -114,6 +114,10 @@ abstract class lister extends panel{
   //The body element is the parent of all the barrels on this panel
   public body: HTMLElement;
   //
+  // The barrel that contains the header tins required for ordering the body and
+  // to retrieve metadata for our metamod
+  public header_barrel?: barrel;
+  //
   //Get the current barrel tag name
   get barrel_tag_name(){
     return this.layout.type === "tabular" ? "tr" : this.layout.barrel;
@@ -407,8 +411,20 @@ class metamod extends lister{
     }
     //
     //Get the column position
-    get_col_position(data_cname){
+    get_col_position(data_cname: string){
         //
+        // 1.Get the caller header tin with the given name
+        // 
+        // 1.1 Get the caller header barrel
+        const caller_barrel = this.caller.header_barrel;
+        //
+        //1.2 Filter the header tin that matches the data cname,i.e., we expect 
+        //one element
+        const header_tin = caller_barrel.tins.filter(tin=> tin.name=== data_cname);
+        // 
+        // Return the dposition of the header tin
+        return header_tin[0].uposition;
+        
     }
     //
     //Get the column status .i.e., its hidden status
@@ -430,7 +446,7 @@ class metamod extends lister{
         //
         switch (meta_cname){
           case "cname": return data_cname;
-          case "position": return this.caller.get_col_position(data_cname) ;
+          case "position": return this.get_col_position(data_cname) ;
           case "hidden": return this.caller.is_col_hidden(data_cname);
           case "region": return "verticals";
           case "size": return this.caller.get_col_size(data_cname);
