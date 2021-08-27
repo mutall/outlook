@@ -49,32 +49,45 @@ abstract class node extends mutall {
         string /*"file"|"folder"*/ $target
     ): node {
         //
-        //1. Make the initial path absolute by canonicalizing it
-        //e.g.,  pictures/water/logo.jpeg. 
+        //1. Make the initial path absolute by canonicalizing it,i.e., expressing
+        //it in the standard well known format.
+        //e.g., the relative path 'pictures/water/logo.jpeg'
         //  becomes 
-        //  /pictures/logo.jpeg
-        $abs_path= $this->realpath($initial_path);
+        //  'D:/mutall_projects/chama/pictures/water/logo.jpeg'
+        $abs_path= realpath($initial_path);
         //
-        //
+        //Check if the initial path does indeed exist.
         if ($abs_path === false){
             throw new Exception("This path '$abs_path' is not valid");
         }
         //
         //2.Separate the target file and the node path from the initial absolute 
-        //path, e.g., /pictures/water, logo.jpeg
+        //path so that we have 2 components as follows:- 
+        //'D:/mutall_projects/chama/pictures/water'
+        //'logo.jpeg'
         //
-        //2.1) the node path 
+        //2.1 Get the node path including the drive 
         $node_path_str= pathinfo($abs_path, PATHINFO_DIRNAME);
         //
-        //2.2)The target path depends on the use specifications
-        $taget_file = $target==="file" 
+        //2.2 The target path depends on the user specification; there may be 
+        //none
+        $target_file = $target==="file" 
             ? pathinfo($abs_path, PATHINFO_FILENAME)
             :"";
+        //
+        //2.3.Strip off the root directory
+        
+        //
+        //Get the root directory
+        $root_dir= $_SERVER['DOCUMENT_ROOT'];
+        //
+        //Now Strip this root from the node path string
+        $node_path_str2= substr($node_path_str, strlen($root_dir));
         //
         //3. Build the node network from the node path array
         //
         //3.1) Convert the node path into an array 
-        $node_path= split($node_path_str, "/");
+        $node_path= split($node_path_str2, "/");
         //
         //Reverse the elements in the node path
         $reversed= array_reverse($node_path);
