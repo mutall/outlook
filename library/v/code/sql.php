@@ -1294,35 +1294,51 @@ class registrar extends editor{
         //
         //Expand the editor columns and joins to get the registrar
         //
-        //Loop through all the pointer and for each one of them...
+        //Loop through all the pointer and for each one of them add a column and
+        //a corresponding left join.
         foreach ($this->pointers() as $pointer){
             //
-            //
-            //Formulate the rod query; it is an aggregated view of a selector based
-            //on the given pointer.
+            //Formulate the rod query; it is an aggregated view of a selector
+            // based on the given pointer.
             $rod= new view($from, $columns, $join, $dbname);
             //
             //...add a pointer column
             this.add_column($pointer,$rod);        
             //
             //...add a pointer leftjoin
-            this.add_leftjoin($pointer,$rod);
+            this.add_left_join($pointer,$rod);
         }  
     }
     //
     //  Add a pointer column to the registrar
-    function add_column(pointer $pointer){
+    function add_column(pointer $pointer, view $rod):void{
         //
         //Get the name of the pointer column; it is the name of the home entity 
         //of the pointer
         $cname= $pointer->home()->name;
         //
+        //Get the expression for the pointer
+        $exp= $rod->columns['friend'];
+        //
         //Construct the new field
         $field=new field(
-            $this->dbname,
-            $this->name,
+            //
+            //This registrar query is the home of this field
+            $this,
+            //
+            //This is the local name of the field    
             $cname,
             $exp
-        );            
+        );
+        //
+        //Add this field to the registrar query
+        $this->columns[$cname]= $field;
+    }
+    //
+    //Add a left join to the registrar query to support the pointer columns
+    function add_left_join(pointer $pointer, view $rod): void{
+        //
+        //Create a left join type
+        $leftie= new joint($rod, "left", $ons);
     }
 }
