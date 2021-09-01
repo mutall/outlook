@@ -1,4 +1,4 @@
-import { basic_value, Ifuel } from "../../../library/v/code/library";
+import { basic_value, Ifuel,cname } from "../../../library/v/code/library";
 import * as schema from "../../../library/v/code/schema";
 import { checkbox, input, io, readonly, select } from "../../../outlook/v/code/io";
 import {view } from "../../../outlook/v/code/outlook";
@@ -120,7 +120,7 @@ abstract class lister extends panel{
   //
   // The barrel that contains the header tins required for ordering the body and
   // to retrieve metadata for our metamod
-  public header_barrel?: barrel;
+  public header?: Map<cname, tin>;
   //
   //Get the current barrel tag name
   get barrel_tag_name(){
@@ -161,6 +161,7 @@ abstract class lister extends panel{
         //
         //Initialize the parent panel class
         super(css, base);
+        
         //
         //Create the necessary HTML elements depending on the layouts.
         let body:HTMLElementTagName;
@@ -213,7 +214,7 @@ abstract class lister extends panel{
         await this.initialize();
         //
         //Get and set the lister header
-        this.header = await this.get_header_barrel();
+        this.header = await this.get_header();
         //
         //Show or display the header.It is necessary if the layout
         //is tabular
@@ -226,32 +227,32 @@ abstract class lister extends panel{
         this.paint_body(Ifuel)
   }
   //
-  //It returns the row of data for painting the header 
-  async get_header_barrel(): Promise<barrel>{
+  //Return the header map with tins indexed by their column name
+  async get_header(): Promise<Map<cname, tin>>{
     // 
     //Get the header column names
-    const Ibarrel = await this.get_col_names();
+    const cnames = await this.get_col_names();
     //
-    //Create the header barrel for this panel
+    //Create the header barrelto support construction of tins
     const header_barrel = new barrel(this);
     //
     //Get the user defined metadata
-    const udf_meta= this.get_udf_meta;
+    const udf_meta= this.get_udf_meta();
     //
-    //Use the header barrel to convert the column names to tins of this barrel
-    const tins= Ibarrel.map((cname,dposition)=>{
+    //Map the column names to their entries, i.e.,column name/tin pairs
+     const entries:Array<[cname,tin]>= cnames.map((cname,dposition)=>{
         const Tin= new tin(header_barrel);
         //
         //Add the default data position to the tin
-        tin.dposition= dposition;
+         Tin.dposition= dposition;
         //
         //Add the user-defined metadata that matches this tin
-        const udf = this.udf_meta![cname];
+        const udf = udf_meta![cname];
         //
         //Assign the Metadata to the tin if it is valid
-        if (udf !== undefined) Object.assign(tin, udf);
+        if (udf !== undefined) Object.assign(Tin, udf);
         //
-        //Header tins are always displayed are always displayed in readonly mode 
+        //Header tins are always displayed in readonly mode 
         Tin.io = new readonly(Tin.anchor);
         //
         //The value of the header tin is the column name
@@ -264,20 +265,18 @@ abstract class lister extends panel{
         //
         //b. Add the column select event listener to the tin
         Tin.anchor.onclick=(evt: Event)=> this.select_column(evt);
-        return(Tin);
+        //
+        //Compile and return the entry
+        return [cname,Tin];
     });
     // 
-    //Sort the tins by order of the ascending data position
-    tins.sort((a:tin, b:tin) => a.dposition! - b.dposition!);
+    //Sort the entries by order of the ascending data position
+    entries.sort(
+        (a:[cname,tin], b:[cname,tin])=> a[1].dposition! - b[1].dposition!
+    );
     //
-    //Attach the tins to the barrel 
-    header_barrel.tins= tins;
-    //  
-    //Create the header barrel
-    const Barrel = new barrel(this);
-    //
-    //Return the header barrel
-    return header_barrel;
+    //Return the header map
+    return new Map(entries);
   }
   //
     //Mark the current column as selected.
@@ -492,23 +491,6 @@ class metamod extends lister{
         return Ibarrel;
     }
     //
-    //Get the column position
-    get_col_position(data_cname: string){
-        //
-        // 1.Get the caller header tin with the given name
-        // 
-        // 1.1 Get the caller header barrel
-        const caller_barrel = this.caller.header_barrel;
-        //
-        //1.2 Filter the header tin that matches the data cname,i.e., we expect 
-        //one element
-        const header_tin = caller_barrel.tins.filter(tin=> tin.name=== data_cname);
-        // 
-        // Return the dposition of the header tin
-        return header_tin[0].uposition;
-        
-    }
-    //
     //Get the column status .i.e., its hidden status
     is_col_hidden(data_cname){
         //
@@ -525,89 +507,33 @@ class metamod extends lister{
         //Get the name of the row of the metadata being considered
         const data_cname= row.name;
         //
+        //Get the caller header tin that corresponds to this data column name
+        const Tin= this.caller.header!.get(data_cname);
+        //
+        //Verify that this tin is valid
+        if(Tin === undefined)throw new Error(`Column name ${data_cname} was not found`);
+        //
         //
         switch (meta_cname){
           case "cname": return data_cname;
-          case "position": return this.get_col_position(data_cname) ;
-          case "hidden": return this.caller.is_col_hidden(data_cname);
+          case "position": return Tin.dposition!;
+          case "hidden": return Tin.hidden;
           case "region": return "verticals";
-          case "size": return this.caller.get_col_size(data_cname);
+            case "size": return Tin.anchor.offsetWidth;
           default: throw new Error(`Column ${meta_cname} not known`); 
         }
     }
-    //
-    // 
-    async paint_header(): Promise<barrel>{
-    // 
-    //Create the header barrel
-    const hbarrel = new barrel(this);
-    // 
-    //Populatr the barrel with the ton based oon the columns names 
-    hbarrel.tins = ["cname", "order", "hidden", "region", "size"]
-      .map((name, index) => {
-        // 
-        //Create the new tin 
-        const Tin = new tin(hbarrel);
-        // 
-        //Add the name and the datapositon properties
-        Tin.name = name; Tin.dposition = index; Tin.uposition = index;
-        return Tin;
-      });
-    // 
-    //Return the  promised barrel 
-    return hbarrel;
-  }
-  // 
-  //Paint the  body
-  async paint_body(): Promise<void>{
-    // 
-    //loop through the  array of colmetadata
-    for (const col_metadata of this.caller.col_metadata) {
-      // 
-      //Create a barrel 
-      const Barrel = new barrel(this);
-      // 
-      //Loop through the header tins
-      for (const htin of this.header!.tins!) {
-        // 
-        //Create the datatin 
-        const Tin = new tin(Barrel);
-        // 
-        //Populate tin with value and io data.
-        this.populate_tin(Tin,htin,col_metadata)
-        Barrel.tins.push(Tin);
-      }
-      Barrel.paint()
-    }
-  }
-  
-  // 
-  // 
-  populate_tin(
-    /*body_tin*/Tin:tin,
-    /*header_tin*/htin: tin,
-    column_meta: column_meta
-  ): void{
-    // 
-    // 
-    const anchor = Tin.anchor;
-    const Udf_meta=this.udf_meta[htin.name]
-    
-    
-    // 
-    return  Tin
-  }
 }
-// 
   // 
 class tin{
   // 
   // 
   public io?: io;
   public anchor: HTMLElement;
-  public uposition?: number
+  public uposition?: number;
   public name?: string;
-  public dposition?:number,
+  public dposition?:number;
+  public hidden?:boolean;
   // 
   //A tin has a value which is only accessible through its io.
   get value(){return this.io!.value;}
