@@ -647,6 +647,7 @@ export class file extends input {
             //Paparazzi, please save the folder/files path structure here
             //after you are done.
             onclick: async (evt) => await this.browse(evt, String(this.value))
+            /*alert(this.value)*/
         });
         //
         //Upload this file after checking that the user has all the inputs.
@@ -765,7 +766,7 @@ export class file extends input {
     //
     //Displaying the initial look of the browser
     initial) {
-        //
+        alert(this.value);
         //It tells us whether the initial path is a file or a folder.
         //This is important for controlling the browser behaviour i.e for 
         //quality control purposes
@@ -841,7 +842,7 @@ export class file extends input {
     //Overide the setting of the input vakue so as to extend the 
     //changing of the image source.
     set input_value(i) {
-        super.input_value = i;
+        this.input.value = i;
         if (this.type === "image") {
             //
             //Set the image to the defalt when it is null
