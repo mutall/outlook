@@ -111,8 +111,16 @@ abstract class lister extends panel{
   //This property is made private because it is relevant when the layout is set
   private table: HTMLTableElement;
   //
+  //This is the stylesheet that we manipulate programmatically to control
+  // the look of this panel e.g. hiding and selecting columns
+  public stylesheet:CSSStyleSheet;
+  //
   //The body element is the parent of all the barrels on this panel
   public body: HTMLElement;
+  //
+  // The barrel that contains the header tins required for ordering the body and
+  // to retrieve metadata for our metamod
+  public header_barrel?: barrel;
   //
   //Get the current barrel tag name
   get barrel_tag_name(){
@@ -123,19 +131,19 @@ abstract class lister extends panel{
   get tin_tag_name(){
       return this.layout.type === "tabular" ? "td" : this.layout.tin;
   }
-  // 
-  //Get Ifuel i.e.,the data to paint to the body 
-  abstract get_Ifuel():Promise<Ifuel>;
-  //
-  //Returns the io of the given header tin
-  abstract get_io(header_tin:tin):io;
   //
   //Returns the header column names, technically referred to as an Ibarrel.
   abstract get_col_names():Promise<Array<string>>;
   //
+  //Returns the io of the given header tin
+  abstract get_io(header_tin:tin):io;
+  //
   //This is a user defined metadata that shapes the relationships between the
   // key and their data values.  
   abstract get_udf_meta():{ [cname: string]: udf_meta };
+  // 
+  //Get Ifuel i.e.,the data to paint to the body 
+  abstract get_Ifuel():Promise<Ifuel>;
   //
   //
   constructor(
@@ -189,9 +197,13 @@ abstract class lister extends panel{
             break;
         }
         // 
-        //Create the boby element for this panel
+        //Create the body element for this panel
         this.body= create_element(target, body, {});
-  }
+        //
+        //Create a sheet for styling the content of this panel to control the
+        //styling of the body's children
+        this.stylesheet= create_element(header,"style",{});
+    }
   //
   //Display or show this panel on its base view
   async paint(): Promise<void>{
@@ -218,7 +230,7 @@ abstract class lister extends panel{
   async get_header_barrel(): Promise<barrel>{
     // 
     //Get the header column names
-    const Ibarrel = await this.get_header_Ibarrel();
+    const Ibarrel = await this.get_col_names();
     //
     //Create the header barrel for this panel
     const header_barrel = new barrel(this);
@@ -245,6 +257,13 @@ abstract class lister extends panel{
         //The value of the header tin is the column name
         Tin.value = cname;
         //
+        //Add the following details to this tin's anchor as required by the theme
+        //panel
+        //a. Add an id that matches the column name
+        Tin.anchor.id= cname;
+        //
+        //b. Add the column select event listener to the tin
+        Tin.anchor.onclick=(evt: Event)=> this.select_column(evt);
         return(Tin);
     });
     // 
@@ -260,6 +279,73 @@ abstract class lister extends panel{
     //Return the header barrel
     return header_barrel;
   }
+  //
+    //Mark the current column as selected.
+    private select_column(evt: Event | HTMLTableHeaderCellElement){
+        //
+        //0. Get the target th.
+        const th = evt instanceof HTMLTableHeaderCellElement
+            ?evt:<HTMLTableHeaderCellElement>evt.target;
+        //
+        //1. Get the stylesheet named column from the current document.
+        const stylesheet = (<HTMLStyleElement>this.get_element("columns")).sheet;
+        if(stylesheet === null)
+            throw new schema.mutall_error("Stylesheet 'column' not known");
+        //
+        //2. De-highlight any column that is currently selected.
+        //2.1 Get the currently selected column (there may be none).
+        const selected_column = this.anchor.querySelector(".TH");
+        //
+        //2.2 If there's one ...
+        if (selected_column !== null) {
+            //
+            //2.2.1 Get its index.
+            const index = 
+                (<HTMLTableHeaderCellElement>selected_column).cellIndex;
+            //
+            //2.2.2 Use the index to remove the background color from the
+            //matching rule. NB: There are as many CSS rules as there are columns.
+            //a. Get the rule that matches the index.
+            const rule = <CSSStyleRule>stylesheet.cssRules[index];
+            //
+            //b. Remove the background-color property.
+            rule.style.removeProperty("background-color");
+        }
+        //
+        //3. Select the given th, in the current standard version, i.e.,  
+        //using the TH class selector.
+        theme.select(th);
+        //
+        //4. Highlight the td cells below the th.
+        //
+        //a. Get the index of the th index to be selected.
+        const index2 = th.cellIndex;
+        //
+        //b. Use the index to get the CSS rule from the column stylesheet.
+        const rule2 = <CSSStyleRule>stylesheet.cssRules[index2];
+        //
+        //c. Set the background color of the rule to lightgreen.
+        rule2.style.setProperty("background-color", "lightgreen");
+    }
+        //
+    //Ensure that the given tag is the only selected one 
+    //of the same type
+    static select(tag:HTMLElement):void {
+        //
+        //Get the tagname 
+        const tagname = tag.tagName;
+        //
+        //1. Declassifying all the elements classified with 
+        //this tagname.
+        const all = document.querySelectorAll(`.${tagname}`);
+        Array.from(all).forEach(element =>
+            element.classList.remove(tagname)
+        );
+        //
+        //3.Classify this element 
+        tag.classList.add(tagname);
+    }
+       
   //
   //
   //Use the given Ifuel(data)to show or display the panels body.This is a double
@@ -407,8 +493,20 @@ class metamod extends lister{
     }
     //
     //Get the column position
-    get_col_position(data_cname){
+    get_col_position(data_cname: string){
         //
+        // 1.Get the caller header tin with the given name
+        // 
+        // 1.1 Get the caller header barrel
+        const caller_barrel = this.caller.header_barrel;
+        //
+        //1.2 Filter the header tin that matches the data cname,i.e., we expect 
+        //one element
+        const header_tin = caller_barrel.tins.filter(tin=> tin.name=== data_cname);
+        // 
+        // Return the dposition of the header tin
+        return header_tin[0].uposition;
+        
     }
     //
     //Get the column status .i.e., its hidden status
@@ -430,7 +528,7 @@ class metamod extends lister{
         //
         switch (meta_cname){
           case "cname": return data_cname;
-          case "position": return this.caller.get_col_position(data_cname) ;
+          case "position": return this.get_col_position(data_cname) ;
           case "hidden": return this.caller.is_col_hidden(data_cname);
           case "region": return "verticals";
           case "size": return this.caller.get_col_size(data_cname);
@@ -674,6 +772,60 @@ class theme extends scroller{
   ) {
     super(base, css, udf_meta)
   }
+    //
+    //Complete the construction of the theme panel by running necessary
+    //asynchronous processes.
+    public async initialize() {
+        //
+        //Get the editor description.
+        const metadata = await server.exec(
+            //
+            //The editor class is an sql object that was originaly designed 
+            //to return rich content for driving the crud page.
+            "editor",
+            //
+            //Constructor args of an editor class are ename and dbname 
+            //packed into a subject array in that order.
+            this.subject,
+            //
+            //Method called to retrieve editor metadata on the editor class.
+            "describe",
+            //
+            //There are no method parameters
+            []
+        );
+        //
+        //Destructure the metadata
+        const [idbase, col_names, sql, max_record] = metadata;
+        //
+        //Set the metadata properties
+        this.sql = sql; this.col_names = col_names; 
+        this.max_records = parseInt(max_record);
+        //
+        //Activate the static php database.
+        this.dbase = new schema.database(idbase);
+        //
+        //Initialize the crud style for managing the hide/show feature 
+        //of columns
+        this.initialize_styles(col_names);
+        //
+        //Assuming that we are in a document where the table header 
+        //is already available...
+        const thead = this.document.querySelector("thead")!;
+        //
+        //Show the header
+        this.show_header(thead);
+        //
+        //Retrieve and display $limit number of rows of data starting from the 
+        //given offset/request.
+        let pk: library.pk | undefined;
+        if (this.selection !== undefined) pk = this.selection.pk;
+        await this.goto(pk);
+        //
+        //Select the matching row and scroll it into view.
+        this.select_nth_row(pk);
+
+    }
   // 
   //
   async get_sql(): Promise<sql>{
@@ -681,7 +833,7 @@ class theme extends scroller{
     //Get the rich sql metadata
     const sql_meta = await this.exec("editor", this.subject, "describe", []);
     // 
-
+  
   }
 
 }
