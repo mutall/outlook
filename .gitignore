@@ -19,3 +19,4 @@
 #files
 .gitignore
 *.js
+.php

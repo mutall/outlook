@@ -108,7 +108,8 @@ export async function exec<
     catch (ex) {
         // 
         //Compile a usefull error message
-        const msg = `Error trapping failed???. <br/> Message: "${(<Error> ex).message}".<br/>Text = "${text}"`;
+        const msg = 
+        `Error trapping failed???. <br/> Message: "${(<Error> ex).message}".<br/>Text = "${text}"`;
         //
         throw new mutall_error(msg);
     }
