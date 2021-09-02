@@ -349,7 +349,7 @@ abstract class lister extends panel{
   //
   //Use the given Ifuel(data)to show or display the panels body.This is a double
   //loop that iterates over the barrels in the fuel and the tins in the barrels
-  paint_body(Ifuel:Ifuel):void { 
+  paint_body(Ifuel:library.Ifuel):void { 
         // 
         //Loop over all the ifuel to paint the barrels
         for(const Ibarrel of Ifuel) {
@@ -704,7 +704,7 @@ class theme extends scroller{
     //
     //The database and entity name that is displayed in this 
     //theme panel.
-    public subject: outlook.subject;
+    public subject: subject;
     // 
     // 
     constructor(
