@@ -1111,7 +1111,7 @@ class joint extends mutall{
     function  __construct(
         entity $base, 
         string $jtype='inner', 
-        array/*Array<foreign>*/ $ons=[]
+        array/*Array<link>*/ $links=[]
     ){
         parent::__construct();
         //
@@ -1122,10 +1122,9 @@ class joint extends mutall{
         $this->on = new \Ds\Set();
         //
         //Load the on clauses.
-       $this->on->add(...$ons);
+       $this->on->add(...$links);
     }
-    
-    
+    //
     //Returns a complete join phrase, i.e., inner join ename on a.b=b.b
      function stmt() :string{
          //
@@ -1137,12 +1136,12 @@ class joint extends mutall{
         //    
         return $join_str;
      }
-     
+     //
      //Compile part of the on clause, i.e.,  x.a.d = y.d.d and c.d=d.d and ....
      private function on_str(): string{
         //
         //Map each foreigner to an equation string, taking care of multi-database
-         //scenarios
+        //scenarios
         $on_strs = array_map(function ($f){
             // 
             //Take care of the views that are not referenced by a dbname.
@@ -1338,7 +1337,10 @@ class registrar extends editor{
     //Add a left join to the registrar query to support the pointer columns
     function add_left_join(pointer $pointer, view $rod): void{
         //
+        //Create a one_2_one link between this registrar and the rod.
+        $link= new one_2_one($this, $rod);
+        //
         //Create a left join type
-        $leftie= new joint($rod, "left", $ons);
+        $leftie= new joint($rod, "left", [$link]);
     }
 }
