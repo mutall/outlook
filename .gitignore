@@ -10,6 +10,7 @@
 /public_html
 /testing
 /tracker/v/tests/test.php
+/test
 # sub folders
 /chama/nbproject
 /library/nbproject
@@ -24,3 +25,4 @@
 /outlook/v/code/*.js
 /tracker/v/code/*.js
 /school/v/code/*.js
+#individual files
