@@ -10,11 +10,13 @@
 /public_html
 /testing
 /tracker/v/tests/test.php
+/test
 # sub folders
 /chama/nbproject
 /library/nbproject
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
+/library/test
 #files
 .gitignore

@@ -96,10 +96,17 @@ export default class chama extends app {
     //Adding the Business Selector
     async group_selector() {
         //
-        //1. List all available
-        const chama = server.exec("database", ["mutall_chama"], "get_sql_data", ["select `name` from `group`"]);
+        //1. List all available Chama
+        const chama = await server.exec("database", ["mutall_chama"], "get_sql_data", ["select `name` from `group`"]);
         //
-        //2. Select one or more
+        //
+        const pairs = chama.map(pair => { return { key: "name", value: String(pair.name) }; });
+        //
+        // 1.1 Use the listed chamas to create a popup
+        const Choice = new choices(this.config, pairs, "chama", null, "#content", "single");
+        //
+        //2. Select one or more groups
+        const selected = Choice.administer();
         //
         //3. Update the Databases in both "user" and "application"
         //
