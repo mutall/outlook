@@ -1,7 +1,7 @@
-import { basic_value, Ifuel,cname } from "../../../library/v/code/library";
+import * as library from "../../../library/v/code/library";
 import * as schema from "../../../library/v/code/schema";
-import { checkbox, input, io, readonly, select } from "../../../outlook/v/code/io";
-import {view } from "../../../outlook/v/code/outlook";
+import * as io from "../../../outlook/v/code/io";
+import {view, subject } from "../../../outlook/v/code/outlook";
 import create_element from "./create";
 import { column_meta } from "./library";
 // 
@@ -76,7 +76,7 @@ export abstract class panel extends view {
 }
 //
 //This is an array of basic values used for constructing the Ifuel
-type Ibarrel= Array<basic_value>;
+type Ibarrel= Array<library.basic_value>;
 //
 //There are two possible layouts:tabular or label.
 type layout=
@@ -120,7 +120,7 @@ abstract class lister extends panel{
   //
   // The barrel that contains the header tins required for ordering the body and
   // to retrieve metadata for our metamod
-  public header?: Map<cname, tin>;
+  public header?: Map<library.cname, tin>;
   //
   //Get the current barrel tag name
   get barrel_tag_name(){
@@ -143,7 +143,7 @@ abstract class lister extends panel{
   abstract get_udf_meta():{ [cname: string]: udf_meta };
   // 
   //Get Ifuel i.e.,the data to paint to the body 
-  abstract get_Ifuel():Promise<Ifuel>;
+  abstract get_Ifuel():Promise<library.Ifuel>;
   //
   //
   constructor(
@@ -349,7 +349,7 @@ abstract class lister extends panel{
   //
   //Use the given Ifuel(data)to show or display the panels body.This is a double
   //loop that iterates over the barrels in the fuel and the tins in the barrels
-  paint_body(Ifuel:Ifuel):void { 
+  paint_body(Ifuel:library.Ifuel):void { 
         // 
         //Loop over all the ifuel to paint the barrels
         for(const Ibarrel of Ifuel) {
@@ -384,9 +384,11 @@ abstract class lister extends panel{
 }
 // 
 abstract class scroller extends lister{
-  // 
-  // 
-  public sql?: sql
+  //
+  //
+  abstract get_sql(): string;
+  //
+  public selection;
   // 
   //;
   constructor(
@@ -685,19 +687,34 @@ class metamod1 extends lister{
 //
 //
 class theme extends scroller{
-  // 
-  //The rich description of the sql is activated when we are painting the column headers;
-  private sql_meta?: sql_meta;
-  // 
-  // 
-  constructor(
-    base: view,
-    css: string,
-    public subject: subject,
-    udf_meta:udf_meta
-  ) {
-    super(base, css, udf_meta)
-  }
+    // 
+    //1...The sql used to extract information painted in this 
+    //in the content section of this theme
+    public sql?: string;
+    // 
+    //2...The column names involved in the above named sql
+    public col_names?: Array<library.cname>;
+    // 
+    //3...The maximum possible records that are available to paint
+    //the content pannel. they are required in adjusting the boundaries
+    public max_records?: number;
+    //
+    //4....The database where this subject entity is housed 
+    public dbase?: schema.database;
+    //
+    //The database and entity name that is displayed in this 
+    //theme panel.
+    public subject: subject;
+    // 
+    // 
+    constructor(
+      base: view,
+      css: string,
+      public subject: subject,
+      udf_meta:udf_meta
+    ) {
+      super(base, css, udf_meta)
+    }
     //
     //Complete the construction of the theme panel by running necessary
     //asynchronous processes.
@@ -725,45 +742,81 @@ class theme extends scroller{
         const [idbase, col_names, sql, max_record] = metadata;
         //
         //Set the metadata properties
-        this.sql = sql; this.col_names = col_names; 
+        this.sql = sql; 
+        this.col_names = col_names; 
         this.max_records = parseInt(max_record);
         //
         //Activate the static php database.
         this.dbase = new schema.database(idbase);
-        //
-        //Initialize the crud style for managing the hide/show feature 
-        //of columns
-        this.initialize_styles(col_names);
-        //
-        //Assuming that we are in a document where the table header 
-        //is already available...
-        const thead = this.document.querySelector("thead")!;
-        //
-        //Show the header
-        this.show_header(thead);
+    }
+    //
+    //Get the column names of this panel
+    async get_col_names():Promise<Array<library.cname>> {return this.col_names!;}
+    //
+    //Query the database to get the Ifuel
+    async get_Ifuel(): Promise<library.Ifuel>{
         //
         //Retrieve and display $limit number of rows of data starting from the 
         //given offset/request.
         let pk: library.pk | undefined;
         if (this.selection !== undefined) pk = this.selection.pk;
-        await this.goto(pk);
         //
-        //Select the matching row and scroll it into view.
-        this.select_nth_row(pk);
-
+        //
+        return await this.query(pk, this.limit);
     }
-  // 
-  //
-  async get_sql(): Promise<sql>{
-    // 
-    //Get the rich sql metadata
-    const sql_meta = await this.exec("editor", this.subject, "describe", []);
-    // 
-  
-  }
-
+    //
+    //Returns the io of the given header tin
+    get_io(header_tin:tin): io.io {
+        const td= <HTMLTableCellElement>header_tin.anchor;
+        // 
+        //Get the position of this td 
+        const rowIndex = (<HTMLTableRowElement>td.parentElement).rowIndex;
+        const cellIndex = td.cellIndex;
+        //
+        //Destructure the subject to get the entity name; its the 
+        //first component. 
+        const ename = this.subject[0];
+        // 
+        //Get the column name that matches this td. 
+        const col_name = this.col_names![cellIndex];
+        //
+        //Get the actual column from the underlying database.
+        const col = this.dbase!.entities[ename].columns[col_name];
+        //
+        //Create and return the io for this column.
+        const Io = io.create_io(td, col);
+        return Io;
+    }
+    //
+    //
+    //Fetch the real data from the database as an array of table rows.
+    private async query(offset: number, limit: number): Promise<Ifuel>{
+        // 
+        //The entity name that drives this query comes from the subject of this 
+        //application
+        const ename = `\`${this.subject[0]}\``;
+        //
+        //Complete the sql using the offset and the limit.
+        const complete_sql =
+            //
+            //Paginate results.
+            this.sql + ` LIMIT ${limit} OFFSET ${offset}`;
+        //
+        //Use the sql to query the database and get results as array of row objects.
+        return  await server.exec(
+            "database",
+            //
+            //dbase class constructor arguments
+            [this.subject[1]],
+            //
+            "get_sql_data",
+            //
+            //The sql stmt to run
+            [complete_sql]
+        );
+        
+    }
 }
-
 class tabulator extends scroller{
   // 
   // 
