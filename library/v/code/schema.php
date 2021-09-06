@@ -96,7 +96,7 @@ class mutall {
             //
             //Create an object of the class to execute
             //
-            //Get the class contructor arguments
+            //Get the class constructor arguments
             if (!isset($_REQUEST['cargs'])) {
                 throw new Exception("Class constructor parameters not found");
             }
@@ -708,10 +708,13 @@ class database extends schema {
             return;
         }
         //
+        //Populate the dbase with aliased entities, i.e., aliens using the
+        //already populated entities.
+        $this->compile_aliens();
+        //
         //Set the relational dependency for all the entities and log all the 
         //cyclic conditions as errors.
-        $this->set_entity_depths();
-        //
+        //$this->set_entity_depths();
         //
         $this->report_errors();
     }
@@ -2075,16 +2078,16 @@ class table extends entity {
     //4. count the number of targets in the join 
     function get_dependency(): ?int {
         //
-        //1.Test if the dependecy was from an earlier visit and return
-        //immediately if it was.
+        //1. Test if the dependecy was set to trivilalize this process
         if (isset($this->depth)) {
             return $this->depth;
         }
         //
-        //2.Create a dependecy network with this entity as its source 
+        //2. Create a dependecy network with this entity as its source
+        //To create this network we need the foreign strategy 
         $dependency = new dependency($this);
         //
-        //3.Create a join using the dependency network 
+        //3.create a join using the dependency network 
         $join = new join();
         $join->import($dependency);
         //
@@ -4069,14 +4072,14 @@ abstract class network extends schema {
 }
 
 //Modelling strategy for searching through a network. Searching through paths 
-//indiscriminately is very time consuming because potentially we would have to 
+//indiscriminately is very time consuming because potetually we would have to 
 //search through all the databases in the sever -- in a multi-database scenario. 
-//To improve performance, we have limited the search to the currently opened 
+//To improvoe performance, we have limuetd to the search to currently opened 
 //databases only. Even then, pointers are not buffered, because, with introduction 
 //of views (that can be connected to the model at any time) the problems of 
 //updating the buffer is not worth the trouble. Some searches do not require
-//pointers, so that dont have to bear the burden. The strategy class is designed 
-//to dismiss pointers when they are not necessary.
+//pomiters, so thet dont have to beer the budden. The stargey class is desifned 
+//to dismiss pointers when they are not necessary
 abstract class strategy extends mutall {
 
     // 
@@ -4181,23 +4184,25 @@ class strategy_structural extends strategy {
 
 }
 
-//This is a network of all the structural foreign key columns,
-//i.e., non-crossmembers, that originate from the $source to terminal $condition. 
-//The terminal $condition is an entity that does not have any structural foreign
-//keys.
+//This is a network of all the foreigns that are none cross members from the source 
+//to terminal condition 
+//Terminal condition is an entity that does not have structural foreign key(structural
+//means those entties that that are  not cross members)
+//parameter $source is the root orignin of this network see in network above 
 class dependency extends network {
+
     //
     //
     function __construct(entity $source) {
         //
-        //The dependency network only relies on the structural foreign keys to 
-        //create its paths.
-        $strategy = new strategy_structural();
+        //The dependency network only relies on the foreign keys to create for 
+        //its path
+        $strategy = new strategy_foreigner();
         //
-        //Search the network paths using the strategy 
+        //Search the network paths using the foreign strategy 
         parent::__construct($source, $strategy);
     }
-    //
+
     //We only utilise those foreign keys that are not cross members 
     function is_included(foreign $key): bool {
         //
