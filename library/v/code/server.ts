@@ -62,11 +62,14 @@ export async function exec<
         //
         method_name: method_name,
         //
-        margs: margs
+        margs: margs,
+        //
+        //This the application website url
+        url?: string
     ): Promise<$return> {
     //
     //Call the non parametric form of exec
-    return await exec_nonparam(class_name,method_name,margs,cargs);
+    return await exec_nonparam(class_name,method_name,margs,cargs,url);
  }
 //
 //
@@ -141,12 +144,15 @@ export async function ifetch<
     method_name: method_name,
     //
     //The method parameters
-    margs: $parameters
+    margs: $parameters,
+    //
+    //The application website url
+    url?:string
 
 ): Promise<$return> {
     //
     //Call the non parametric form of exec
-    return await exec_nonparam(class_name,method_name,margs);
+    return await exec_nonparam(class_name,method_name,margs,null,url);
 }
  //
  //This is the non-parametric version of exec useful for calling both the static
@@ -164,17 +170,23 @@ export async function ifetch<
     //
     //If defined, this parameter represents the constructor arguements for the 
     //php class. It is undefined for static methods.
-    cargs?:Array<any>
+    cargs:Array<any>|null=null,
+    //
+    //
+    url?:string,
  ): Promise<any>{
     //
     //Prepare to collect the data to send to the server
     const formdata = new FormData();
     //
+    //Add the application URL if it is available
+    if (url !== undefined)formdata.append("url", url);
+    //
     //Add to the form, the class to create objects on the server
     formdata.append('class', class_name);
     //
     //Add the class constructor arguments if they are defined
-    if (cargs === undefined ){
+    if (cargs === null ){
         //
         //The method on the php class is static
         formdata.append('is_static', 'true');
