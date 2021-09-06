@@ -1,52 +1,48 @@
 <?php
 //
-//INclude application specific file to support
+//Include application specific files to support
 //extension of outlook with user defined classes 
-//e.g include_once '/tracker/v/code/tracker.php'
-//function add_udf_files(){
-//    // 
-//    //Get the website $path(PK) 
-//    //keywords HTTP server 
-//    //
-//    //1. Create a variable string on which to a
-//    $path = "";
-//    //
-//    //2. First check if the protocol used is https or http.
-//    if(isset($_SERVER['HTTPS']) && $SERVER['HTTPS'] === 'ON'){
-//        //
-//        //3. Append the https protocol.
-//        $path = "https";
-//    }
-//    else{
-//        //
-//        //3. Append the http protocol.
-//        $path = "http";
-//    }
-//    //
-//    //5. Append the regular symbol "://" to the $path string.
-//    $path .= "://";
-//    //
-//    //6. Append the HTTP_HOST(e.g., www.domain.com).
-//    //$path .= $SERVER['HTTP_HOST'];
-//    //
-//    //7. Then append the REQUEST_URI(e.g., /index.php)
-//    // 
-//    //Get the php $files in the website path(DK) 
-//    //keywords{dir/glob/is_file()}
-//    $files = array_filter(glob('*.php'), 'is_file');
-//    //
-//    //Loop through all the php files and include every one of them
-//    foreach ($files as $file) {
-//        //
-//        //Formulate the $full path of this file(D&P k) 
-//        $full = pathinfo();
-//        //
-//        //INclude this fully named file
-//        include_once $full;
-//        
-//    }
-//    
-//}
+//e.g., include_once '/tracker/v/code/tracker.php'
+function add_udf_files(){
+    //
+    //Compile the path to the root of the application website
+    //
+    //Starting with an empty string...
+    $path = "";
+    //
+    //Check if the protocol used is https or http.
+    if(isset($_SERVER['HTTPS']) && $SERVER['HTTPS'] === 'ON'){
+        //
+        //Append the https protocol.
+        $path = "https";
+    }
+    else{
+        //
+        //Append the http protocol.
+        $path = "http";
+    }
+    //
+    //Append the regular symbol "://" to the $path string.
+    $path .= "://";
+    //
+    //Append the HTTP_HOST(e.g., www.domain.com).
+    $path .= $SERVER['HTTP_HOST'];
+    //
+    //Append the REQUEST_URI(e.g., /index.php)
+    // 
+    //Get the php $files in the website path
+    $files = array_filter(glob('*.php'), fn($name)=>is_file($name));
+    //
+    //Loop through all the php files and include every one of them
+    foreach ($files as $file) {
+        //
+        //Formulate the $full path of this file 
+        $full = pathinfo();
+        //
+        //INclude this fully named file
+        include_once $full;
+    } 
+}
 //
 //This file supports the link between the server and client sub-systems
 //
@@ -81,7 +77,7 @@ try{
     //INclude application specific file to support
     //extension of outlook with user defined classes 
     //e.g include_once '/tracker/v/code/tracker.php'
-    //add_udf_files();
+    add_udf_files();
     //
     //Run the requested method an a requested class
     if(isset($_GET["post_file"])){
