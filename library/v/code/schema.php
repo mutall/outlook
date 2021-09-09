@@ -2294,7 +2294,7 @@ class view extends entity {
     public ?join $join;
     //
     //Other clasuses of an sql that teh user can provide after a view is creatred
-    public ?string $group_by = null;
+    public ?array $group_by;
 
     //We dont expext to callt this constructor from Js, because the data types 
     //are not simple
@@ -2309,12 +2309,12 @@ class view extends entity {
             //
             //The name of the view    
             string $name,
-            expression $where = null,
             //
-            //Indicate whether this view should be incorporated in the 
-            //data model or not. By default views will be discarded as soon as 
-            //we get out of scope
-            bool $is_modelled = false
+            //The where clause which is an expression which evaluates a boolean
+            ?expression $where = null,
+            //
+            //Group by is an array
+            ?array /*<column>*/$group_by=null
     ) {
         //
         //Properties are saved directly since this class is not callable from 
@@ -2322,6 +2322,7 @@ class view extends entity {
         $this->from = $from;
         $this->join = $join;
         $this->where = $where;
+        $this->group_by=$group_by;
         //
         //The columnsn of a view are expected to be fields, i.e., named 
         //expresions. We use the name to index the columns.
@@ -2331,12 +2332,6 @@ class view extends entity {
         //An entity parent requires both the ename and the 
         //dbname.
         parent::__construct($name, $from->dbname);
-        //
-        //If this view participates in the data model then add it
-        if ($is_modelled) {
-            $dbase = $this->open_dbase($this->dbname);
-            $dbase->entities[$name] = $this;
-        }
     }
 
     //
@@ -2498,7 +2493,18 @@ class view extends entity {
                 $this->from->stmt() : $this->from->to_str();
         //
         //Add the group by if necessary
-        $group = is_null($this->group_by) ? '' : "group by $this->group_by";
+        $group="";
+        //
+        if(!is_null($this->group_by)){
+            //
+            //Convert group by columns into their string equivalent
+            $group_by_str= implode(
+            ",",array_map(fn($col)=>"$col", $this->group_by)
+            );
+            //
+            //Complete the group by clause
+            $group = "group by $group_by_str";
+        }
         //
         //Construct the sql (select) statement. Note use of the alias. It allows 
         //us to formulate a genealised sql that is valid for both primary
@@ -2544,7 +2550,7 @@ class view extends entity {
                 //Add the where clause, if necessary    
                 . $where
                 //
-                //Group by            
+                //Add the Group by clause           
                 . $group;
         //
         //Return the complete sttaement        
