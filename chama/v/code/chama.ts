@@ -48,6 +48,13 @@ export default class chama extends app{
                 title:"Super User Table Editor",
                 id:"edit_table",
                 listener: ['post_defined',`app.current.edit_table()`]
+            },
+            //
+            //Select a group or groups you belong to
+            select_group:{
+                title:"Select a group",
+                id:"select_group",
+                listener: ['post_defined',`app.current.group_selector()`]
             }
              }
         //
@@ -90,13 +97,20 @@ export default class chama extends app{
     }
     //
     //Adding the Business Selector
-    group_selector(): void{
+    async group_selector(): Promise<void>{
        //
        //1. List all available Chama
-       const chama= server.exec("database",["mutall_chama"],"get_sql_data",
+       const chama= await server.exec("database",["mutall_chama"],"get_sql_data",
             ["select `name` from `group`"]) ;
        //
+       //Set the slected groups to accept multiple values
+        const pairs = chama.map(pair=>{return{key:"name",value:String(pair.name)}});
+       //
+       // 1.1 Use the listed chamas to create a popup
+       const Choice = new choices<string>(this.config,pairs,"chama",null,"#content","single");
+       //
        //2. Select one or more groups
+        const selected = Choice.administer();
        //
        //3. Update the Databases in both "user" and "application"
        //
@@ -155,7 +169,7 @@ export default class chama extends app{
         this.document.querySelector('thead')!.innerHTML = '';
         this.document.querySelector('tbody')!.innerHTML = '';
         //
-        //2.2 Repaint the theme panel
+        //2.2 Repaint the theme panel---
         Theme.view.top = 0;
         Theme.view.bottom = 0;
         await Theme.continue_paint();

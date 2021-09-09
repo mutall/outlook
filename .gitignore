@@ -11,12 +11,14 @@
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
+/library/test
 #files
-*.js
-.gitignore
 # JS files
 /chama/v/code/*.js
 /library/v/code/*.js
 /outlook/v/code/*.js
 /tracker/v/code/*.js
 /school/v/code/*.js
+#individual files
+.gitignore
+
