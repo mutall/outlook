@@ -87,7 +87,7 @@ abstract class node extends mutall {
         //3. Build the node network from the node path array
         //
         //3.1) Convert the node path into an array 
-        $node_path= split($node_path_str2, "/");
+        $node_path= explode("/",$node_path_str2);
         //
         //Reverse the elements in the node path
         $reversed= array_reverse($node_path);
@@ -130,7 +130,7 @@ class rich_folder extends folder {
             ?branch $parent
     ) {
         //Ensure that there is atleast one element in the path
-        if(count($node_path===0)){
+        if(count($node_path)===0){
             throw  new myerror("Empty path not allowed");
         }
         //
