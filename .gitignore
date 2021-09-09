@@ -1,14 +1,9 @@
 #Folders
-/DDL support_1/
-/Homepage
 /Insuredge
-/Other Files
 /accounting
 /metavisuo
-/outlook_
 /pictures
-/public_html
-/testing
+/test
 /tracker/v/tests/test.php
 # sub folders
 /chama/nbproject
@@ -16,5 +11,5 @@
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
-#files
+#file
 .gitignore
