@@ -1,14 +1,9 @@
 #Folders
-/DDL support_1/
-/Homepage
+
 /Insuredge
-/Other Files
 /accounting
 /metavisuo
-/outlook_
 /pictures
-/public_html
-/testing
 /tracker/v/tests/test.php
 /test
 # sub folders
@@ -18,5 +13,7 @@
 /tracker/nbproject
 /school/nbproject
 /library/test
+#subdirectories
+outlook/v/code/*.js
 #files
 .gitignore
