@@ -181,7 +181,7 @@ export class io {
     //The attributes of the element
     attributes) {
         //
-        //Create the element holder based on the td's owner documet
+        //Greate the element holder based on the td's owner documet
         const element = anchor.ownerDocument.createElement(tagname);
         //
         //Attach this element to the anchor 

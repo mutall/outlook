@@ -12,6 +12,8 @@
 /tracker/nbproject
 /school/nbproject
 /library/test
+#subdirectories
+outlook/v/code/*.js
 #files
 # JS files
 /chama/v/code/*.js
