@@ -30,7 +30,32 @@ class mutall {
         //Add tehnnamespace from which this obet was created
         $this->ns = $reflect->getNamespaceName();
     }
-
+    //
+    //This clas is used for resolving user defined classes found in the application
+    // website folder
+    static function search_class(string $class_name){
+        //
+        //Get the website folder; it must exist.
+        if(!isset($_REQUEST['url']))throw new Exception("Website url not found");
+        //
+        //Now get the url,.e.g., 
+        //http://localhost:90/tracker/v/code/index.php ?x=y
+        $url= $_REQUEST['url'];
+        //
+        //Ge the index file for the application website,
+        //.e.g., /tracker/v/code/index.php
+        $index= parse_url($url, PHP_URL_PATH);
+        //
+        //Retrieve the website folder,.e.g.,/tracker/v/code/
+        $website= pathinfo($index,PATHINFO_DIRNAME);
+        //
+        //Add the class name to the website folder
+        $file_name= $website.$class_name.".php";
+        //
+        //Test whether the filename exists
+        if(file_exists($file_name)) include_once $file_name;
+        else throw new Exception ("Class $class_name does not exist in $file_name");
+    }
     //The function that supports executon of arbitray methods on arbitrary class
     //objects from Javascript. This method is called from export.php. 
     static function fetch() {
@@ -71,7 +96,7 @@ class mutall {
             //
             //Create an object of the class to execute
             //
-            //Get the class contructor arguments
+            //Get the class constructor arguments
             if (!isset($_REQUEST['cargs'])) {
                 throw new Exception("Class constructor parameters not found");
             }

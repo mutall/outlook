@@ -84,18 +84,7 @@ export type crud_selection = {
     //for labelling fk edit buttons    
     friendly? : string
 }
-// 
-//A theme view boundary has two extremes, the top and the bottom 
-export interface boundary{
-    // 
-    //The top extreme is an offset number that represents the upper limit 
-    //of this boundery.
-    top: number,
-    // 
-    //The bottom extreme is an offset that represents lower limit 
-    //of this boundery
-    bottom:number
-}
+
 // 
 //Boundary markers    
 export type direction = "top" | "bottom";
@@ -129,35 +118,12 @@ export class theme extends outlook.panel {
     //2...The column names involved in the above named sql
     col_names?: Array<library.cname>;
     // 
-    //3...The maximum possible records that are available to paint
-    //the content pannel. they are required in adjusting the boundaries
-    max_records?: number;
-    // 
     //Saves io instances that created this theme table saved as a map 
     //indexed by their position in a thematic oanel
     static ios: Map<string, io.io> = new Map();
     //
     //4....The database where this subject entity is housed 
     dbase?: schema.database;
-    /** 
-     * The scrolling variables
-     */
-    //
-    //The offset of the records that are visible in the page 
-    //both top and bottom i.e within scrolling without loading 
-    //more data in the purple part of our boundary diagram
-    view: boundary={top:0, bottom:0};
-    // 
-    //This is the limit number of records that can be retrieved and 
-    //constrained by the extreme boundery the blue part of the 
-    //blue region of our map
-    joint:boundary={top:0, bottom:0};
-    //
-    //This is the offset that indicates the last retrievable record 
-    //i.e., the green part of our scroll diagram.
-    get extreme():boundary{
-        return {top: 0, bottom: this.max_records!};
-    }
     //
     //
     //The database and entity name that is displayed in this 
@@ -348,281 +314,7 @@ export class theme extends outlook.panel {
         //c. Set the background color of the rule to lightgreen.
         rule2.style.setProperty("background-color", "lightgreen");
     }
-    
-    //
-    //Load the table rows and adjust the  boundaries depending
-    //on the outcome type.
-    private async execute_outcome(outcome: outcome, request: offset) {
-        //
-        switch (outcome.type) {
-            //
-            //The request is within view so no loading
-            //and no view boundary adjustment.
-            case "nothing":
-                //this.scroll_into_view(request,"center")
-                break;
-            //
-            //We need to adjust the relevant view 
-            //boundary to the given value          
-            case "adjust":
-                //
-                //This must be an 
-                const adjust = <adjust>outcome;
-                //
-                //Load the body from the offset and in the outcome direction.
-                await this.load_body(adjust.start_from, adjust.dir);
-                //
-                //Now adjust the view direction to the outcome value.
-                this.view[adjust.dir] = adjust.adjusted_view;
-                //this.scroll_into_view(request,"start")
-                break;
-            case "fresh":
-                //
-                //Cast the outcome to a fresh view
-                const fresh = <fresh>outcome;
-                //
-                //Clear the table body and reset the view 
-                //boundaries
-                // 
-                //Get the table body.
-                const tbody =this.document.querySelector("tbody");
-                // 
-                //There must be a table on this page.
-                if (tbody === null)
-                    throw new schema.mutall_error("tbody not found");
-                // 
-                //Empty the table body.
-                tbody.innerHTML = "";
-                // 
-                //Reset the view boundaries to {0,0} before 
-                //loading a fresh page.
-                this.view={top:0,bottom:0};
-                //
-                //Load the new page starting from the view top, 
-                //in the forward direction.
-                await this.load_body(fresh.view_top, "bottom");
-                //
-                //Reset the boundaries after loading a fresh 
-                //page.
-                this.view.top = fresh.view_top;
-                this.view.bottom = fresh.view_bottom;
-                break;
-            case "out_of_range":
-                alert(
-                    `Request is out of range bacause it fails this test 
-                    ${this.extreme.top} <=${request} < ${this.extreme.bottom}`
-                );
-                break;
 
-            default:
-                throw new schema.mutall_error(`The outcome of type 
-                       ${outcome.type} is not known`);
-        }
-    }
-    //
-    //Populate our table body with new rows 
-    //starting from the given offset and direction.
-    protected async load_body(offset: offset/*:int*/, dir: direction/*:mytop | bottom*/) {
-        //
-        //Range-GUARD:Ensure that offset is outside of the view for loading to be valid.
-        if (this.within_view(offset))
-            throw new schema.mutall_error(
-                `The requested offset ${offset} 
-                is already in view 
-                ${this.view.top} -- ${this.view.bottom}, 
-                so a new load is not valid.`
-            );
-        //
-        //Calculate a constrained limit to prevent negative offsets.
-        //
-        //Get the height from extreme[top] to view[top] boundaries.
-        const h = Math.abs(this.view![dir] - this.extreme![dir]);
-        //
-        //Use h to constrain the limit
-        const constrained_limit = h < this.config.limit ? h : this.config.limit;
-        //
-        //Query the database 
-        const result: library.Ifuel = await this.query(offset, constrained_limit);
-        //
-        //   
-        //Display the results on the table`s body.
-        //
-        //Get the tbody for appending records 
-        const tbody = document.querySelector("tbody")!;
-        //
-        //Loop through the results loading each tr 
-        //based on the dir
-        result.forEach((fuel, i) => {
-            //
-            //The index where this tr should  be inserted 
-            //into the tbody
-            const index = dir ==="top"
-                //
-                //Counting from the top
-                ? i
-                //
-                //Counting from the bottom
-                : this.view.bottom - this.view.top+ i;
-            //
-            //Insert row.
-            const tr = tbody.insertRow(index);
-            // 
-            //Use the fuel to populate the tr
-            this.load_tr_element(tr,fuel);
-        });
-    }
-    //
-    //This is a scroll event listener to retrive the previous or next 
-    //page of data depending in the position of the scroll button.
-    public myscroll() {
-        //
-        //Let tbody be the scrollable element
-        //const tbody = document.querySelector("tbody")!;
-        // 
-        //For now the scrollable element is the content 
-        const tbody = this.get_element("content");
-        //
-        //Get the scroll top as a rounded integer (not truncated)
-        //to ensure that the scroll height and the client height are 
-        //always equal to or greater than the scroll height when we are at 
-        //the bottom of the scroll. 
-        const scrollTop = Math.round(tbody.scrollTop);
-        //
-        //Decide whether to retrieve new records or not
-        if (scrollTop < 3) {
-            //
-            //Retrieve records that are above the top view boundary 
-            //This is equivalent to clicking the previous button
-            this.retrieve_records("top");
-        }else if (scrollTop + tbody.clientHeight>= tbody.scrollHeight) {
-            //
-            //Retrieve records that are below the bottom view boundary
-            //This is equivalent to clicking the next button 
-            this.retrieve_records("bottom");
-        }else{
-            //
-            //Ignore the scrolling
-        }
-    }
-    //
-    //This is an event listener that retrieves limit number of 
-    //records from the server depending on the given direction.
-    //The retrieved records are in the blue area of our scroll map.
-    async retrieve_records(dir: direction) {
-        //
-        //Set the offset value depending on the direction of scrolling.
-        let offset;
-        //
-        //If the direction is away from the top view boundary, 
-        //the offset becomes joint 
-        if (dir === "top") {
-            //
-            //The offset is the joint top boundary if we are scrolling upwards.
-            offset = this.get_joint("top");
-        }
-        //
-        else {
-            //
-            //The offset is the bottom view boundary if we are 
-            //scrolling downwards.
-            offset = this.view.bottom;
-        }
-        //
-        //Retrieve and display $limit rows of data starting from the 
-        //given offset/request subject to the available data.
-        await this.goto(offset);
-    }
-    //
-    //Test if offset is within joint boundaries
-    private within_joint(request: offset): boolean {
-        //
-        //We are within the joint boundaries if...
-        const condition =
-            //
-            //.. offset is between the top and 
-            //bottom joint boundaries.
-            request >= this.get_joint("top")
-            && request < this.get_joint("bottom");
-        return condition;
-    }
-    // 
-    //Test if offset is within extremes and return true otherwise false.
-    private within_extreme(request: offset): boolean {
-        //
-        //extreme top condition should always 
-        //be set otherwise you get a runtime error.
-        //if extreme top is undefined throw an error.
-        return request >= this.extreme.top
-            && request < this.extreme.bottom;
-    }
-    //
-    //Test if offset is within view boundaries
-    private within_view(req: offset): boolean {
-        //
-        //We are within  view if...
-        return true //true is for appeasing the IDE.
-            //
-            //...the top view is set...
-            && this.view.top !== null
-            //
-            //...and the offset is between the top 
-            //and bottom view boundaries.
-            && req >= this.view.top
-            && req < this.view.bottom;
-    }
-    //
-    //Return the joint boundary given the direction The top joint boundary
-    // is a maximum of limit records from the top view boundary. The 
-    // bottom joint boundary is a maiximum of limit records from the 
-    // view[bottom]. see the scroll map 
-    // http://206.189.207.206/pictures/outlook/scroll_2020_10_10.ppt
-    private get_joint(dir: direction/*top|bottom*/): offset {
-        //
-        //
-        let raw_boundary =
-            //
-            //The referenced view boundary
-            this.view[dir]
-            //
-            //The maximum range
-            + this.config.limit
-            //
-            //Accounts for the direction 
-            * (dir === "top" ? -1 : +1);
-        //
-        //Return a constrained boundary
-        return this.within_extreme(raw_boundary)
-            ? raw_boundary : this.extreme[dir];
-    }
-    //
-    //
-    //Fetch the real data from the database as an array of table rows.
-    private async query(offset: offset, limit: number): Promise<library.Ifuel>{
-        // 
-        //The entity name that drives this query comes from the subject of this 
-        //application
-        const ename = `\`${this.subject[0]}\``;
-        //
-        //Complete the sql using the offset and the limit.
-        const complete_sql =
-            //
-            //Paginate results.
-            this.sql + ` LIMIT ${limit} OFFSET ${offset}`;
-        //
-        //Use the sql to query the database and get results as array of row objects.
-        return  await server.exec(
-            "database",
-            //
-            //dbase class constructor arguments
-            [this.subject[1]],
-            //
-            "get_sql_data",
-            //
-            //The sql stmt to run
-            [complete_sql]
-        );
-        
-    }
     //
     //Convert the row object obtained from the server to a tr element.
     //It's public because it's called by create (in crud), to create a blank row.
@@ -731,82 +423,184 @@ export class theme extends outlook.panel {
             case "row":  this.scroll_row(outcome); break;
             //
             //2.2 Scroll full client page (Up or Down).
-            case "page": this.scroll_page(outcome); break;
+            case "page": this.scroll_page(outcome.dir); break;
             //
             //2.3 Scroll to either the first or last row of the current dataset.
             case "table": this.scroll_table(outcome); break;
         }
     }
     // 
-    //Scrolls page number of records in a given direction.
-    private scroll_page(outcome:key_outcome):void{
+    //Scrolls the appropriate number of records(depending on the client height)
+    //in a given direction.
+    private scroll_page(dir:"up"|"down"):void{
        // 
        //Get the selected tr if any
-       let tr = this.document.querySelector(".TR");
+       const selected_tr = this.document.querySelector(".TR");
        //
-       //If tr is not defined get the last tr in that view
-       if(!(tr instanceof HTMLTableRowElement)){
+       //Something must be wrong if no tr is selected because you could not have
+       //gotten to this stage.
+       if( selected_tr === null){
            //
            alert("Please select a tr");
-           throw new Error("No tr was selected");
+           throw new Error("No tr is currently selected");
        }
-        // 
-        //
-        //Get the tr to be scrollled into view.
-        const scroll_tr= this.get_page_tr(tr, outcome.dir);
        //
-       // Scroll the given tr to either top or bottom
-       const block = outcome.dir=== "up"?"end":"start";
+       let target_tr:HTMLTableRowElement|null;
        //
-       //
-       scroll_tr.scrollIntoView({block:block});
-       // 
-       // 
-       theme.select(scroll_tr);
-    }
-    //
-    //return the tr to either be the first or the last in the view depending
-    //on the scroll direction
-    private get_page_tr(tr:HTMLTableRowElement, dir:"up"|"down"):HTMLTableRowElement{
-        //
-        //
-        let scroll_tr:HTMLTableRowElement;
-        // 
-        //Get the parent div that was used for scrolling
-        const div = tr.parentElement?.parentElement?.parentElement;
-        // // 
-        // //if the tr element is in view i.e., not at the top or bottom 
-        // if(inview)return tr;
-        //
-        //The tr is at the bottom or at the top 
-        //
-        //Get the number of elements in the view 
-        //const count_el =this.count_view_elements(div);
-        //for now we assume our view has 6 
-        const count =6;
-        // 
-        //Get the current row index
-        const currentIndex = tr.rowIndex;
-        let newIndex:number;
-        // 
-        //Return the given tr 
-        //
-        if(dir==="up"){
-            // 
-            //Get the first tr in the view
-            newIndex=currentIndex-count<1?0:currentIndex-count
+        if (this.inview(<HTMLTableRowElement>selected_tr)){
+            //
+            //Get the tr to be scrolled into view, guided by the client height.
+            target_tr= this.get_target_tr(<HTMLTableRowElement>selected_tr, dir,false);
         }
         else{
-            // 
-            //Get the first tr in the view
-            newIndex=currentIndex-count<1?0:currentIndex+count
+            //
+            //This is the scrolling by a given amount
+            //
+            //1. Get the direction factor i.e. +1 or -1
+            const factor= dir==="up"?-1:+1;
+            //
+            //The number of pixels to scroll by
+            const amount = this.target!.clientHeight*factor;
+            //
+            //Scroll by this amount in the y direction
+            this.target!.scrollBy(0, amount);
+            //
+            //
+            target_tr= this.get_target_tr(<HTMLTableRowElement>selected_tr, dir,true);
         }
-        
-        scroll_tr= (<HTMLTableSectionElement>tr.parentElement!).rows[newIndex]
+       //
+       if (target_tr ===null){
+            //
+           alert("No tr found");
+           throw new Error("No tr found");
+            
+       }
+       // Scroll the target tr to either top or bottom of the client window.
+       const block = dir=== "down"?"end":"start";
+       //
+       //Scroll the target row into view...
+       target_tr.scrollIntoView({block:block});
+       // 
+       //...and select it 
+       theme.select(target_tr);
+    }
+    //
+    //Return the tr to either be the first or the last in the view depending
+    //on the scroll direction
+    private get_page_tr(selected_tr:HTMLTableRowElement, dir:"up"|"down"):HTMLTableRowElement{
         //
-        //Return the promised tr
-        return scroll_tr;
-
+        //This is the new tr element
+        let target_tr:HTMLTableRowElement;
+        // 
+        //If the selected tr element is in view i.e., not at the top or bottom
+        // then it does not change.We simply move it to the top or bottom of the
+        // client window
+        if(this.inview(selected_tr))return selected_tr;
+        //
+        //The tr is at the bottom or at the top of the client window so it is 
+        //outside of the range, we need to get a fresh one which is as far away
+        //as the height of the client window depending on the direction.
+        //
+        //1. Get the direction factor i.e. +1 or -1
+        const factor= dir==="up"?-1:+1;
+        //
+        //The number of pixels to scroll by
+        const amount = this.target!.clientHeight*factor;
+        //
+        //Scroll by this amount in the y direction
+        this.target!.scrollBy(0, amount);
+        //
+        //Get the target tr by counting from the selected tr in the factor direction
+        //until we get out of view. Return the row at which we get out of view.
+        //
+        //Get the current table's body
+        const tbody= <HTMLTableSectionElement>selected_tr.parentElement!;
+        //
+        //Step through all the table rows until you get out of the view.
+        //Note that the current i=0 and the next one i=1 are outside of the view
+        //by definition, hence the initial setting of i=2.
+        for(let i=2;;i++){
+            //
+            //Get the tr at the next i'th position
+            target_tr = tbody.rows[selected_tr.rowIndex + i*factor];
+            //
+            //Test if the target row is still valid; we may be on the edge of the 
+            //view
+            if(target_tr === undefined){
+                //
+                //Retrieve more data if necessary; if not, return the original
+                //tr which effectively does nothing.INVESTIGATE IF SCROLLING
+                //BY A CERTAIN AMOUNT INVOKES THE SCROLL EVENT.
+                alert("Your are either at the end of the view or at the end \n\
+                        of the document. NOT SURE WHAT TO DO.");
+                throw new Error("Please investigate this scrolling error");
+            }
+            //
+            //When the target tr is valid, check whether it is inside or outside of the
+            //client window view
+            //
+            //If its not within view, then we must have arrived at the tr we 
+            //required
+            if(!this.inview(target_tr)) return target_tr; 
+        }
+    }
+    //
+    //Get the target tr by scrolling the requested direction until you get into
+    //view or out of view depending on the request.This function returns a null
+    //if the row cannot be found.
+    private get_target_tr(
+        selected_tr: HTMLTableRowElement,
+        dir:"up"|"down",
+        request: boolean
+    ):HTMLTableRowElement|null{
+        //
+        //Get the current table's body
+        const tbody= <HTMLTableSectionElement>selected_tr.parentElement!;
+        //
+        //Initialize the target tr with the selected tr
+        let target_tr= selected_tr;
+        //
+        //The stop condition for the following loop will be when the request is met.
+        while(this.inview(target_tr)!== request){
+            //
+            //1. Get the direction factor i.e. +1 or -1
+            const factor= dir==="up"?-1:+1;
+            //
+            //Advance the target tr
+            target_tr = tbody.rows[target_tr.rowIndex + factor];
+            //
+            //Test whether the tr is valid which means you are outside of the
+            //view range
+            if(!(target_tr instanceof HTMLTableRowElement)){
+                //
+                return null;
+            }
+        }
+        return target_tr;
+        
+    }
+    //
+    //Test if the given tr is in view or not. A tr is in view if it is between 
+    //the top and the bottom boundaries of the client window
+    public inview(tr:HTMLTableRowElement):boolean{
+        //
+        //Get the top boundary of client window.
+        const top_boundary = this.target!.scrollTop;
+        //
+        //Get the bottom boundary of client window.
+        const bottom_boundary = this.target!.scrollTop + this.target!.clientHeight;
+        //
+        // Get the tr's top edge
+        const top_edge = tr.offsetTop;
+        //
+        //Get the tr's bottom edge
+        const bottom_edge = top_edge + tr.offsetHeight;
+        //
+        //If the given tr is within view we do nothing; it is within view if:
+        //      if its top edge is below the top boundary and
+        //      its bottom edge is above the bottom boundary
+        if (top_edge > top_boundary && bottom_edge< bottom_boundary)return true;
+        return false;
     }
     //
     //Returns one out of 6 outcomes of pressing a scrolling key including 
@@ -1072,104 +866,7 @@ export class theme extends outlook.panel {
     }
     
        
-    //
-    //
-    //Retrieve and display $limit rows of data starting from the 
-    //given offset/request, subject to the available data.
-    async goto(request?: offset) {
-        //
-        //Get the requested record offset if it is not specified
-        let goto_element;
-        if (request === undefined) {
-            // 
-            //Check whether a request is specified in the goto element 
-            if((goto_element=document.querySelector('#goto'))!==null){
-                //
-               //
-               //Get the offset from the user from the user
-               //
-               //Get the goto input element
-               const value = (<HTMLInputElement> goto_element).value;
-               //
-               //Get the users request as an integer
-               request = parseInt(value);   
-            }
-            else{
-                //
-                //Set it to 0
-                request = 0;
-            }            
-        }
-        //
-        //It is an error if the request is above the top extreme boundary.
-        if (request < this.extreme.top)
-            throw new schema.mutall_error(`Goto: A request ${request}
-             must be positive`);
-        //
-        //Determine what kind of scroll is required for the current situation. 
-        const outcome /*:"nothing"|"adjust"|"fresh"*/ = this.get_outcome(request);
-        //
-        //Load the table rows and use the scrolling outcome to update the 
-        //boundaries
-        await this.execute_outcome(outcome, request);
-    }
-    
-    //
-    //Determine which scrolling outcome we need depending on the requested offset.
-    private get_outcome(request: offset): outcome {
-        //
-        //NOTHING: If the request is within view, do 
-        //nothing.i.e., no loading of new rows or adjusting 
-        //current view boundaries.
-        if (this.within_view(request))
-            return <nothing> {type: "nothing"};
-        //
-        //ADJUST: If request is within the joint boundaries, 
-        //load a fresh copy and adjust either the top or bottom
-        //boundaries depending on the request direction.
-        if (this.within_joint(request)) {
-            //
-            //The direction is top if the 
-            //request is above the top boundary.
-            const dir = request < this.view.top
-                ?"top" : "bottom";
-            //
-            //The top or bottom boundaries 
-            //should be adjusted to this value.
-            const adjusted_view = this.get_joint(dir);
-            //
-            //Adjust the top boundary
-            const start_from = dir === "top"
-                ? this.get_joint(dir) : this.view[dir];
-            //
-            //Return the view boundary adjustment outcome.
-            return <adjust> {type: "adjust", dir, start_from, adjusted_view};
-        }
-        //
-        //FRESH: If the request is within extremes, 
-        //load a fresh outcome, i.e., clear current tbody, 
-        //load new rows and adjust the views.
-        if (this.within_extreme(request)) {
-            //
-            //Constrain  the request to the extreme top.
-            const view_top = request < this.extreme.top
-                ? this.extreme.top : request;
-            //
-            //The bottom is always $limit number of rows
-            //from the top, on a fresh page.
-            const y = view_top + app.current.config!.limit;
-            //
-            //Constrain the bottom to the extreme bottom. 
-            const view_bottom = y > this.extreme.bottom
-                ? this.extreme.bottom: y;
 
-            return <fresh> {type: "fresh", view_top, view_bottom};
-        }
-        //
-        //OUT OF RANGE: The request is out of range.
-        return <out_of_range> {type: "out_of_range", request};
-    }
-   
     //
     //Restore the ios asociated with the tds on the theme panel. This is
     //necessary bceuase the old ios are no londer assocuate with the current

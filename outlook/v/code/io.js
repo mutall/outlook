@@ -3,7 +3,7 @@
 import * as schema from "../../../library/v/code/schema.js";
 import * as crud from "./crud.js";
 //
-//Added to alllo access to a view
+//Added to allow access to a view
 //import * as outlook from "./outlook.js";
 // 
 //Resolve the tree methods needed for browser
@@ -181,7 +181,7 @@ export class io {
     //The attributes of the element
     attributes) {
         //
-        //Greate the element holder based on the td's owner documet
+        //Create the element holder based on the td's owner documet
         const element = anchor.ownerDocument.createElement(tagname);
         //
         //Attach this element to the anchor 
@@ -646,7 +646,7 @@ export class file extends input {
             //
             //Paparazzi, please save the folder/files path structure here
             //after you are done.
-            onclick: async () => await this.browse(String(this.value))
+            onclick: async (evt) => await this.browse(evt, String(this.value))
         });
         //
         //Upload this file after checking that the user has all the inputs.
