@@ -1,11 +1,10 @@
 #Folders
-
 /Insuredge
 /accounting
 /metavisuo
 /pictures
-/tracker/v/tests/test.php
 /test
+/tracker/v/tests/test.php
 # sub folders
 /chama/nbproject
 /library/nbproject
@@ -16,4 +15,12 @@
 #subdirectories
 outlook/v/code/*.js
 #files
+# JS files
+/chama/v/code/*.js
+/library/v/code/*.js
+/outlook/v/code/*.js
+/tracker/v/code/*.js
+/school/v/code/*.js
+#individual files
 .gitignore
+

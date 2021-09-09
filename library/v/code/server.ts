@@ -39,8 +39,8 @@ export async function exec<
     //instance extends $class extends new (...args: any) => infer r ? r : never,
     instance extends InstanceType<$class>,
     // 
-    //...The object method name.
-    method_name extends keyof instance,
+    //...The object method must be a string.
+    method_name extends Extract<keyof instance,string>,
     // 
     //...The object method
     method extends instance[method_name],
@@ -62,70 +62,15 @@ export async function exec<
         //
         method_name: method_name,
         //
-        margs: margs
+        margs: margs,
+        //
+        //This the application website url
+        url?: string
     ): Promise<$return> {
     //
-    //Prepare to collect the data to send to the server
-    const formdata = new FormData();
-    //
-    //Add to the form, the class to create objets on the server
-    formdata.append('class', class_name);
-    //
-    //Add the class constructor arguments
-    formdata.append('cargs', JSON.stringify(cargs));
-    //
-    //Add the method to execute on the class
-    formdata.append('method', <string> method_name);
-    //
-    //Add the method parameters 
-    formdata.append('margs', JSON.stringify(margs));
-    //
-    //Prepare  to fetch using a post
-    const init = {
-        method: 'post',
-        body: formdata
-    };
-    //
-    //Fetch and wait for the response, using the (shared) export file
-    const response = await fetch('/library/v/code/export.php', init);
-    //
-    //Get the text from the response. This can never fail
-    const text = await response.text();
-    //
-    //The output is expected to be a json string that has the following 
-    //pattern: {ok:boolean, result:any, html:string}. If ok, the 
-    //result is that of executing the requested php method; otherise it
-    //is an error message. htm is any buffered warnings.
-    let output:{ok:boolean, result:any, html:string}; 
-    //
-    //The json might fail (for some reason)
-    try {
-        //Try to convert the text into json
-        output = JSON.parse(text);
-    }
-    //
-    //Invalid json;this must be a structural error that needs special attention
-    catch (ex) {
-        // 
-        //Compile a usefull error message
-        const msg = `Error trapping failed???. <br/> Message: "${(<Error> ex).message}".<br/>Text = "${text}"`;
-        //
-        throw new mutall_error(msg);
-    }
-    //
-    //The json is valid.
-    // 
-    //Test if the requested method ran successfully 
-    if(output.ok) return output.result;
-    //
-    //The method failed. Report the method specific errors. The result
-    //must be an error message string
-    const msg= <string>output.result;
-    // 
-    //Report the error. 
-    throw new mutall_error(msg);
-}
-
+    //Call the non parametric form of exec
+    return await exec_nonparam(class_name,method_name,margs,cargs,url);
+ }
 //
 //
 //Post the given file to the server at the given folder.
@@ -199,15 +144,58 @@ export async function ifetch<
     method_name: method_name,
     //
     //The method parameters
-    margs: $parameters
+    margs: $parameters,
+    //
+    //The application website url
+    url?:string
 
 ): Promise<$return> {
+    //
+    //Call the non parametric form of exec
+    return await exec_nonparam(class_name,method_name,margs,null,url);
+}
+ //
+ //This is the non-parametric version of exec useful for calling both the static
+ // and object of the given php class
+ async function exec_nonparam(
+    //
+    //This is the name of the php class to create
+    class_name: string,
+    //
+    //The method to execute on the php class
+    method_name:string,
+    //
+    //The arguements of the method
+    margs:Array<any>,
+    //
+    //If defined, this parameter represents the constructor arguements for the 
+    //php class. It is undefined for static methods.
+    cargs:Array<any>|null=null,
+    //
+    //
+    url?:string,
+ ): Promise<any>{
     //
     //Prepare to collect the data to send to the server
     const formdata = new FormData();
     //
-    //Add to the form, the class name to create objets on the server
+    //Add the application URL if it is available
+    if (url !== undefined)formdata.append("url", url);
+    //
+    //Add to the form, the class to create objects on the server
     formdata.append('class', class_name);
+    //
+    //Add the class constructor arguments if they are defined
+    if (cargs === null ){
+        //
+        //The method on the php class is static
+        formdata.append('is_static', 'true');
+    }
+    else{
+        //
+        //The method on the php class is an object method
+        formdata.append('cargs', JSON.stringify(cargs));
+    }
     //
     //Add the method to execute on the class
     formdata.append('method', method_name);
@@ -222,27 +210,42 @@ export async function ifetch<
     };
     //
     //Fetch and wait for the response, using the (shared) export file
-    const response = await fetch('/library/v/code/export.php?is_static=true', init);
+    const response = await fetch('/library/v/code/export.php', init);
     //
     //Get the text from the response. This can never fail
     const text = await response.text();
     //
-    //The output is expected to be a json string that has the follwing 
-    //pattern: {ok, result, html} where result, if ok, is the data of 
-    //available choices. The json might fail
+    //The output is expected to be a json string that has the following 
+    //pattern: {ok:boolean, result:any, html:string}. If ok, the 
+    //result is that of executing the requested php method; otherise it
+    //is an error message. htm is any buffered warnings.
+    let output:{ok:boolean, result:any, html:string}; 
+    //
+    //The json might fail (for some reason)
     try {
         //Try to convert the text into json
-        const output = JSON.parse(text);
-        //
-        //Destructure the output to get the desired result
-        const {result} = output;
-        // 
-        return result;
+        output = JSON.parse(text);
     }
     //
-    //Invalid json;this must be an error. Show the original error.
+    //Invalid json;this must be a structural error that needs special attention
     catch (ex) {
-        throw new mutall_error(text);
+        // 
+        //Compile a usefull error message
+        const msg = 
+        `Error trapping failed???. <br/> Message: "${(<Error> ex).message}".<br/>Text = "${text}"`;
+        //
+        throw new mutall_error(msg);
     }
+    //
+    //The json is valid.
+    // 
+    //Test if the requested method ran successfully 
+    if(output.ok) return output.result;
+    //
+    //The method failed. Report the method specific errors. The result
+    //must be an error message string
+    const msg= <string>output.result;
+    // 
+    //Report the error. 
+    throw new mutall_error(msg);
 }
-
