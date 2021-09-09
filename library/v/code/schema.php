@@ -2319,7 +2319,7 @@ class view extends entity {
     public ?join $join;
     //
     //Other clasuses of an sql that teh user can provide after a view is creatred
-    public ?string $group_by = null;
+    public ?array $group_by;
 
     //We dont expext to callt this constructor from Js, because the data types 
     //are not simple
@@ -2334,12 +2334,12 @@ class view extends entity {
             //
             //The name of the view    
             string $name,
-            expression $where = null,
             //
-            //Indicate whether this view should be incorporated in the 
-            //data model or not. By default views will be discarded as soon as 
-            //we get out of scope
-            bool $is_modelled = false
+            //The where clause which is an expression which evaluates a boolean
+            ?expression $where = null,
+            //
+            //Group by is an array
+            ?array /*<column>*/$group_by=null
     ) {
         //
         //Properties are saved directly since this class is not callable from 
@@ -2347,6 +2347,7 @@ class view extends entity {
         $this->from = $from;
         $this->join = $join;
         $this->where = $where;
+        $this->group_by=$group_by;
         //
         //The columnsn of a view are expected to be fields, i.e., named 
         //expresions. We use the name to index the columns.
@@ -2356,12 +2357,6 @@ class view extends entity {
         //An entity parent requires both the ename and the 
         //dbname.
         parent::__construct($name, $from->dbname);
-        //
-        //If this view participates in the data model then add it
-        if ($is_modelled) {
-            $dbase = $this->open_dbase($this->dbname);
-            $dbase->entities[$name] = $this;
-        }
     }
 
     //
@@ -2523,7 +2518,18 @@ class view extends entity {
                 $this->from->stmt() : $this->from->to_str();
         //
         //Add the group by if necessary
-        $group = is_null($this->group_by) ? '' : "group by $this->group_by";
+        $group="";
+        //
+        if(!is_null($this->group_by)){
+            //
+            //Convert group by columns into their string equivalent
+            $group_by_str= implode(
+            ",",array_map(fn($col)=>"$col", $this->group_by)
+            );
+            //
+            //Complete the group by clause
+            $group = "group by $group_by_str";
+        }
         //
         //Construct the sql (select) statement. Note use of the alias. It allows 
         //us to formulate a genealised sql that is valid for both primary
@@ -2569,7 +2575,7 @@ class view extends entity {
                 //Add the where clause, if necessary    
                 . $where
                 //
-                //Group by            
+                //Add the Group by clause           
                 . $group;
         //
         //Return the complete sttaement        
@@ -3251,26 +3257,19 @@ class field extends column implements expression {
     }
 
 }
-
-//This interface supports foreign key behaviour.
-interface iref {
-
+//
+//This interface is for establishing links between entities.
+interface link{
     //
-    //The home method returns the entity in which the 
-    //foreign key is housed. It is indicated with a chicken foot
-    //in our data model.
-    function home(): entity;
-
-    //
-    //Returns the entity that the foreign key is pointing 
-    //at i.e., the referenced entity.
-    function away(): entity;
+    //Returns the onclause of an sql statement
+    function on_str():string;
 }
 
-//This is the clas of columns whose sole purpose is to establish relationhips
+
+//This is the class of columns whose sole purpose is to establish relationhips
 //between entities. It participates in data capture. primary feature is the 
 //referenced entity
-class foreign extends capture implements iref {
+class foreign extends capture implements link {
 
     //
     //The name of the referenced table and database names
@@ -3293,7 +3292,23 @@ class foreign extends capture implements iref {
         $this->ref = $ref;
         parent::__construct($dbname, $ename, $name, $data_type, $default, $is_nullable, $comment, $length);
     }
-
+    //
+    //This function returns an sql clause that equates this foreign key field to
+    //a primary key e.g., tracker.developer=developer.developer
+    function on_str(): string {
+        //
+        //Get the home entity name of the foreign key field
+        $home= $this->home()->name;
+        //
+        //Get the away entity name
+        $away=$this->away()->name;
+        //
+        //Formulate the equation
+        $str="`$home`.`$away`=`$away`.`$away`";
+        //
+        //Return the onclause
+        return $str;
+    }
     //A foreign must have satisfy the following conditions to be compliant to the
     //Mutall framework
     //1. The datatype of the foreigner must be of int
@@ -4229,4 +4244,27 @@ class dependency extends network {
         return count($id_foreigners) === 0;
     }
 
+}
+//
+//This class implements helps to implement an is_a relationship between entities
+//
+class one_2_one implements link{
+    //
+    public entity $entity1;
+    //
+    public entity $entity2;
+    //
+    function __construct(entity $entity1 ,entity $entity2){
+        //
+        $this->entity1= $entity1;
+        //
+        $this->entity2= $entity2;
+    }
+    //
+    //Returns the onclause of a one_2_one link,
+    // e.g., tracker.tracker=selector.selector
+    function on_str(): string {
+       return "`{$this->entity1->name}`.`{$this->entity1->name}`="
+       ."`{$this->entity2->name}`.`{$this->entity2->name}`";
+   }
 }

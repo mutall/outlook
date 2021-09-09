@@ -5,14 +5,12 @@
 /pictures
 /test
 /tracker/v/tests/test.php
-/test
 # sub folders
 /chama/nbproject
 /library/nbproject
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
-<<<<<<< HEAD
 /library/test
 #files
 .php
@@ -23,7 +21,4 @@
 /tracker/v/code/*.js
 /school/v/code/*.js
 #individual files
-=======
-#file
 .gitignore
->>>>>>> crud_interface

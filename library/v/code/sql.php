@@ -1110,7 +1110,7 @@ class joint extends mutall{
     function  __construct(
         entity $base, 
         string $jtype='inner', 
-        array/*Array<foreign>*/ $ons=[]
+        array/*Array<link>*/ $links=[]
     ){
         parent::__construct();
         //
@@ -1121,10 +1121,9 @@ class joint extends mutall{
         $this->on = new \Ds\Set();
         //
         //Load the on clauses.
-       $this->on->add(...$ons);
+       $this->on->add(...$links);
     }
-    
-    
+    //
     //Returns a complete join phrase, i.e., inner join ename on a.b=b.b
      function stmt() :string{
          //
@@ -1136,12 +1135,12 @@ class joint extends mutall{
         //    
         return $join_str;
      }
-     
+     //
      //Compile part of the on clause, i.e.,  x.a.d = y.d.d and c.d=d.d and ....
      private function on_str(): string{
         //
         //Map each foreigner to an equation string, taking care of multi-database
-         //scenarios
+        //scenarios
         $on_strs = array_map(function ($f){
             // 
             //Take care of the views that are not referenced by a dbname.
@@ -1297,9 +1296,69 @@ class registrar extends editor{
         //a corresponding left join.
         foreach ($this->pointers() as $pointer){
             //
+            //The subject entity is the home of this pointer
+            $subject= $pointer->home();
+            //
+            //The object is the away entity of the pointer
+            $object= $pointer->away();
+            //
+            //Formulate an object selector based on the object query
+            $object_selector= new selector($object->name, $object->dbname);
+            //
+            //The primary key for the rod query is the same column from the
+            //object selector that was used in the group by
+            $pk= $object_selector->columns[$subject->name];
+            //
+            //Formulate the count expression that returns the count of objects
+            //in a subject
+            $count= new function_("count", [$pk]);
+            //
+            //The member function is a json array aggregate for the object
+            //selector friends up to a maximum of 2. the equivalent json expression
+            //is:-json_arrayagg(object_selector.friend limit (0,2));
+            $members= new json_arryagg(
+                //
+                //The field that is contributing the array element is the 
+                //friendly column of the object column
+                $object_selector-> friend,
+                //
+                //The offset
+                0,
+                //
+                //This is the page size
+                2  
+            );
+            //
+            //The friendly component of the rod query has 2 parts, 
+            //i.e, a counter of how many object are in the subject
+            //and a list of the first two members.
+            $friend= new function_("json_array",[$count,$members]);
+            //  
             //Formulate the rod query; it is an aggregated view of a selector
             // based on the given pointer.
-            $rod= new view($from, $columns, $join, $dbname);
+            $rod= new view(
+                //
+                //The source of this view is the object selector
+                $object_selector,
+                //
+                //There are two columns for this rod, i.e., primary key and its
+                //friendly component
+                [$pk,$friend],
+                //
+                //The join of this view is the same as that of the object selector
+                $object_selector->join,
+                //
+                //The name of this query is the same as that of the object source
+                //with a rod prefix
+                "rod_$object->ename",
+                //
+                //There is no where clause
+                null,
+                //
+                //The only group by column is from the object selector and has the
+                //same name as the subject.
+                [$pk]
+            );
             //
             //...add a pointer column
             this.add_column($pointer,$rod);        
@@ -1337,7 +1396,10 @@ class registrar extends editor{
     //Add a left join to the registrar query to support the pointer columns
     function add_left_join(pointer $pointer, view $rod): void{
         //
+        //Create a one_2_one link between this registrar and the rod.
+        $link= new one_2_one($this, $rod);
+        //
         //Create a left join type
-        $leftie= new joint($rod, "left", $ons);
+        $leftie= new joint($rod, "left", [$link]);
     }
 }
