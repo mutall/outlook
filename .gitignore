@@ -17,3 +17,4 @@
 outlook/v/code/*.js
 #files
 .gitignore
+*.txt
