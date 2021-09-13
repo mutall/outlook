@@ -3,7 +3,6 @@
 /accounting
 /metavisuo
 /pictures
-/test
 /tracker/v/tests/test.php
 # sub folders
 /chama/nbproject
@@ -11,7 +10,6 @@
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
-/library/test
 #subdirectories
 outlook/v/code/*.js
 #files
