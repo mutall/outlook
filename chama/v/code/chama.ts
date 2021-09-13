@@ -103,7 +103,7 @@ export default class chama extends app{
        const chama= await server.exec("database",["mutall_chama"],"get_sql_data",
             ["select `name` from `group`"]) ;
        //
-       //
+       //Set the slected groups to accept multiple values
         const pairs = chama.map(pair=>{return{key:"name",value:String(pair.name)}});
        //
        // 1.1 Use the listed chamas to create a popup
@@ -169,7 +169,7 @@ export default class chama extends app{
         this.document.querySelector('thead')!.innerHTML = '';
         this.document.querySelector('tbody')!.innerHTML = '';
         //
-        //2.2 Repaint the theme panel
+        //2.2 Repaint the theme panel---
         Theme.view.top = 0;
         Theme.view.bottom = 0;
         await Theme.continue_paint();

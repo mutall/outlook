@@ -1,11 +1,10 @@
 #Folders
-
 /Insuredge
 /accounting
 /metavisuo
 /pictures
-/tracker/v/tests/test.php
 /test
+/tracker/v/tests/test.php
 # sub folders
 /chama/nbproject
 /library/nbproject
