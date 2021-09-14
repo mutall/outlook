@@ -14,8 +14,20 @@ interface udf_meta{
   size?: number 
 }
 // 
-//This is the coomponets of an sql statement
-type sql= {stmt:string,dbname:string}
+//A theme view boundary has two extremes, the top and the bottom 
+export interface boundary{
+    // 
+    //The top extreme is an offset number that represents the upper limit 
+    //of this boundery.
+    top: number,
+    // 
+    //The bottom extreme is an offset that represents lower limit 
+    //of this boundery
+    bottom:number
+}
+// 
+//These are the components of an sql statement
+type sql= {stmt:string, dbname:string};
 //
 //This type is used for constraining a string to a valid name of a html element.
 type HTMLElementTagName= keyof HTMLElementTagNameMap;
@@ -228,7 +240,7 @@ abstract class lister extends panel{
   }
   //
   //Return the header map with tins indexed by their column name
-  async get_header(): Promise<Map<cname, tin>>{
+  async get_header(): Promise<Map<library.cname, tin>>{
     // 
     //Get the header column names
     const cnames = await this.get_col_names();
@@ -240,7 +252,7 @@ abstract class lister extends panel{
     const udf_meta= this.get_udf_meta();
     //
     //Map the column names to their entries, i.e.,column name/tin pairs
-     const entries:Array<[cname,tin]>= cnames.map((cname,dposition)=>{
+     const entries:Array<[library.cname,tin]>= cnames.map((cname,dposition)=>{
         const Tin= new tin(header_barrel);
         //
         //Add the default data position to the tin
@@ -272,7 +284,7 @@ abstract class lister extends panel{
     // 
     //Sort the entries by order of the ascending data position
     entries.sort(
-        (a:[cname,tin], b:[cname,tin])=> a[1].dposition! - b[1].dposition!
+        (a:[library.cname,tin], b:[library.cname,tin])=> a[1].dposition! - b[1].dposition!
     );
     //
     //Return the header map
@@ -384,28 +396,389 @@ abstract class lister extends panel{
 }
 // 
 abstract class scroller extends lister{
-  //
-  //
-  abstract get_sql(): string;
-  //
-  public selection;
-  // 
-  //;
-  constructor(
-    base: view,
-    css: string,
-    public Udf_meta?: { [cname: string]: udf_meta }
-  ) {
-    super(css, base, Udf_meta);
-  }
-  // 
-  //Every scroller must be associated with an sql 
-  abstract get_sql(): Promise<sql>;
+    //
+    //This is the offset that indicates the last retrievable record 
+    //i.e., the green part of our scroll diagram.
+    get extreme():boundary{
+        return {top: 0, bottom: this.max_records!};
+    }
+    //  
+    //3...The maximum possible records that are available to paint
+    //the content pannel. they are required in adjusting the boundaries
+    max_records?: number;
+        /** 
+     * The scrolling variables
+     */
+    //
+    //The offset of the records that are visible in the page 
+    //both top and bottom i.e within scrolling without loading 
+    //more data in the purple part of our boundary diagram
+    view: boundary={top:0, bottom:0};
+    // 
+    //This is the limit number of records that can be retrieved and 
+    //constrained by the extreme boundery the blue part of the 
+    //blue region of our map
+    joint:boundary={top:0, bottom:0};
+    //
+    //
+    //
+    public selection;
+    // 
+    //;
+    // 
+    //Every scroller must be associated with an sql 
+    abstract get sql(): sql;
+    constructor(
+        base: view,
+        css: string,
+        public Udf_meta?: { [cname: string]: udf_meta }
+    ){
+        super(css, base, Udf_meta);
+    }
+    //
+    //This is a scroll event listener to retrive the previous or next 
+    //page of data depending in the position of the scroll button.
+    public myscroll() {
+        //
+        //Let tbody be the scrollable element
+        //const tbody = document.querySelector("tbody")!;
+        // 
+        //For now the scrollable element is the content 
+        const tbody = this.get_element("content");
+        //
+        //Get the scroll top as a rounded integer (not truncated)
+        //to ensure that the scroll height and the client height are 
+        //always equal to or greater than the scroll height when we are at 
+        //the bottom of the scroll. 
+        const scrollTop = Math.round(tbody.scrollTop);
+        //
+        //Decide whether to retrieve new records or not
+        if (scrollTop < 3) {
+            //
+            //Retrieve records that are above the top view boundary 
+            //This is equivalent to clicking the previous button
+            this.retrieve_records("top");
+        }else if (scrollTop + tbody.clientHeight>= tbody.scrollHeight) {
+            //
+            //Retrieve records that are below the bottom view boundary
+            //This is equivalent to clicking the next button 
+            this.retrieve_records("bottom");
+        }else{
+            //
+            //Ignore the scrolling
+        }
+    }
+    //
+    //This is an event listener that retrieves limit number of 
+    //records from the server depending on the given direction.
+    //The retrieved records are in the blue area of our scroll map.
+    async retrieve_records(dir: direction) {
+        //
+        //Set the offset value depending on the direction of scrolling.
+        let offset;
+        //
+        //If the direction is away from the top view boundary, 
+        //the offset becomes joint 
+        if (dir === "top") {
+            //
+            //The offset is the joint top boundary if we are scrolling upwards.
+            offset = this.get_joint("top");
+        }
+        //
+        else {
+            //
+            //The offset is the bottom view boundary if we are 
+            //scrolling downwards.
+            offset = this.view.bottom;
+        }
+        //
+        //Retrieve and display $limit rows of data starting from the 
+        //given offset/request subject to the available data.
+        await this.goto(offset);
+    }
+        //
+    //
+    //Retrieve and display $limit rows of data starting from the 
+    //given offset/request, subject to the available data.
+    async goto(request?: offset) {
+        //
+        //Get the requested record offset if it is not specified
+        let goto_element;
+        if (request === undefined) {
+            // 
+            //Check whether a request is specified in the goto element 
+            if((goto_element=document.querySelector('#goto'))!==null){
+                //
+               //
+               //Get the offset from the user from the user
+               //
+               //Get the goto input element
+               const value = (<HTMLInputElement> goto_element).value;
+               //
+               //Get the users request as an integer
+               request = parseInt(value);   
+            }
+            else{
+                //
+                //Set it to 0
+                request = 0;
+            }            
+        }
+        //
+        //It is an error if the request is above the top extreme boundary.
+        if (request < this.extreme.top)
+            throw new schema.mutall_error(`Goto: A request ${request}
+             must be positive`);
+        //
+        //Determine what kind of scroll is required for the current situation. 
+        const outcome /*:"nothing"|"adjust"|"fresh"*/ = this.get_outcome(request);
+        //
+        //Load the table rows and use the scrolling outcome to update the 
+        //boundaries
+        await this.execute_outcome(outcome, request);
+    }
    
-  // 
-  
-  
-  }
+        //
+    //Load the table rows and adjust the  boundaries depending
+    //on the outcome type.
+    private async execute_outcome(outcome: outcome, request: offset) {
+        //
+        switch (outcome.type) {
+            //
+            //The request is within view so no loading
+            //and no view boundary adjustment.
+            case "nothing":
+                //this.scroll_into_view(request,"center")
+                break;
+            //
+            //We need to adjust the relevant view 
+            //boundary to the given value          
+            case "adjust":
+                //
+                //This must be an 
+                const adjust = <adjust>outcome;
+                //
+                //Load the body from the offset and in the outcome direction.
+                await this.load_body(adjust.start_from, adjust.dir);
+                //
+                //Now adjust the view direction to the outcome value.
+                this.view[adjust.dir] = adjust.adjusted_view;
+                //this.scroll_into_view(request,"start")
+                break;
+            case "fresh":
+                //
+                //Cast the outcome to a fresh view
+                const fresh = <fresh>outcome;
+                //
+                //Clear the table body and reset the view 
+                //boundaries
+                // 
+                //Get the table body.
+                const tbody =this.document.querySelector("tbody");
+                // 
+                //There must be a table on this page.
+                if (tbody === null)
+                    throw new schema.mutall_error("tbody not found");
+                // 
+                //Empty the table body.
+                tbody.innerHTML = "";
+                // 
+                //Reset the view boundaries to {0,0} before 
+                //loading a fresh page.
+                this.view={top:0,bottom:0};
+                //
+                //Load the new page starting from the view top, 
+                //in the forward direction.
+                await this.load_body(fresh.view_top, "bottom");
+                //
+                //Reset the boundaries after loading a fresh 
+                //page.
+                this.view.top = fresh.view_top;
+                this.view.bottom = fresh.view_bottom;
+                break;
+            case "out_of_range":
+                alert(
+                    `Request is out of range bacause it fails this test 
+                    ${this.extreme.top} <=${request} < ${this.extreme.bottom}`
+                );
+                break;
+
+            default:
+                throw new schema.mutall_error(`The outcome of type 
+                       ${outcome.type} is not known`);
+        }
+    }
+        //
+    //Populate our table body with new rows 
+    //starting from the given offset and direction.
+    protected async load_body(offset: offset/*:int*/, dir: direction/*:mytop | bottom*/) {
+        //
+        //Range-GUARD:Ensure that offset is outside of the view for loading to be valid.
+        if (this.within_view(offset))
+            throw new schema.mutall_error(
+                `The requested offset ${offset} 
+                is already in view 
+                ${this.view.top} -- ${this.view.bottom}, 
+                so a new load is not valid.`
+            );
+        //
+        //Calculate a constrained limit to prevent negative offsets.
+        //
+        //Get the height from extreme[top] to view[top] boundaries.
+        const h = Math.abs(this.view![dir] - this.extreme![dir]);
+        //
+        //Use h to constrain the limit
+        const constrained_limit = h < this.config.limit ? h : this.config.limit;
+        //
+        //Query the database 
+        const result: library.Ifuel = await this.query(offset, constrained_limit);
+        //
+        //Paint the body
+        this.paint_body(result);
+    }    
+    //
+    //Determine which scrolling outcome we need depending on the requested offset.
+    private get_outcome(request: offset): outcome {
+        //
+        //NOTHING: If the request is within view, do 
+        //nothing.i.e., no loading of new rows or adjusting 
+        //current view boundaries.
+        if (this.within_view(request))
+            return <nothing> {type: "nothing"};
+        //
+        //ADJUST: If request is within the joint boundaries, 
+        //load a fresh copy and adjust either the top or bottom
+        //boundaries depending on the request direction.
+        if (this.within_joint(request)) {
+            //
+            //The direction is top if the 
+            //request is above the top boundary.
+            const dir = request < this.view.top
+                ?"top" : "bottom";
+            //
+            //The top or bottom boundaries 
+            //should be adjusted to this value.
+            const adjusted_view = this.get_joint(dir);
+            //
+            //Adjust the top boundary
+            const start_from = dir === "top"
+                ? this.get_joint(dir) : this.view[dir];
+            //
+            //Return the view boundary adjustment outcome.
+            return <adjust> {type: "adjust", dir, start_from, adjusted_view};
+        }
+        //
+        //FRESH: If the request is within extremes, 
+        //load a fresh outcome, i.e., clear current tbody, 
+        //load new rows and adjust the views.
+        if (this.within_extreme(request)) {
+            //
+            //Constrain  the request to the extreme top.
+            const view_top = request < this.extreme.top
+                ? this.extreme.top : request;
+            //
+            //The bottom is always $limit number of rows
+            //from the top, on a fresh page.
+            const y = view_top + app.current.config!.limit;
+            //
+            //Constrain the bottom to the extreme bottom. 
+            const view_bottom = y > this.extreme.bottom
+                ? this.extreme.bottom: y;
+
+            return <fresh> {type: "fresh", view_top, view_bottom};
+        }
+        //
+        //OUT OF RANGE: The request is out of range.
+        return <out_of_range> {type: "out_of_range", request};
+    }
+    
+    //
+    //Test if offset is within joint boundaries
+    private within_joint(request: offset): boolean {
+        //
+        //We are within the joint boundaries if...
+        const condition =
+            //
+            //.. offset is between the top and 
+            //bottom joint boundaries.
+            request >= this.get_joint("top")
+            && request < this.get_joint("bottom");
+        return condition;
+    }
+    // 
+    //Test if offset is within extremes and return true otherwise false.
+    private within_extreme(request: offset): boolean {
+        //
+        //extreme top condition should always 
+        //be set otherwise you get a runtime error.
+        //if extreme top is undefined throw an error.
+        return request >= this.extreme.top
+            && request < this.extreme.bottom;
+    }
+    //
+    //Test if offset is within view boundaries
+    private within_view(req: offset): boolean {
+        //
+        //We are within  view if...
+        return true //true is for appeasing the IDE.
+            //
+            //...the top view is set...
+            && this.view.top !== null
+            //
+            //...and the offset is between the top 
+            //and bottom view boundaries.
+            && req >= this.view.top
+            && req < this.view.bottom;
+    }
+    //
+    //Return the joint boundary given the direction The top joint boundary
+    // is a maximum of limit records from the top view boundary. The 
+    // bottom joint boundary is a maiximum of limit records from the 
+    // view[bottom]. see the scroll map 
+    // http://206.189.207.206/pictures/outlook/scroll_2020_10_10.ppt
+    private get_joint(dir: direction/*top|bottom*/): offset {
+        //
+        //
+        let raw_boundary =
+            //
+            //The referenced view boundary
+            this.view[dir]
+            //
+            //The maximum range
+            + this.config.limit
+            //
+            //Accounts for the direction 
+            * (dir === "top" ? -1 : +1);
+        //
+        //Return a constrained boundary
+        return this.within_extreme(raw_boundary)
+            ? raw_boundary : this.extreme[dir];
+    }
+    //
+    //
+    //Fetch the real data from the database as an array of table rows.
+    public async query(offset: offset, limit: number): Promise<library.Ifuel>{
+        //
+        //Complete the sql using the offset and the limit.
+        const complete_sql =
+            //
+            //Paginate results.
+            this.sql.stmt + ` LIMIT ${limit} OFFSET ${offset}`;
+        //
+        //Use the sql to query the database and get results as array of row objects.
+        return  await server.exec(
+            "database",
+            //
+            //dbase class constructor arguments
+            [this.sql.dbname],
+            //
+            "get_sql_data",
+            //
+            //The sql stmt to run
+            [complete_sql]
+        );
+        
+    }
 }
 // 
 //This class models an input panel used for modifying the look of a crud page.ie.
@@ -786,35 +1159,6 @@ class theme extends scroller{
         //Create and return the io for this column.
         const Io = io.create_io(td, col);
         return Io;
-    }
-    //
-    //
-    //Fetch the real data from the database as an array of table rows.
-    private async query(offset: number, limit: number): Promise<Ifuel>{
-        // 
-        //The entity name that drives this query comes from the subject of this 
-        //application
-        const ename = `\`${this.subject[0]}\``;
-        //
-        //Complete the sql using the offset and the limit.
-        const complete_sql =
-            //
-            //Paginate results.
-            this.sql + ` LIMIT ${limit} OFFSET ${offset}`;
-        //
-        //Use the sql to query the database and get results as array of row objects.
-        return  await server.exec(
-            "database",
-            //
-            //dbase class constructor arguments
-            [this.subject[1]],
-            //
-            "get_sql_data",
-            //
-            //The sql stmt to run
-            [complete_sql]
-        );
-        
     }
 }
 class tabulator extends scroller{
