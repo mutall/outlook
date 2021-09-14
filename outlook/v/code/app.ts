@@ -65,7 +65,7 @@ export abstract class app extends outlook.view{
         //
         //If the url of an application is not defined, then use that of
         //the current window
-        super(config,config.url);
+        super(config, window.location.href);
         //
         this.dbname = this.config.app_db;
         // 
