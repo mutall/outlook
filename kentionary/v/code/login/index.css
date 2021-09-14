@@ -1,0 +1,32 @@
+body{
+    background: url(kenya.png);
+    background-size: cover;
+    background-position: center;
+}
+
+.login-box{
+    max-width: 700px;
+    float: none;
+    margin: 150px auto;
+}
+
+.login-left{
+    background: rgba(211,211,211,0.5);
+    padding: 30px;
+}
+.login-right{
+    background: #fff;
+    padding: 30px;
+}
+.form-control{
+    background-color: transparent !important;
+}
+
+@media only screen and (max-width: 1024px) {
+    body {
+        background-size: var;
+    }
+    .login-box{
+        margin-top: 500px;        
+    }
+}

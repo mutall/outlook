@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <!-- 
+        The tile of your project -->
+        <title>Testplatform</title>
+        <link rel="stylesheet" href="deployment.css">
+        <!-- 
+        We will need to import modules, hence the type -->
+        <script type="module">
+            //
+            //Import the io library to resolve the file_io class
+            import * as io from "../../../outlook/v/code/io.js";
+            //
+            //Wait for the window to load
+            window.onload=()=>{
+                //
+                //Get the body element
+                const anchor= window.document.querySelector("body");
+                //
+                //Create a new file_io
+                const file_io= new io.file(anchor,"image");
+                //
+                //Set a new path to the file_io
+                file_io.value= "/pictures/friends/alice muthoni njenga.jpg";
+                //
+                //Test if we can retrieve the value
+                console.log(file_io.value);
+            }
+        </script>
+    </head>
+    <body>
+      
+    </body>
+</html>
