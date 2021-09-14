@@ -1,9 +1,8 @@
-import * as library from "../../../library/v/code/library";
-import * as schema from "../../../library/v/code/schema";
-import * as io from "../../../outlook/v/code/io";
-import {view, subject } from "../../../outlook/v/code/outlook";
-import create_element from "./create";
-import { column_meta } from "./library";
+import * as library from "../../../library/v/code/library.js";
+import * as schema from "../../../library/v/code/schema.js";
+import * as server from "../../../library/v/code/server.js";
+import * as io from "../../../outlook/v/code/io.js";
+import {view, subject } from "../../../outlook/v/code/outlook.js";
 // 
 //These are the user defined metadata
 interface udf_meta{
@@ -236,163 +235,174 @@ abstract class lister extends panel{
         const Ifuel = await this.get_Ifuel();
         //
         //Use the fuel to paint the lister body
-        this.paint_body(Ifuel)
+        this.paint_body(Ifuel);
   }
+//
+//Return the header map with tins indexed by their column name
+async get_header(): Promise<Map<library.cname, tin>>{
+  // 
+  //Get the header column names
+  const cnames = await this.get_col_names();
   //
-  //Return the header map with tins indexed by their column name
-  async get_header(): Promise<Map<library.cname, tin>>{
-    // 
-    //Get the header column names
-    const cnames = await this.get_col_names();
+  //Create the header barrelto support construction of tins
+  const header_barrel = new barrel(this);
+  //
+  //Get the user defined metadata
+  const udf_meta= this.get_udf_meta();
+  //
+  //Map the column names to their entries, i.e.,column name/tin pairs
+   const entries:Array<[library.cname,tin]>= cnames.map((cname,dposition)=>{
+      const Tin= new tin(header_barrel);
+      //
+      //Add the default data position to the tin
+       Tin.dposition= dposition;
+      //
+      //Add the user-defined metadata that matches this tin
+      const udf = udf_meta![cname];
+      //
+      //Assign the Metadata to the tin if it is valid
+      if (udf !== undefined) Object.assign(Tin, udf);
+      //
+      //Header tins are always displayed in readonly mode 
+      Tin.io = new readonly(Tin.anchor);
+      //
+      //The value of the header tin is the column name
+      Tin.value = cname;
+      //
+      //Add the following details to this tin's anchor as required by the theme
+      //panel
+      //a. Add an id that matches the column name
+      Tin.anchor.id= cname;
+      //
+      //b. Add the column select event listener to the tin
+      Tin.anchor.onclick=(evt: Event)=> this.select_column(evt);
+      //
+      //Compile and return the entry
+      return [cname,Tin];
+  });
+  // 
+  //Sort the entries by order of the ascending data position
+  entries.sort(
+      (a:[library.cname,tin], b:[library.cname,tin])=> a[1].dposition! - b[1].dposition!
+  );
+  //
+  //Return the header map
+  return new Map(entries);
+}
+//
+  //Mark the current column as selected.
+  private select_column(evt: Event | HTMLTableHeaderCellElement){
+      //
+      //0. Get the target th.
+      const th = evt instanceof HTMLTableHeaderCellElement
+          ?evt:<HTMLTableHeaderCellElement>evt.target;
+      //
+      //1. Get the stylesheet named column from the current document.
+      const stylesheet = (<HTMLStyleElement>this.get_element("columns")).sheet;
+      if(stylesheet === null)
+          throw new schema.mutall_error("Stylesheet 'column' not known");
+      //
+      //2. De-highlight any column that is currently selected.
+      //2.1 Get the currently selected column (there may be none).
+      const selected_column = this.anchor.querySelector(".TH");
+      //
+      //2.2 If there's one ...
+      if (selected_column !== null) {
+          //
+          //2.2.1 Get its index.
+          const index = 
+              (<HTMLTableHeaderCellElement>selected_column).cellIndex;
+          //
+          //2.2.2 Use the index to remove the background color from the
+          //matching rule. NB: There are as many CSS rules as there are columns.
+          //a. Get the rule that matches the index.
+          const rule = <CSSStyleRule>stylesheet.cssRules[index];
+          //
+          //b. Remove the background-color property.
+          rule.style.removeProperty("background-color");
+      }
+      //
+      //3. Select the given th, in the current standard version, i.e.,  
+      //using the TH class selector.
+      theme.select(th);
+      //
+      //4. Highlight the td cells below the th.
+      //
+      //a. Get the index of the th index to be selected.
+      const index2 = th.cellIndex;
+      //
+      //b. Use the index to get the CSS rule from the column stylesheet.
+      const rule2 = <CSSStyleRule>stylesheet.cssRules[index2];
+      //
+      //c. Set the background color of the rule to lightgreen.
+      rule2.style.setProperty("background-color", "lightgreen");
+  }
+      //
+  //Ensure that the given tag is the only selected one 
+  //of the same type
+  static select(tag:HTMLElement):void {
     //
-    //Create the header barrelto support construction of tins
-    const header_barrel = new barrel(this);
+    //Get the tagname 
+    const tagname = tag.tagName;
     //
-    //Get the user defined metadata
-    const udf_meta= this.get_udf_meta();
-    //
-    //Map the column names to their entries, i.e.,column name/tin pairs
-     const entries:Array<[library.cname,tin]>= cnames.map((cname,dposition)=>{
-        const Tin= new tin(header_barrel);
-        //
-        //Add the default data position to the tin
-         Tin.dposition= dposition;
-        //
-        //Add the user-defined metadata that matches this tin
-        const udf = udf_meta![cname];
-        //
-        //Assign the Metadata to the tin if it is valid
-        if (udf !== undefined) Object.assign(Tin, udf);
-        //
-        //Header tins are always displayed in readonly mode 
-        Tin.io = new readonly(Tin.anchor);
-        //
-        //The value of the header tin is the column name
-        Tin.value = cname;
-        //
-        //Add the following details to this tin's anchor as required by the theme
-        //panel
-        //a. Add an id that matches the column name
-        Tin.anchor.id= cname;
-        //
-        //b. Add the column select event listener to the tin
-        Tin.anchor.onclick=(evt: Event)=> this.select_column(evt);
-        //
-        //Compile and return the entry
-        return [cname,Tin];
-    });
-    // 
-    //Sort the entries by order of the ascending data position
-    entries.sort(
-        (a:[library.cname,tin], b:[library.cname,tin])=> a[1].dposition! - b[1].dposition!
+    //1. Declassifying all the elements classified with 
+    //this tagname.
+    const all = document.querySelectorAll(`.${tagname}`);
+    Array.from(all).forEach(element =>
+        element.classList.remove(tagname)
     );
     //
-    //Return the header map
-    return new Map(entries);
+    //3.Classify this element 
+    tag.classList.add(tagname);
+}
+//
+//Query the database to get the Ifuel
+async get_Ifuel(): Promise<library.Ifuel>{
+    //
+    //Retrieve and display $limit number of rows of data starting from the 
+    //given offset/request.
+    let pk: library.pk | undefined;
+    if (this.selection !== undefined) pk = this.selection.pk;
+    //
+    //
+    return await this.query(pk, this.limit);
+}    
+//
+//
+//Use the given Ifuel(data)to show or display the panels body.This is a double
+//loop that iterates over the barrels in the fuel and the tins in the barrels
+paint_body(Ifuel:library.Ifuel):void { 
+      // 
+      //Loop over all the ifuel to paint the barrels
+      for(const Ibarrel of Ifuel) {
+          //
+          //Create the barrel 
+          const body_barrel = new barrel(this);
+          //
+          //Assuming that the header tins are already sorted by the data
+          //position loop through all the tins in the header barrels  
+          for (const htin of this.header!.tins){
+              // 
+              //Create the data tinl 
+              const Tin = new tin(body_barrel);
+              // 
+              //Get and set the tin's io.
+              Tin.io = this.get_io(htin);
+              //
+              //Get the value to be associated with this tin
+              const value= Ibarrel[htin.dposition!];
+              //
+              //Set the tins value
+              Tin.value = value; 
+              // 
+              //Add the tin to the barrel
+              body_barrel.tins.push(Tin)
+          }
+          //
+          //Paint or show or display the body's barrel
+          body_barrel.paint();
+      }
   }
-  //
-    //Mark the current column as selected.
-    private select_column(evt: Event | HTMLTableHeaderCellElement){
-        //
-        //0. Get the target th.
-        const th = evt instanceof HTMLTableHeaderCellElement
-            ?evt:<HTMLTableHeaderCellElement>evt.target;
-        //
-        //1. Get the stylesheet named column from the current document.
-        const stylesheet = (<HTMLStyleElement>this.get_element("columns")).sheet;
-        if(stylesheet === null)
-            throw new schema.mutall_error("Stylesheet 'column' not known");
-        //
-        //2. De-highlight any column that is currently selected.
-        //2.1 Get the currently selected column (there may be none).
-        const selected_column = this.anchor.querySelector(".TH");
-        //
-        //2.2 If there's one ...
-        if (selected_column !== null) {
-            //
-            //2.2.1 Get its index.
-            const index = 
-                (<HTMLTableHeaderCellElement>selected_column).cellIndex;
-            //
-            //2.2.2 Use the index to remove the background color from the
-            //matching rule. NB: There are as many CSS rules as there are columns.
-            //a. Get the rule that matches the index.
-            const rule = <CSSStyleRule>stylesheet.cssRules[index];
-            //
-            //b. Remove the background-color property.
-            rule.style.removeProperty("background-color");
-        }
-        //
-        //3. Select the given th, in the current standard version, i.e.,  
-        //using the TH class selector.
-        theme.select(th);
-        //
-        //4. Highlight the td cells below the th.
-        //
-        //a. Get the index of the th index to be selected.
-        const index2 = th.cellIndex;
-        //
-        //b. Use the index to get the CSS rule from the column stylesheet.
-        const rule2 = <CSSStyleRule>stylesheet.cssRules[index2];
-        //
-        //c. Set the background color of the rule to lightgreen.
-        rule2.style.setProperty("background-color", "lightgreen");
-    }
-        //
-    //Ensure that the given tag is the only selected one 
-    //of the same type
-    static select(tag:HTMLElement):void {
-        //
-        //Get the tagname 
-        const tagname = tag.tagName;
-        //
-        //1. Declassifying all the elements classified with 
-        //this tagname.
-        const all = document.querySelectorAll(`.${tagname}`);
-        Array.from(all).forEach(element =>
-            element.classList.remove(tagname)
-        );
-        //
-        //3.Classify this element 
-        tag.classList.add(tagname);
-    }
-       
-  //
-  //
-  //Use the given Ifuel(data)to show or display the panels body.This is a double
-  //loop that iterates over the barrels in the fuel and the tins in the barrels
-  paint_body(Ifuel:library.Ifuel):void { 
-        // 
-        //Loop over all the ifuel to paint the barrels
-        for(const Ibarrel of Ifuel) {
-            //
-            //Create the barrel 
-            const body_barrel = new barrel(this);
-            //
-            //Assuming that the header tins are already sorted by the data
-            //position loop through all the tins in the header barrels  
-            for (const htin of this.header!.tins){
-                // 
-                //Create the data tinl 
-                const Tin = new tin(body_barrel);
-                // 
-                //Get and set the tin's io.
-                Tin.io = this.get_io(htin);
-                //
-                //Get the value to be associated with this tin
-                const value= Ibarrel[htin.dposition!];
-                //
-                //Set the tins value
-                Tin.value = value; 
-                // 
-                //Add the tin to the barrel
-                body_barrel.tins.push(Tin)
-            }
-            //
-            //Paint or show or display the body's barrel
-            body_barrel.paint();
-        }
-    }
 }
 // 
 abstract class scroller extends lister{
@@ -481,8 +491,20 @@ abstract class scroller extends lister{
         //the offset becomes joint 
         if (dir === "top") {
             //
+            //Get the first row in the view
+            const tr = (<HTMLTableSectionElement>this.body).rows[0];
+            //
             //The offset is the joint top boundary if we are scrolling upwards.
             offset = this.get_joint("top");
+            //
+            //Retrieve and display $limit rows of data starting from the 
+            //given offset/request subject to the available data.
+            await this.goto(offset);
+            //
+            //Reposition the client window so that the first row,tr, becomes the 
+            //last one in the client window. 
+            //This will stop the current disorientation.
+            tr.scrollIntoView({block:"end"});
         }
         //
         else {
@@ -490,13 +512,13 @@ abstract class scroller extends lister{
             //The offset is the bottom view boundary if we are 
             //scrolling downwards.
             offset = this.view.bottom;
+            //
+            //Retrieve and display $limit rows of data starting from the 
+            //given offset/request subject to the available data.
+            await this.goto(offset);
         }
-        //
-        //Retrieve and display $limit rows of data starting from the 
-        //given offset/request subject to the available data.
-        await this.goto(offset);
     }
-        //
+    //
     //
     //Retrieve and display $limit rows of data starting from the 
     //given offset/request, subject to the available data.
@@ -537,8 +559,60 @@ abstract class scroller extends lister{
         //boundaries
         await this.execute_outcome(outcome, request);
     }
-   
         //
+    //Paint the content panel with editable records of the subject
+    public async continue_paint() {
+        //
+        //Get the editor description.
+        const metadata = await server.exec(
+            //
+            //The editor class is an sql object that was originaly designed 
+            //to return rich content for driving the crud page.
+            "editor",
+            //
+            //Constructor args of an editor class are ename and dbname 
+            //packed into a subject array in that order.
+            this.subject,
+            //
+            //Method called to retrieve editor metadata on the editor class.
+            "describe",
+            //
+            //There are no method parameters
+            []
+        );
+        //
+        //Destructure the metadata
+        const [idbase, col_names, sql, max_record] = metadata;
+        //
+        //Set the metadata properties
+        this.sql = sql; this.col_names = col_names; 
+        this.max_records = parseInt(max_record);
+        //
+        //Activate the static php database.
+        this.dbase = new schema.database(idbase);
+        //
+        //Initialize the crud style for managing the hide/show feature 
+        //of columns
+        this.initialize_styles(col_names);
+        //
+        //Assuming that we are in a document where the table header 
+        //is already available...
+        const thead = this.document.querySelector("thead")!;
+        //
+        //Show the header
+        this.show_header(thead);
+        //
+        //Retrieve and display $limit number of rows of data starting from the 
+        //given offset/request.
+        let pk: library.pk | undefined;
+        if (this.selection !== undefined) pk = this.selection.pk;
+        await this.goto(pk);
+        //
+        //Select the matching row and scroll it into view.
+        this.select_nth_row(pk);
+
+    }
+    //
     //Load the table rows and adjust the  boundaries depending
     //on the outcome type.
     private async execute_outcome(outcome: outcome, request: offset) {
@@ -608,7 +682,7 @@ abstract class scroller extends lister{
                        ${outcome.type} is not known`);
         }
     }
-        //
+    //
     //Populate our table body with new rows 
     //starting from the given offset and direction.
     protected async load_body(offset: offset/*:int*/, dir: direction/*:mytop | bottom*/) {
@@ -1126,18 +1200,6 @@ class theme extends scroller{
     //Get the column names of this panel
     async get_col_names():Promise<Array<library.cname>> {return this.col_names!;}
     //
-    //Query the database to get the Ifuel
-    async get_Ifuel(): Promise<library.Ifuel>{
-        //
-        //Retrieve and display $limit number of rows of data starting from the 
-        //given offset/request.
-        let pk: library.pk | undefined;
-        if (this.selection !== undefined) pk = this.selection.pk;
-        //
-        //
-        return await this.query(pk, this.limit);
-    }
-    //
     //Returns the io of the given header tin
     get_io(header_tin:tin): io.io {
         const td= <HTMLTableCellElement>header_tin.anchor;
@@ -1161,12 +1223,35 @@ class theme extends scroller{
         return Io;
     }
 }
+//
+//This panel is for presenting data from an arbitrary sql statement in a tabular
+//form
 class tabulator extends scroller{
   // 
   // 
   constructor(base: view, css: string, private sql_: sql, udf: udf_meta) {
     super(base, css, udf);
     
+  }
+  //
+  //This is the method that runs the asynchronous method that would have 
+  //otherwise be needed at the constructor level
+  async initialize(): Promise<void>{
+    //
+    //
+    this.col_meta= await server.exec(
+        "database", 
+        [this.sql.dbname],
+        "get_col_meta", 
+        [this.sql.stmt]);
+    //
+    //Get the maximum number of records in this query. Its a count of the results
+    //returned by the sql.
+    this.max_records= await server.exec(
+        "database",
+        [this.sql.dbname],
+        "get_sql_data",
+        [`select count(*) from (${this.sql.stmt}) as x`])[0][0];
   }
   // 
   // 
