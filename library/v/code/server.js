@@ -17,10 +17,13 @@ cargs,
 //
 method_name, 
 //
-margs) {
+margs, 
+//
+//This the application website url
+url) {
     //
     //Call the non parametric form of exec
-    return await exec_nonparam(class_name, method_name, margs, cargs);
+    return await exec_nonparam(class_name, method_name, margs, cargs, url);
 }
 //
 //
@@ -65,10 +68,13 @@ class_name,
 method_name, 
 //
 //The method parameters
-margs) {
+margs, 
+//
+//The application website url
+url) {
     //
     //Call the non parametric form of exec
-    return await exec_nonparam(class_name, method_name, margs);
+    return await exec_nonparam(class_name, method_name, margs, null, url);
 }
 //
 //This is the non-parametric version of exec useful for calling both the static
@@ -86,16 +92,23 @@ margs,
 //
 //If defined, this parameter represents the constructor arguements for the 
 //php class. It is undefined for static methods.
-cargs) {
+cargs = null, 
+//
+//
+url) {
     //
     //Prepare to collect the data to send to the server
     const formdata = new FormData();
+    //
+    //Add the application URL if it is available
+    if (url !== undefined)
+        formdata.append("url", url);
     //
     //Add to the form, the class to create objects on the server
     formdata.append('class', class_name);
     //
     //Add the class constructor arguments if they are defined
-    if (cargs === undefined) {
+    if (cargs === null) {
         //
         //The method on the php class is static
         formdata.append('is_static', 'true');

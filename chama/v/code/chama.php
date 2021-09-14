@@ -22,7 +22,7 @@ trait connection{
 }
 //
 //Chamas supports management of multiple social groups 
-class chamas {
+class chama {
     //
     //Get the db connection.
     use connection;

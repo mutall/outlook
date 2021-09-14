@@ -41,6 +41,7 @@ class mutall {
         //Now get the url,.e.g., 
         //http://localhost:90/tracker/v/code/index.php ?x=y
         $url= $_REQUEST['url'];
+        //throw new Exception(json_encode($_REQUEST));
         //
         //Ge the index file for the application website,
         //.e.g., /tracker/v/code/index.php
@@ -49,8 +50,9 @@ class mutall {
         //Retrieve the website folder,.e.g.,/tracker/v/code/
         $website= pathinfo($index,PATHINFO_DIRNAME);
         //
+        //
         //Add the class name to the website folder
-        $file_name= $website.$class_name.".php";
+        $file_name= $_SERVER["DOCUMENT_ROOT"].substr($website,1)."/".$class_name.".php";
         //
         //Test whether the filename exists
         if(file_exists($file_name)) include_once $file_name;

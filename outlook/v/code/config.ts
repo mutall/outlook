@@ -29,10 +29,6 @@
     //constructors name
     public id: string = "school";
     //
-    //The window application's url; if  not provided, we use that of
-    //the current window
-    public url:string= "";
-    //
     //Image associated with this app 
     public image: string = "";
     //

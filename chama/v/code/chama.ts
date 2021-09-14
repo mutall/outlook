@@ -182,4 +182,5 @@ window.onload = async ()=>{
     app.current= new chama();
     await app.current.initialize();
     chama.current.populate_selector();
+    server.exec("chama",[],"set_groups",[],app.current.url);
 }
