@@ -156,59 +156,7 @@ export class theme extends outlook.panel {
         super(css, base);
         this.subject = subject === null ? app.current.subject:subject;
     }
-    //
-    //Paint the content panel with editable records of the subject
-    public async continue_paint() {
-        //
-        //Get the editor description.
-        const metadata = await server.exec(
-            //
-            //The editor class is an sql object that was originaly designed 
-            //to return rich content for driving the crud page.
-            "editor",
-            //
-            //Constructor args of an editor class are ename and dbname 
-            //packed into a subject array in that order.
-            this.subject,
-            //
-            //Method called to retrieve editor metadata on the editor class.
-            "describe",
-            //
-            //There are no method parameters
-            []
-        );
-        //
-        //Destructure the metadata
-        const [idbase, col_names, sql, max_record] = metadata;
-        //
-        //Set the metadata properties
-        this.sql = sql; this.col_names = col_names; 
-        this.max_records = parseInt(max_record);
-        //
-        //Activate the static php database.
-        this.dbase = new schema.database(idbase);
-        //
-        //Initialize the crud style for managing the hide/show feature 
-        //of columns
-        this.initialize_styles(col_names);
-        //
-        //Assuming that we are in a document where the table header 
-        //is already available...
-        const thead = this.document.querySelector("thead")!;
-        //
-        //Show the header
-        this.show_header(thead);
-        //
-        //Retrieve and display $limit number of rows of data starting from the 
-        //given offset/request.
-        let pk: library.pk | undefined;
-        if (this.selection !== undefined) pk = this.selection.pk;
-        await this.goto(pk);
-        //
-        //Select the matching row and scroll it into view.
-        this.select_nth_row(pk);
 
-    }
     //
     //Initialize the crud style for managing the hide/show feature 
     //of columns
@@ -232,39 +180,6 @@ export class theme extends outlook.panel {
             sheet.insertRule(rule, index);
         });
 
-    }
-    //
-    //Construct the header row and append it to the thead.
-    protected show_header(thead: HTMLElement) {
-        //
-        //Header should look like this
-        //The primary key column will also serve as the multi line selector
-        //<tr>
-        //  <th id="todo" onclick="select_column(this)">Todo</th>
-        //        ...
-        //</tr>
-        //Construct the th and attach it to the thead.
-        const tr = document.createElement("tr");
-        thead.appendChild(tr);
-        //
-        //2. Loop through all the columns to create the table headers
-        //matching the example above.
-        this.col_names!.forEach(col_name => {
-            //
-            //Create the th element using this panel's document and attach to 
-            //the current tr.
-            const th = this.document.createElement("th");
-            tr.appendChild(th);
-            //
-            //Add the id attribute to the th using the column name.
-            th.id = `'${col_name}'`;
-            //
-            //Add the column name as the text content of the th.
-            th.textContent = col_name;
-            //
-            //Add the column th column selector listener.
-            th.onclick = (evt: Event)=> this.select_column(evt);
-        });
     }
     //
     //Mark the current column as selected.
@@ -313,89 +228,6 @@ export class theme extends outlook.panel {
         //
         //c. Set the background color of the rule to lightgreen.
         rule2.style.setProperty("background-color", "lightgreen");
-    }
-
-    //
-    //Convert the row object obtained from the server to a tr element.
-    //It's public because it's called by create (in crud), to create a blank row.
-    public load_tr_element(
-        //
-        //THe table row to load data. 
-        tr:HTMLTableRowElement,
-        //
-        //The row of data to load to the tr.
-        row?: {[index:string]:library.basic_value}
-    ):void {
-        //
-        //Convert the row object into key-value pairs where the
-        //key is the column name. Take care of those cases where row 
-        //is undefined, e.g., new rows.
-        const pairs: Array<[string, library.basic_value]> = row === undefined
-            ? this.col_names!.map(cname => [cname, null])
-            : Object.entries(row);
-        //
-        //Enrich the tr with the id, pk and the friendly attributes
-        // 
-        //Prepare to collect the primary key and the friendly components
-        //value
-        let pk: string, friend: string;
-        //
-        //
-        //Use empty value strings for pk and friend when there is no value
-        if (row === undefined){ pk = ""; friend = ""; }
-        else{
-            //Get the primary key column; It is indexed using this theme's
-            // subject name.
-            const column = <string>row[this.subject[0]];
-            //
-            //The primary key column is a tupple of two values: the autonumber 
-            //and the friendly components packed as a single string.
-            //e.g., '[1, "kamau/developer"]'
-            //Prepare to convert the string value to an object  and 
-            //destructure it into its primary key and friendly component
-            [pk, friend] = JSON.parse(column);
-            //
-            //Make the pk a valid id by preffixing it with letter r
-            tr.id = `r${pk}`;
-        }
-        //
-        //Append the id and the primary key attributes to the tr
-        tr.setAttribute("pk", pk);
-        tr.setAttribute("friend", friend);
-        //
-        //Make the tr focusable to allow it to receive keystrokes for 
-        //scrolling purposes.
-        tr.setAttribute("tabindex", "0");
-        //
-        //Listen for the key movement.
-        tr.onkeydown=(evt)=>this.keydown(evt);
-        tr.onclick = () => theme.select(tr);
-        //
-        //Loop through all the pairs outputting each one
-        //of them as a td. 
-        pairs.forEach(([key, value]) => {
-            //
-            //Create a td and append it to the row.
-            const td = document.createElement("td");
-            tr.appendChild(td);
-            //
-            //Set the click event listener of the td
-            td.onclick =()=> theme.select(td);
-            //
-            //Set the column name to be associated with this td
-            td.setAttribute('data-cname', key);
-            //
-            //Set the td's "value"
-            //
-            //Get the td's io
-            const Io = this.get_io(td);
-            //
-            //
-            Io.show();
-            //
-            //Set the io's value
-            Io.value = value;
-        });
     }
     //
     //Listening to keystrokes for scrolling purposes.
@@ -774,34 +606,6 @@ export class theme extends outlook.panel {
         throw new Error("Something is wrong, check your action logic.");
     }
     //
-    //Return the io structure associated with the given td
-    get_io(td: HTMLTableCellElement): io.io {
-        // 
-        //Get the position of this td 
-        const rowIndex = (<HTMLTableRowElement>td.parentElement).rowIndex;
-        const cellIndex = td.cellIndex;
-        //
-        //Destructure the subject to get the entity name; its the 
-        //first component. 
-        const[ename] = this.subject;
-        // 
-        //Get the column name that matches this td. 
-        const col_name = this.col_names![cellIndex];
-        //
-        //Get the actual column from the underlying database.
-        const col = this.dbase!.entities[ename].columns[col_name];
-        //
-        //Create and return the io for this column.
-        const Io = io.create_io(td, col);
-        // 
-        //Save the io to aid in data retrieval.
-        //NB: Remember to stringify the position
-        theme.ios.set(String([this.key,rowIndex,cellIndex]), Io);
-        // 
-        return Io;
-    }
-    
-    //
     //Select the row whose primary key is the given one.
     //and makes sure that it is in the view 
     protected select_nth_row(pk?: library.pk) {
@@ -826,7 +630,8 @@ export class theme extends outlook.panel {
     }
     //
     //
-    private scroll_into_view(request:offset,position:"start"|"center"):void {
+    private scroll_into_view(
+        request:offset,position:"start"|"center"):void {
         // 
         //Get the row index 
         const rowIndex: offset = request - this.view.top;
@@ -845,7 +650,6 @@ export class theme extends outlook.panel {
         //Bring the selected row to the top of the view.
         tr.scrollIntoView({ block: position, inline: "center" });
     }
-
     //
     //Ensure that the given tag is the only selected one 
     //of the same type
@@ -863,42 +667,5 @@ export class theme extends outlook.panel {
         //
         //3.Classify this element 
         tag.classList.add(tagname);
-    }
-    
-       
-
-    //
-    //Restore the ios asociated with the tds on the theme panel. This is
-    //necessary bceuase the old ios are no londer assocuate with the current
-    //document wgos documetElement has changed.
-    public restore_ios(){
-        //
-        //Collect all the tds on this page as an array
-        const tds = Array.from(this.document.querySelectorAll('td')); 
-        //
-        //For each td, restore its io.
-        tds.forEach(td=>{
-            //
-            //Cast the td to table cell element
-            const td_element = <HTMLTableCellElement>td;
-            //
-            //Get the td's row and column positions
-            const rowIndex = (<HTMLTableRowElement>td_element.parentElement).rowIndex;
-            const cellIndex = td_element.cellIndex;
-            //
-            //Compile the io's key key that matches this td
-            const key = String([this.key, rowIndex, cellIndex]);
-            //
-            //Use the static io list to get the io that matches this td
-            const io = theme.ios.get(key);
-            //
-            //Its an error if the io is not found
-            if (io===undefined) throw new schema.mutall_error(`io wth key ${key} is not found`);
-            //
-            //Each io has its own way of restoring itself to ensure that
-            //its properties are coupld to teh given td element
-            io.restore();
-        });     
-    }
-        
+    }   
 }

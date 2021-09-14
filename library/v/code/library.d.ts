@@ -31,6 +31,9 @@ class database {
     //Returns data as an array of simple objects after executing 
     //the given sql on this database
     get_sql_data(sql: string): Ifuel;
+    //
+    //
+    get_col_meta(sql:string):Ifuel;
     // 
     //Returns the accounting details of a specified account 
     accounting(accname: string): Ifuel;

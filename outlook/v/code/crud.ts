@@ -261,16 +261,16 @@ export class page extends outlook.baby<crud_result> {
         //Stop the current tr from being clicked on.
         this.win.event!.stopPropagation();
         //
-        //Use te button to get the crud page's admistration parameters
+        //Use the button to get the crud page's admistration parameters
         const {subject, verbs, selection}: admin_parameters =
             this.get_admin_parameters(button);
         //
         //Use the admin parameters to create a new crud (baby) page whose
         //mothr is the current page.
-         const baby= this.new_crud(this, subject, verbs, selection);
+        const baby= this.new_crud(this, subject, verbs, selection);
         //
         //Wait for the user to collect crud operation results. The result
-         //is undefiend if teh user aborts the administration.
+        //is undefined if the user aborts the administration.
         const result: crud_result | undefined = await baby.administer();
         // 
         //Use the crud result to update this mother page, if it is defined 
