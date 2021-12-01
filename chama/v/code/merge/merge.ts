@@ -1,6 +1,6 @@
 //
-import * as lib from "../../../../library/v/code/library"
-import * as server from "../../../../library/v/code/server.js"
+import * as lib from "../../../../library/v/code/library";
+import * as server from "../../../../library/v/code/server.js";
 import * as outlook from "../../../../outlook/v/code/outlook.js";
 //
 type sql=string;
@@ -12,7 +12,7 @@ type error1451=string;
 //
 class merger extends outlook.view implements lib.Imerge {
     //
-
+    //
     public dbname?:string;
     public ref_ename?:string;
     public members?:sql;
