@@ -4,12 +4,15 @@
 /metavisuo
 /pictures
 /tracker/v/tests/test.php
+/test
 # sub folders
 /chama/nbproject
 /library/nbproject
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
+/chama/v/data
+/chama/v/merge
 #subdirectories
 outlook/v/code/*.js
 #files
