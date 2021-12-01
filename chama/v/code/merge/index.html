@@ -1,0 +1,55 @@
+<?php
+require("merge.php");
+?>
+<html>
+    <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&family=Montserrat:wght@500&family=Poppins:wght@300&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+        <title>Merging Process</title>
+        <script src="merge.js"></script>
+        <script type="module" src="page_graph.js"></script>
+    </head>
+    <body>
+            <label>
+                Database:
+                <select  id="dbase" onchange="page_graph.changedb()" placeholder="database">
+                <option>Choose Database</option>
+                </select>
+            </label>
+            <label>
+                Reference Entity name:
+                <select  id="ename" onchange="page_graph.display_entity()" placeholder="pick an entity">
+                <option>Pick a reference entity</option><br>
+                </select>
+            </label>
+            <label id="custom">
+                Members:
+                <input type="text" id="member" value="member"/>
+            </label>
+            <fieldset id="content">
+                <legend>email</legend>
+                <input type="radio" id="C.kanake" >
+                <label for="C.kanake">Cyprian Kanake</label><br>
+                <input type="radio" id="C.A.kanake" >
+                <label for="C.A.kanake">Cyprian A. Kanake</label><br>
+                <input type="radio" id="C.kanake" >
+                <label for="c">cypriankanake@yahoo.com</label><br>
+                <input type="radio" id="C.kanake" >
+                <label for="C.kanake">ckanake@yahoo.com</label><br>
+                <input type="radio" id="C.kanake" >
+                <label for="C.kanake">Kanake</label><br>
+                <label>
+                    Specify other:
+                    <input type="text" id="member"/>
+                </label>
+            </fieldset>
+            <input type="button" id="go" value="go" onclick="merge();"/>
+        <fieldset id="report">
+            <legend>Report</legend>
+        </fieldset>
+        
+    
+    </body>
+</html>

@@ -1,0 +1,47 @@
+*{
+    font-family: 'Mochiy Pop P One', sans-serif;
+    font-family: 'Montserrat', sans-serif;
+    font-family: 'Poppins', sans-serif;
+    font-weight: bolder; 
+}
+body{
+    color: black;
+    background-color: azure;
+    font-size: 22px;
+}
+#custom{
+    display: block;
+}
+ #dbase,#ename,#member{
+    max-width: fit-content;
+    max-height: 40px;
+    margin: 10px 5px 5px 5px;
+    position: relative;
+    padding: 5px;
+    border: thin solid #d4d4d4;
+    background-color: whitesmoke;
+    border-radius: 5px;
+}
+#go{
+    align-items: center;
+    font-size: 20px;
+    background: #d4d4d4;
+    border-radius: 10%;
+}
+fieldset{
+    box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.2);
+    height: auto;
+    width: 1300px;
+    background: white;
+    display: block;
+    border-radius: 8px;
+    font-size: 20;
+}
+fieldset #report{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 12px;
+}
+fieldset #content{
+    margin:0 auto;
+    font-size: 16px;
+}

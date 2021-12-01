@@ -1,0 +1,21 @@
+<html>
+    <head>
+        <title>TODO supply a title</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script type="module">
+            import {merger} from "./merge.js";
+            //
+            window.merge= merge;
+        </script>
+    </head>
+    <body>
+        <label> Enter sql for selecting the records to merge
+            <textarea id="sql" name="name" rows="5" cols="10">
+                select * from member where name like (%kanake%);
+            </textarea>
+        </label>
+        <input type="button" value="Go" 
+            onclick="const merger= new merger(); await merger.execute();">
+    </body>
+</html>

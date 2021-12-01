@@ -1,6 +1,6 @@
 <?php
 
-require_once 'config.php';
+require 'config.php';
 //
 //The supper class that supports the common methods for all the classes 
 //in a mutall project. 
@@ -30,14 +30,46 @@ class mutall {
         //Add tehnnamespace from which this obet was created
         $this->ns = $reflect->getNamespaceName();
     }
-
+    //
+    //This clas is used for resolving user defined classes found in the application
+    // website folder
+    static function search_class(string $class_name){
+        //
+        //Get the website folder; it must exist.
+        if(!isset($_REQUEST['url']))throw new Exception("Website url not found");
+        //
+        //Now get the url,.e.g., 
+        //http://localhost:90/tracker/v/code/index.php ?x=y
+        $url= $_REQUEST['url'];
+        //throw new Exception(json_encode($_REQUEST));
+        //
+        //Ge the index file for the application website,
+        //.e.g., /tracker/v/code/index.php
+        $index= parse_url($url, PHP_URL_PATH);
+        //
+        //Retrieve the website folder,.e.g.,/tracker/v/code/
+        $website= pathinfo($index,PATHINFO_DIRNAME);
+        //
+        //
+        //Add the class name to the website folder
+        $file_name= $_SERVER["DOCUMENT_ROOT"].substr($website,1)."/".$class_name.".php";
+        //
+        //Test whether the filename exists
+        if(file_exists($file_name)) include_once $file_name;
+        else throw new Exception ("Class $class_name does not exist in $file_name");
+    }
     //The function that supports executon of arbitray methods on arbitrary class
     //objects from Javascript. This method is called from export.php. 
     static function fetch() {
         //
+        //Save the server postings to post.json for debugging 
+        //purposes
+        //mutall::save_contents();
+        //
+        //
         //The class name must be set 
         if (!isset($_REQUEST['class'])) {
-            throw new \Exception('Class name not found');
+            throw new Exception('Classname not found');
         }
         // 
         //Get the requested class name 
@@ -45,7 +77,7 @@ class mutall {
         //
         //The method must be set
         if (!isset($_REQUEST['method'])) {
-            throw new \Exception('The method of the class to execute must be set');
+            throw new Exception('The method of the class to execute must be set');
         }
         //
         //Retrieve and set the method from the global request 
@@ -53,7 +85,7 @@ class mutall {
         //
         //Get the method parameters 
         if (!isset($_REQUEST['margs'])) {
-            throw new \Exception("Method parameters not found");
+            throw new Exception("Method parameters not found");
         }
         $margs = json_decode($_REQUEST['margs'], JSON_THROW_ON_ERROR);
         //
@@ -66,9 +98,9 @@ class mutall {
             //
             //Create an object of the class to execute
             //
-            //Get the class contructor arguments
+            //Get the class constructor arguments
             if (!isset($_REQUEST['cargs'])) {
-                throw new \Exception("Class constructor parameters not found");
+                throw new Exception("Class constructor parameters not found");
             }
             $cargs = json_decode($_REQUEST['cargs'], JSON_THROW_ON_ERROR);
             $obj = new $class(...$cargs);
@@ -86,11 +118,8 @@ class mutall {
         return $result;
     }
 
-    
-     /**
-      * Illustrate how the image file is moved to the server.
-      * @return bool
-      */
+    //
+    // illustrate how the image file is moved to the server
     static function post_file(): bool {
         //
         //Get the files to upload...
@@ -110,7 +139,58 @@ class mutall {
         //moved_path: where the file will be moved.
         return move_uploaded_file($fs_tmp_name, $path);
     }
-    
+
+    //Returns true if the named property can be bound to the given value.
+    function try_bind_arg(string $name, &$value = null): bool {
+        //
+        //Check if the value is null
+        if (is_null($value)) {
+            //
+            //The value is empty.
+            //
+            //Get the named property from the server global variables
+            if (isset($_REQUEST[$name])) {
+                //
+                //Retrieve the name value
+                $value = $_REQUEST[$name];
+            }
+            //
+            //Search in the session variables
+            elseif (isset($_SESSION[$name])) {
+                //
+                //Retrieve the name value
+                $value = $_SESSION[$name];
+            } else {
+                return false;
+            }
+        }
+        //
+        //Set the named propertey to the argument value
+        $this->$name = $value;
+        //
+        return true;
+    }
+
+    //Bind the named propety of this object to the either given value 
+    //or the matching global request , whichever is available in that order
+    ///If failure try to bind it to the default value, if provided
+    function bind_arg(string $name, &$arg, $default): void {
+        //
+        //Try direct binding to 
+        if ($this->try_bind_arg($name, $arg)) {
+            return;
+        }
+        //
+        //Try binding to the default value
+        if (!is_null($default)) {
+            $arg = $default;
+            $this->$name = $default;
+            return;
+        }
+        //
+        throw new \Exception("Argument $name cannot be bounded");
+    }
+
     //Report exceptions in a more friendly fashion
     static function get_error(Exception $ex): string {
         //
@@ -142,18 +222,16 @@ class mutall {
     //The following tow functios are used for intercepting posted data for debugging
     //purposes.
     //
-    //1. Save Requested/posted data to the given file
-    static function save_requests(string $filename) {
-        $json = json_encode($_REQUEST);
-        file_put_contents($filename, $json);
+    //1. Save posted data to a file
+    static function save_contents() {
+        $json = json_encode($_POST);
+        file_put_contents('post.json', $json);
     }
 
     //Retrieve posted data to a file
-    static function set_requests(string $filename) {
-        $contents = file_get_contents($filename);
-        //
-        //Set teh requests, using keys as array indices
-        $_REQUEST = json_decode($contents, true);
+    static function get_contents() {
+        $contents = file_get_contents('post.json');
+        $_POST = json_decode($contents, true);
     }
     
     //
@@ -163,7 +241,7 @@ class mutall {
         //
         //This procedure is valid for none empty array 
         if(count($elements)===0){
-            throw new \Exception("Empty elements in the given array");
+            throw new Exception("Empty elements in the given array");
         }
         //
         //Set the index counter to 0 
@@ -202,55 +280,31 @@ class mutall {
     //Ignoring the variables that are not used mostly durring destructring 
     //or position based element
     static function ignore() {
+        
     }
-    
-    //This method is used for resolving user defined classes found in the 
-    //application's website folder by autoloading the appropriate php file.
-    //It assumes one file per class, saved in the root folder
-    static function search_class(string $class_name){
+    //
+    //This is a scalled down version of parsing defaults in mysql.
+    static function parse_default(string $default):expression{
+       //
+       //This is a short cut to developing a full fledged parser 
+                //
         //
-        //Get the website folder; it must have been passed to the server from
-        //the client, so it must exist.
-        if(!isset($_REQUEST['url']))
-            throw new Exception("Website url not found");
-        //
-        //Now get the complete url,.e.g., 
-        //http://localhost:90/tracker/v/code/index.php ?x=y
-        $url= $_REQUEST['url'];
-        //
-        //Get the complete index path for the application website
-        //.e.g., /tracker/v/code/index.php
-        $index= parse_url($url, PHP_URL_PATH);
-        //
-        //Retrieve the website folder,.e.g., tracker/v/code
-        $website= pathinfo($index,PATHINFO_DIRNAME);
-        //
-        //Add the requested class name to the website folder
-        $file_name= 
+        switch ($default){
             //
-            //Start from document root folder, e.g..
-            //D:\mutall_project\    
-            $_SERVER["DOCUMENT_ROOT"]
+            case  'current_timestamp()':
+                return new function_('current_timestamp',[]);
+                
+            case "'9999-12-31'":
+                return new literal('9999-12-31');
+             
             //
-            //Add the website, e.g., tracker/v/code    
-            .$website
-            //
-            //Add the directory separator, i.e, forward slash, 
-            .DIRECTORY_SEPARATOR
-            //
-            //Add the class name, taking care of namespaes to match folder 
-            //structure    
-            .str_replace('\\', DIRECTORY_SEPARATOR, $class_name)    
-            //
-            //Add the php extension
-            .".php";
-        //
-        //Include this file once if it exists
-        if(file_exists($file_name)) require_once $file_name;
+            default : throw new Error("Unable to parse default value for $default");
+        }
+        
+       
     }
 
 }
-
 
 //Modelling special mutall objects that are associated with a database schema.
 //Database, entity, index and column extends this class. Its main charatreistic
@@ -263,7 +317,11 @@ class schema extends mutall {
     //source it needed for formulating xml tags, indexing joints, etc.
     public string $partial_name;
     //
-    //Toggle the default auto commit of the trasactions to true of false onorder to 
+    //The full nam of a schema is needed for for formulating xml tags. It is the
+    //schems short name plus the partial name
+    public string $full_name;
+    //
+    //Togle the default auto commit of the trasactions to true of false onorder to 
     //influence a rollback and a commit upon the end of a transaction 
     //The default is a false 
     static bool $roll_back_on_fatal_error = false;
@@ -281,86 +339,68 @@ class schema extends mutall {
         $this->partial_name = $partial_name;
         //
         parent::__construct();
-    }
-    
-    //Compile the full name of a node from the partial ame. This is implemented
-    //as a function because the partial name may change during runtime, e.g., in 
-    //the case of barrel saving
-    function full_name():string{
-        return "$this->class_name.$this->partial_name";
+        //
+        //Formulate the full name
+        $this->full_name = "$this->class_name.$partial_name";
     }
 
     //
-    //Exports a schema object to the database by:-
-    //-opening the save tag (nameed using the partial name)
+    //Saves a schema object to the database by:-
+    //-opening the save tag (nameed using teh partial name)
     //-writing the schema object to the database
     //-closing the save tag.
-    //The key point about save is that all schema objects use this 
-    //implementation AND CANNOT OVERRIDE IT, so its final.
-    //
-    //The input parameter is either a row detail, if the save was initiated
-    //from a table; otherwise it is null.
-    //
-    //The result is an output expression, a.k.a., answer
-    final function save(/*row|null*/$row): answer{
+    //The key point about save is that all schema object uses this impleentation
+    //AND CANNOT OVVERIDE IT.
+    final function save(array $alias = []): expression {
         //
-        //Use the row data to determine if logging is necessary
-        $log = $this->logging_is_necessary($row);
+        //Open the log for this save operation
+        $element = log::$current->open_tag("save.$this->full_name");
         //
-        //Open the log for this export operation
-        if ($log) {
-            $element = log::$current->open_tag("save.{$this->full_name()}");
-            //
-            //Add the schema-specific attributes to the save element
-            $this->log_attributes($element);
-        }
+        //Add the alias as an attribute.
+        log::$current->add_attr('alias', json_encode($alias), $element);
         //
         //Get the expression returned after a write into the database. Take care 
         //of the fact that the writing may fail with an exception
-        $ans = $this->write($row);
+        $atom = $this->write($alias);
         //
-        //Log the result if loggig mode is on.
-        if ($log){
-            //
-            log::$current->add_attr('result', "$ans");
-            //
-            //Close the log for this save
-            log::$current->close_tag($element);
-        }
+        log::$current->add_attr('result', "$atom", $element);
         //
-        //Return the basic expresiion 
-        return $ans;
+        //Close the log for this save
+        log::$current->close_tag($element);
+        //
+        //return the basic expresiion 
+        return $atom;
     }
-    
-    //Determines if logging is necessary or not
-    function logging_is_necessary($row){
-        //
-        //Logging is necessary when exporting table indepedennt milk (data)
-        if (is_null($row)) return true;
-        //
-        //Logging is also necessary if we have not logged in a total of 3 rows 
-        //for the current table, to avoid overcrowding the log file with
-        //repetetive errors
-        if ($row['rowIndex']<=3) return true;
-        //
-        //Otherwise no logging is 
-        return false;
-    }
-    
-    //
-    //Add the schema-specific attributes to the save element. For now only the
-    //save.artefect element has meaniful attributes to log
-    function log_attributes($element):void{}
 
+    //
     //Every schema object must implement its own way of writing to 
     //the database.When it does, it must return an atom. If it does not 
     //implement a write method then this default one will throw an exception. 
     //
     //This write operation is implemennted for all schema objects.
-    protected function write(/*row|null*/$row):answer{
+    protected function write(array $alias = []): expression {
         //
-        throw new \Exception("We cannot write schema object of type "
+        throw new Exception("We cannot write schema object of type "
                 . "$this->class_name to the database");
+    }
+
+    //Write the given columns and an alias to the current dataase and
+    //return the valid and invalid cases
+    //$alias shows the exact entity record to be retrieved
+    function write_columns(array $schemas, array $alias): array/* [valid*, invalid*] */ {
+        //
+        //Save the given schema to the database retutinhing their statuses,
+        // ie., error or otherwise
+        $statuses = array_map(fn($schema) => $schema->save($alias), $schemas);
+        //
+        //Filter out the errors from this statuses which invalidate the
+        // ability of this index to save the current record
+        $errors = array_filter($statuses, fn($status) => $status instanceof myerror);
+        //
+        $oks = array_filter($statuses, fn($status) => $status instanceof literal);
+        //
+        //Return the result
+        return ['valids' => $oks, 'invalids' => $errors];
     }
 
     //Returns the named database if it was previously opened; otherwise it creates
@@ -462,33 +502,28 @@ class schema extends mutall {
             $this->errors[] = new myerror($msg, mutall::get_error($ex));
         }
     }
-}
-
-//Answer is an expression that can particicate as an output expression 
-//from a save operation. The Typescript's style of definition would be
-//type answer = myerror|scalar. Without this union way of expressing ourselves
-//we have implemented it as an interface where myerror and scalar implements
-//tthis interface.
-interface answer{
     //
-    //answers must be convertible to strings for reporting logging
-    //purposes
-    function __toString();
-}
-
-//An operand is an expression that can take part in input operations. It can be
-//a complex exression that is simplifiable to get an answer. See the definition 
-//of an answer. Both were designed to support the questionnnaire class for large 
-//data loading.
-interface operand{
     //
-    //An operand must be simplifiable to get answer
-    function simplify():answer;
+    function test(string $id){
+        echo " start $id";
+        //
+        $dbase=$this->open_dbase("mutall_users");
+        $sql="INSERT 
+                INTO  `tracking`.`developer`
+                (`email`,`user`)
+                VALUES ('camilus@gmail.com','175')
+                ";
+        //$dbase->beginTransaction();
+        $dbase->query($sql);
+        $dbase->rollBack();
+        throw new Error("OK $id");
+    }
 }
 
-//This general form of an expression was originaly designed to suport sql 
-//operations
+//
+//E.g., 2, 2*amount, etc.
 interface expression {
+
     //
     //Every expression must be expressable as a valid sql string expression.
     //Often, this method returns the same value as the __toString() magic method,
@@ -513,69 +548,6 @@ interface expression {
     //eniies that constitue them up.
     function yield_attribute(): \Generator;
 }
-
-//This class models a function as originally designed to support sql statements
-//and later moved to the schema file to support parsing of default values
-//
-//A function is an expressiion that can be used as an answer to a simplification
-//process. So, it can the result of an scheme::save() method
-class function_ implements expression, answer{
-    //
-    //These are the function's arguments
-    public array /*expression []*/$args;
-    //
-    //This is the name of the function e.g., concat 
-    public $name;
-    //
-    //???
-    public bool $is_view;
-    //
-    function __construct(string $name, array/*expression[]*/ $args){
-        //
-        $this->name = $name;
-        $this->args = $args;
-    }
-    
-    //Convert a function to a valid sql string
-    function to_str():string{
-        //
-        //Map every argument to its sql string equivalent
-        $args = array_map(fn($exp)=>$exp->to_str(), $this->args);
-        //
-        //All function arguments are separated with a comma
-        $args_str = implode(', ', $args);
-        //
-        //Return the properly syntaxed function expression
-        return "$this->name($args_str)";
-    }
-    
-    //Yields all the entity names referenced in this function
-    function yield_entity():\Generator{
-        //
-        //The aarguments of a functin are the potential sources of the entity
-        //to yield
-        foreach($this->args as $exp){
-            //
-            yield from $exp->yield_entity();
-        }
-    }
-    //Yields all the atrributes referenced in this function
-    function yield_attribute():\Generator{
-        //
-        //The aarguments of a functin are the potential sources of the entity
-        //to yield
-        foreach($this->args as $exp){
-            //
-            yield from $exp->yield_attributes();
-        }
-    }
-    //
-    //
-    function __toString() {
-        return $this->to_str();
-    }
-}
-
 
 //
 //An atom is an expression that has an (optional) position associated with it.
@@ -697,8 +669,8 @@ class database extends schema {
             //quering the database directly, i.e., without the need of the object model
             bool $complete = true,
             //
-            //An option that throws errors as soon as they are found; the  
-            //default is true
+            //An optional Throws an error as soon as they are found the  default is 
+            //true
             bool $throw_exception = true
     ) {
         //
@@ -714,15 +686,15 @@ class database extends schema {
         //3rd parameter -- throw_exception. The Default is true
         $this->throw_exception = $throw_exception;
         //
-        //Connect to the database by initializin the pdo
+        //Connect to the database
         $this->connect();
         //
-        //Set the current database, so that it can be accessed by all her 
+        //Set teh current database, so tthat it can be accessede by all her 
         //dependants during activation.
         database::$current[$name] = $this;
         //
         //Attend to the 'complete' option. You are done if an incomplete database 
-        //is required. Don't waste time on entities. This is important if all we
+        //is required. Don waste time on entities. This is important if all we
         //want is to run a query
         if (!$complete) {
             return;
@@ -738,9 +710,13 @@ class database extends schema {
             return;
         }
         //
+        //Populate the dbase with aliased entities, i.e., aliens using the
+        //already populated entities.
+        $this->compile_aliens();
+        //
         //Set the relational dependency for all the entities and log all the 
         //cyclic conditions as errors.
-        $this->set_entity_depths();
+        //$this->set_entity_depths();
         //
         $this->report_errors();
     }
@@ -764,7 +740,7 @@ class database extends schema {
         if(count($users)===0){return false;}
         // 
         //If there is more than one  user we throw an exception
-        if(count($users)>1){throw new myerror("More than one email found. "
+        if(count($users)>1){throw new Exception("More than one email found. "
                 . "Check your data model");}
         //If the user exists verify the password.
         return password_verify($password, $users[0]["password"]);
@@ -845,14 +821,14 @@ class database extends schema {
         }
         //
         //We have a user who has a password already 
-        throw new \Exception("Your email $email already exists have an account with please log in "
+        throw new Exception("Your email $email already exists have an account with please log in "
                 . "with your password");
         
     }
     //
     //For now we do not have a need of saving an entity 
-    protected function write(/*row|null*/ $row): answer {
-        throw new \Exception("You cannot save a database");
+    public function write(array $alias = array()): \atom {
+        throw new Exception("You cannot save a database");
     }
 
     //The user may decide to report the errors in a different way than just 
@@ -950,33 +926,6 @@ class database extends schema {
         return count($errors) === 0;
     }
 
-    //Check if an sql is valid. It returns thh same sql.
-    //This is important for debudgging queries that depend on others
-    public function chk(string $sql):string{
-        //
-        try{
-            //Run the query to catch any errors in the query
-            //
-            $this->pdo->beginTransaction();
-            $this->query($sql);
-            $this->pdo->rollBack();
-        }catch(Exception $ex){
-            //
-            //Re-throw the exception with the full sql appended
-            die(
-                "<pre>"
-                .$ex->getMessage()
-                ."\n"    
-                .$ex->getTraceAsString()    
-                ."\n".$sql
-                ."</pre>"
-            );
-        }
-        //
-        //Return the same sql as the input
-        return $sql;
-    }
-    
     //Activate all the entities of this database by querying the information schema.
     //This method needs to be overriden to extend entities, for instance, when 
     //entities in the capture namespace are created from those in the root.
@@ -988,12 +937,8 @@ class database extends schema {
         //Now activate the entities, indexing them as you go along
         foreach ($tables as [$dbname, $ename, $comment]) {
             //
-            //Ensure that the database names match
-            if ($dbname!==$this->name)
-                throw new Exception("This dataase name $$this->name does not match $dbname");
-            //
             //Create the entity in the root namespace
-            $entity = new table($this, $ename);
+            $entity = new table($ename, $dbname);
             //
             //Add fields derived from comments
             $entity->add_comments($comment);
@@ -1042,17 +987,8 @@ class database extends schema {
         //Get the static columns from the information schema
         $columns = $this->get_columns();
         //
-        //Use the static data to formulate a captire column object
+        //
         foreach ($columns as [$dbname, $ename, $cname, $data_type, $default, $is_nullable, $comment, $length, $key]) {
-            //
-            //The database names must match
-            if ($dbname!==$this->name) 
-                throw new Exception("This database name $this->name does not match $dbname");
-            //
-            //Get the named entity; it is an error if it does not exist
-            if (!isset($this->entities[$ename]))
-                throw new Exception("Entity '$ename' not found in database '$dbname'");
-            $entity = $this->entities[$ename];
             //
             // Return the column as primary if its key is set to PRI
             if (isset($key) && $key == 'PRI') {
@@ -1060,21 +996,37 @@ class database extends schema {
                 //The column constrcutior variablles are desifgned to a) initialize
                 //its capture parent and b) check consistency with Mutall 
                 //framework
-                $column = new primary($entity, $cname, $data_type, $default, $is_nullable, $comment, $length);
+                $column = new primary($dbname, $ename, $cname, $data_type, $default, $is_nullable, $comment, $length);
             }
             //
             //Create an ordinary column. It will be upgrated to a foreinn key
             //at a later stage, if necessary.
             else {
-                $column = new attribute($entity, $cname, $data_type, $default, $is_nullable, $comment, $length);
+                $column = new attribute($dbname, $ename, $cname, $data_type, $default, $is_nullable, $comment, $length);
             }
             //
             //Add fields derived from comments, i.e., offload the comment properties
             //to the column.
             $column->add_comments($comment);
             //
-            //Add the column to the database
-            $this->entities[$ename]->columns[$cname] = $column;
+            //
+            try {
+                if(isset($this->entities[$ename])){
+                   //
+                   //Add the column to the database
+                   $this->entities[$ename]->columns[$cname] = $column;
+                }
+            } catch (Exception $exc) {
+                // 
+                //Formulate a friendly error message.
+                $msg= "Unable to add column '$cname' to table '$ename'";
+                // 
+                //Rethrow an exception
+                throw new Exception($msg);
+            
+            }
+
+            
         }
         //
         //Activate the foreign key colums
@@ -1086,14 +1038,13 @@ class database extends schema {
 
     //Get all the columns for all the tables in this database
     private function get_columns(): array/**/ {
-        //
         //Select the columns of this entity from the database's information schema
         $sql = "select "
                 //
-                . "columns.table_schema as dbame, "
+                . "table_schema as dbame, "
                 //
                 //specifying the exact table to get the column from
-                . "columns.table_name as ename, "
+                . "table_name as ename, "
 
                 //Shorten the column name
                 . "column_name as cname, "
@@ -1115,24 +1066,14 @@ class database extends schema {
                 //
                 //The column key so as to identify the primary keys
                 . "column_key as `key` "
-                //
                 . "from "
                 //
                 //The main driver of this query
-                . "information_schema.`columns` AS columns "
-                //
-                //Prepare to select only columns from base tables(rather than 
-                //view)
-                ."inner join information_schema.tables as tables on "
-                    . "columns.table_schema = tables.table_schema "
-                    . "and columns.table_name = tables.table_name "
+                . "information_schema.`columns` "
                 . "where "
-                //
-                //FiLter out the view
-                ." tables.table_type = 'BASE TABLE' "
                 //    
                 // The table schema is the name of the database
-                . " AND columns.table_schema = '{$this->name}' ";
+                . "table_schema = '{$this->name}' ";
         //
         //Execute the $sql on the the schema to get the $result
         $result = $this->pdo->query($sql);
@@ -1145,51 +1086,40 @@ class database extends schema {
     //usage of the information schema
     private function activate_foreign_keys() {
         //
-        //Retrieve the static foreign key columns from the informatuion schema
+        //Retrieve the static foregn key columns from teh informatuion schema
         $columns = $this->get_foreign_keys();
         //
-        //Use each column to promote the matching attribute to a foreign key.
+        //Use each columns to promote the matching attribute to a foreign key.
         foreach ($columns as $column) {
             //
             //Destructure the column usage data to reveal the its properties
             list($dbname, $ename, $cname, $ref_table_name, $ref_db_name, $ref_cname) = $column;
             //
-            //Get the named entity from this database. 
-            //
-            //The dbnames must match
-            if ($dbname!==$this->name)
-                throw new Exception("This databae name $this->name does not match $dbname");
-            //
-            //Get the named entity
-            $entity = $this->entities[$ename];
-            //
             //Get the matching attribute; it must be set by this time.
-            $attr = $entity->columns[$cname];
+            $attr = $this->entities[$ename]->columns[$cname];
             //
-            //Ignore all the primary columns  in this process since only attributes 
+            //ignore all the primary columns  in this process since only attributes 
             //can be converted to foreigners
             if ($attr instanceof primary) {
                 continue;
             }
             //
-            //Compile the referenced (database and table names)
+            //Compile the reference (database and table names)
             $ref = new \stdClass();
             $ref->table_name = $ref_table_name;
             $ref->db_name = $ref_db_name;
             $ref->cname = $ref_cname;
             //
             //Create a foreign key colum using the same attribute name
-            $foreign = new foreign($entity, $cname, $attr->data_type,
+            $foreign = new foreign($dbname, $ename, $cname, $attr->data_type,
                     $attr->default, $attr->is_nullable, $attr->comment, $attr->length,
                     $ref);
             //
             //Offload the remaining options to the foreign key as local 
-            //properties. (Why is this necesary? Just in case there were 
-            //properties derived from comments)
+            //properties. (Why is this necesary???)
             mutall::offload_properties($foreign, $attr);
-            //
             //Replace the attribute with the forein key
-            $entity->columns[$cname] = $foreign;
+            $this->entities[$ename]->columns[$cname] = $foreign;
         }
     }
 
@@ -1234,31 +1164,43 @@ class database extends schema {
     }
 
     //Activate all the identification indices from the statistics of the 
-    //information schema.  
+    //information schema. This can be overriden
     function activate_indices() {
         //
         //Get all the index columns for all the indices for all the entities
         //in this database
         $columns = $this->get_index_columns();
         //
-        //Build the indices and their active columns
-        foreach ($columns as [$ename, $ixname, $cname]) {
+        //Build the indices and thier active columns
+        foreach ($columns as [$dbname, $ename, $ixname, $cname]) {
             //
-            //Start a ne inde if need be
-            if (!isset($this->entities[$ename]->indices[$ixname]))
-                $this->entities[$ename]->indices[$ixname]=[]; 
+            //Get the named index;
+            $index = $this->entities[$ename]->indices[$ixname] ?? null;
             //
-            //Add the new column;
-            $this->entities[$ename]->indices[$ixname][]=$cname;
+            //If it does not exist, create it
+            if (is_null($index)) {
+                //
+                //Create a new index
+                $index = new index($dbname, $ename, $ixname);
+                //
+                //Add the index to the entity
+                $this->entities[$ename]->indices[$ixname] = $index;
+            }
+            //
+            //Set the index column; this implies that the columns must be activated
+            //before indices
+            $index->columns[$cname] = $this->entities[$ename]->columns[$cname];
         }
     }
 
-    //Get all the static index columns for all the indices of all the entities
+    //Get all the static index columns for all the incdices for all the entities
     //in this database
     private function get_index_columns(): array/* [][] */ {
         //
         //The sql that obtains the column names
         $sql = "select "
+                //    
+                . "index_schema as dbname, "
                 //
                 . "table_name as ename, "
                 // 
@@ -1272,7 +1214,7 @@ class database extends schema {
                 . "information_schema.statistics "
                 . "where "
                 //    
-                // Only index rows from this database are considerd
+                // Only index rows from this datbase are considerd
                 . "index_schema = '{$this->name}' "
                 // 
                 //Identification fields have patterns like id2, identification3
@@ -1341,6 +1283,50 @@ class database extends schema {
         throw new \Exception($msg);
     }
 
+    //Populates the entities with aliens. An alien is an alised entity. Aliens 
+    //were introdcuced to solve the forking problem.
+    private function compile_aliens() {
+        //
+        //Identifying aliens and update the relational data model
+        //
+        //Aliens occur when an entity is referenced by more than 1 foreign column 
+        //that share teh same home entity, i.e., forking
+        //
+        //Loop through all the entities to retrieve only the foreign columns that
+        //share teh same home entity
+        foreach ($this->entities as $entity) {
+            //
+            //Get the foreign key columns 
+            $foreigners = array_filter($entity->columns, fn($column) => $column instanceof foreign);
+            //
+            //Get the foreigns keys that point to an enity that neess aliasing
+            $candidates = array_filter($foreigners, fn($foreigner) => $foreigner->is_alien());
+            //
+            //Step through the candidates and convert their referenecd tables to 
+            //aliens
+            foreach ($candidates as $candidate) {
+                //
+                //The name of the alias name
+                $alias_name = $candidate->name;
+                //
+                //Get the referenced table and database names
+                $ref_table_name = $candidate->ref->table_name;
+                $ref_db_name = $candidate->ref->db_name;
+                //
+                //Create an alien, i.e., an aliased entity
+                $alien = new alien($ref_db_name, $ref_table_name, $alias_name);
+                //
+                //Re-route the referenced table of the candidate foriegner to the
+                //alien's name
+                $candidate->ref->table_name = $alias_name;
+                //
+                //Save the alien, i.e, alias enyoty to the entities collection.
+                $this->entities[$alias_name] = $alien;
+            }
+            //
+        }
+    }
+
     //When you serialize a database, exclude the pdo property. Otherwise you
     //get a runtime error.
     function __sleep() {
@@ -1356,22 +1342,14 @@ class database extends schema {
     //Returns data after executing the given sql on this database
     function get_sql_data(string $sql): array {
         //
-        //Execute the sql to get a pdo statement; catch PDO erors if any
-        try{
-            //
-            //Query the database using the given sql
-            $results = $this->pdo->query($sql);
-            //
-            //Fetch all the data from the database -- indexed by the column name
-            $data = $results->fetchAll(\PDO::FETCH_ASSOC);
-            //
-            //Return the fetched data                
-            return $data;
-        }
-        //PDO error has ocurred. Catch it, append the sql and re-throw
-        catch(Exception $ex){
-            throw new Exception($ex->getMessage()."<br/><pre>$sql</pre>");
-        }
+        //Query the database using the given sql
+        $results = $this->pdo->query($sql);
+        //
+        //Fetch all the data from the database -- indexed by the column name
+        $data = $results->fetchAll(\PDO::FETCH_ASSOC);
+        //
+        //Return the fetched data                
+        return $data;
     }
     // 
     //Retrieves the account datails of the specified account
@@ -1445,9 +1423,8 @@ class database extends schema {
         //Execute the sql to get a pdo statement
         $stmt= $this->pdo->query($sql);
         //
-        //Return the number of the affected records. This does not
-        //seem to give the correct result. Investigate
-        return $stmt->rowCount();
+        //Return the number of the deleted records 
+        return $stmt->rowCount();   
     }
 
     //Set the PDO property of this database; this links the mutall database 
@@ -1465,10 +1442,8 @@ class database extends schema {
         //Throw exceptions on database errors, rather thn returning
         //false on querying the dabase -- which can be tedious to handle for the 
         //errors 
-        //$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         //
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
-                
         //Prepare variables (e.g., current and userialised) to support the 
         //schema::open_databes() functionality. This is designed to open a database
         //without having to use the information schema which is terribly slow.
@@ -1510,46 +1485,29 @@ class database extends schema {
 //Class that represents an entity. An entity is a schema object, which means 
 //that it can be saved to a database.
 abstract class entity extends schema implements expression {
+
     //
-    //The entity name
-    public string $name;
-    //
-    //The columns of this entity
-    public array /*<column>*/$columns;
-    //
-    function __construct(string $name) {
+    //represents a database table
+    //designed to be called from javascript
+    // The entity constructor requires:- both mandatory
+    // a) the entity name 
+    // b) the parent database name 
+    function __construct(string $name, string $dbname) {
         //
+        //The partial name of this entity is 
+        $partial_name = $dbname . "_" . $name;
+
+        parent::__construct($partial_name);
         $this->name = $name;
-        //
-        parent::__construct($name);
+        $this->dbname = $dbname;
     }
 
-    //The primary key column of any entity is teh column named the
-    //same as the view
-    function pk():column{
-        //
-        //Get the name of this entity
-        $name = $this->name;
-        //
-        //There must be a column indexed by this name
-        if (!isset($this->columns[$name])) 
-            throw new Exception("No primary key column found for entity $name");
-        //
-        //Return the column
-        return $this->columns[$name];
-    }
-    
-    //Set the columns of this entity. It is illegal to try to access the columns 
-    //before calling this method.
-    public function set_columns(): void{
-        //
-        //Open the named database if available; otherwise construct one
-        //from he infrmation schema
+    //Returns the columns of this entity
+    public function columns(): array/* column[cname] */ {
         $dbase = $this->open_dbase($this->dbname);
-        //
-        //Set this entity's columns
-        $this->columns = $dbase->entities[$this->name]->columns;
+        return $dbase->entities[$this->name]->columns;
     }
+
     
     //
     //This is the string represention of this table 
@@ -1557,7 +1515,7 @@ abstract class entity extends schema implements expression {
         return "`$this->dbname`.`$this->name`";
     }
 
-    //Returns an error report and the number of errors it contains
+    //Returns an error report and the numbet\r of errors it contains
     function get_error_report(int &$no_of_errors, string &$report): void {
         //
         //        
@@ -1636,21 +1594,21 @@ abstract class entity extends schema implements expression {
     }
 
     //Returns an array of pointers as all the foreigners that reference this 
-    //entity. Simolar to foreigensrs(), output of this function cannot be 
+    //entity. Similar to foreigners(), output of this function cannot be 
     //buffered, because, with abiliy to add view to the database, the pointers 
     //of an entity can change
     function pointers(): \Generator/* pointers[] */ {
         //
-        //The search for pinters will be limited to the currently open
-        // databases; otherwise we woulud have to open all the databse on the 
+        //The search for pointers will be limited to the currently open
+        // databases; otherwise we would have to open all the databases on the 
         //server.
         foreach (database::$current as $dbase) {
             foreach ($dbase->entities as $entity) {
                 foreach ($entity->foreigners() as $foreigner) {
                     //
-                    //A foreigner is a pointer to this entity if its reference match
-                    //this entity. The reference match if...
-                    if (
+                    //A foreigner is a pointer to this entity if its reference matches
+                    //this entity. The reference is a match if...
+                    if(
                     //...database names must match...
                             $foreigner->ref->db_name === $this->dbname
                             //
@@ -1724,6 +1682,17 @@ abstract class entity extends schema implements expression {
         return false;
     }
 
+    //
+    //Updates the registry both the current record and the logbook
+    function update_registry(array $alias, expression $exp) {
+        //
+        //Update the expressions in the current record.
+        record::$current[$this->dbname][$this->name][$alias][$this->name] = $exp;
+        //
+        //Update the bookings in the logbook.
+        record::$booked->put([$this->dbname, $this->name, $alias], $exp);
+    }
+
     //Yield all the parts of a friendly column. Each part is derived from 
     //an identifier attributes.Every entity has its own way of generating 
     //friendly columns
@@ -1732,7 +1701,7 @@ abstract class entity extends schema implements expression {
         //Loop through all the columns of this entity, yielding its 
         //friendly components i.e., friendly columns, with a slash 
         //separator
-        foreach ($this->columns as $col) {
+        foreach ($this->columns() as $col) {
             //
             //A column is friendly if...
             //
@@ -1861,39 +1830,160 @@ abstract class entity extends schema implements expression {
 //The class models an actual table on the database it extends 
 //an entity by including the indexes an a dependancy
 class table extends entity {
+
     //
-    //The parent database. It is protectde to avoid recursion duing json encoding
-    protected database $dbase; 
-    //
-    //To allow external access to this dataase....
-    function get_dbase(){return $this->dbase; }
-    //
-    //To access the name of the dbase outside of this table
-    function dbname(){return $this->dbase->name; }
-    //
-    //The relation depth of this entity.  
+    //The relation depth of this entity. The defeault is 0; 
     public ?int $depth = null;
     //
     //The json user information retrieved from the comment after it was decoded  
     public $comment;
     //
-    //The unique indices of this table, used for identification of record
-    //in the table. Ensure that his property is set before
-    //using it
-    public array /*<index>*/$indices;
+    //Defining the array $induces that is used to store the indexed columns 
+    //from the function get_induces 
+    public $indices;
 
     //
-    function __construct(database $parent,string $name) {
-        //
-        $this->dbase = $parent;
-        //
-        parent::__construct($name);
+    //represents a database table
+    //designed to be called from javascript
+    // The entity constructor requires:- both mandatory
+    // a) the entity name 
+    // b) the parent database name 
+    function __construct(string $name, string $dbname) {
+        parent::__construct($name, $dbname);
     }
-    
+    //
+    //Writing of an entity into the database is modeled as an interview 
+    //for hiring drivers.
+    function write(array $alias = []): expression {
+        //
+        //Indices for the registry 
+        $dbname = $this->dbname;
+        $ename = $this->name;
+        //
+        //Old_guards/crudees these are the drivers with a valid 
+        //licence that have not been booked by us.
+        //A driver is an old guard if...
+        if (
+        //
+        //...he is registered...
+                isset(record::$current[$dbname][$ename][$alias][$ename])
+                 // 
+                //...and legitimately set ...
+                && (!record::$current[$dbname][$ename][$alias][$ename] instanceof null_)
+                //
+                //... and not booked...
+                & !record::$booked->hasKey([$dbname, $ename, $alias])
+                //
+                //... and the licence must be valid
+                && ($licence = record::$current[$dbname][$ename][$alias][$ename])
+                    instanceof literal
+        ) {
+            //
+            //Update the structural, i.e., non-cross members (hence the false
+            //parameter in the follwing update method).
+            $new_licence = $this->update_cross_members($licence, $alias,  false);
+            //
+            //Update both the pot and the logbook
+            $this->update_registry($alias, $new_licence);
+            //
+            return $new_licence;
+        }
+        //
+        //A driver is booked if he exists in the log book
+        if (record::$booked->hasKey([$dbname, $ename, $alias])) {
+            //
+            //Return the booked expression 
+            return record::$booked->get([$dbname, $ename, $alias]);
+        }
+        //
+        //Make sure that this table's indices isset otherwis throw an exeception
+        if(!isset($this->indices)){
+            throw new myerror("Insufficient data to define any index of table '$this->name'");
+        }
+        //
+        //Investigation: 
+        //Use the drivers papers to investigate  whether he is competent or 
+        //not 
+        $results/* Array<exp> */ = array_map(fn($paper) => $paper->save($alias),
+                $this->indices);
+        //
+        //Select the valid papers
+        $valids = array_filter($results, fn($result) => $result instanceof literal);
+        //
+        //Extract the alien driver 
+        //A driver is an alien if he has no valid paper
+        if (count($valids) === 0) {
+            //
+            //Compile the error to return 
+            $exp = new myerror("No valid index found for table '{$this->name}'"
+                . " because one or more identification "
+                . "columns is missing or oversized");
+            //
+            //Update the registry 
+            $this->update_registry($alias, $exp);
+            //Return the expression
+            return $exp;
+        }
+        //
+        //Get and clean the licences
+        $dirty_licences = array_map(fn($paper) => $paper->value, $valids);
+        //
+        //Clean them 
+        $licences = array_unique($dirty_licences);
+        //
+        //Count the clean licences
+        $no = count($licences);
+        //
+        //Fraud:
+        //A driver is a fraud if his papers resolve to mutiple licences      
+        if ($no > 1) {
+            //
+            //Compile the inconsistency error (multiple pk error)
+            $exp = new myerror("$no Primary key found associated with this entity"
+                    . " $this->name consider merging");
+            //
+            //Update the registry 
+            $this->update_registry($alias, $exp);
+            //
+            //Return the expression
+            return $exp;
+        }
+        //
+        //Get the licences obtained  by inserting 
+        $inserts = array_filter(
+                $valids, fn($licence) => isset($licence->type) && $licence->type === 'insert'
+        );
+        //
+        //Post_graduate 
+        //A driver is a post graduate if one of his valid licences is an insert 
+        if (count($inserts) > 0) {
+            //
+            //update the registry
+            $this->update_registry($alias, $this->get_ith_element($inserts, 0));
+            return $this->get_ith_element($inserts, 0);
+        }
+        //
+        // A driver is an under graduate if there are no inserts 
+        if (count($inserts) === 0) {
+            //
+            //update the driver's structural columns i.e., none cross members
+            $exp = $this->update_cross_members($this->get_ith_element($valids, 0), $alias, false);
+            //
+            //Update the registry with this expression
+            $this->update_registry($alias, $exp);
+            //
+            return $exp;
+        }
+        //
+        //Make peace with the compiller 
+        throw new Exception("Unusual entity write situation");
+    }
+
+
     //
     //This is the string represention of this table 
     public function to_str(): string {
-        return "`{$this->dbase->name}`.`$this->name`";
+        return "`$this->dbname`.`$this->name`";
     }
     
     //
@@ -1901,24 +1991,24 @@ class table extends entity {
     function get_friend(int $pk): string {
        //
        //Formulate a selector sql based on this table
-       $selector = new selector($this->name, $this->entity->name);
+       $selector = new selector($this->name, $this->dbname);
        //
        //Formulate a view based on the selector and the primary 
        //key criteria
        // 
        //Formulate the criteria 
-       $criteria= new binary($this->columns[$this->name], "=",new scalar($pk));
+       $criteria= new binary($this->columns[$this->name], "=",new literal($pk));
        //
-       //Compile the view, using...
+       //Compile the view, usng...
        $view = new view(
                //
                //This table as the subject
                $this, 
                //
-               //The only column in the view is the friendly id of the selector
-               [$selector->friend()],
+               //The only column in teh view is the friendly id of the selector
+               [$selector->columns["id"]],
                //
-               //The join is the same as that of the selector
+               //The join is teh same as that of the selector
                $selector->join, 
                //
                //No need for naming this view
@@ -1931,23 +2021,23 @@ class table extends entity {
         //Execute the view to get the friendly component
         $sql =$view->stmt();
         // 
-        //Get the table's database.
-        $dbase = $this->dbase;
+        //Open a database 
+        $dbase = $this->open_dbase($this->dbname);
         // 
         //Retrieve the data. 
         $data= $dbase->get_sql_data($sql);
         // 
         //We expect one row of data unless something went wrong
         if(count($data) !==1){
-            throw new \Exception("The following sql did not yield one row "
+            throw new Exception("The following sql did not yield one row "
                     . "of data '$sql'");
         }
         // 
         //Extract and return the friendly component; its the id
         //column of the first row.
         //
-        //NB. The column may be indexed by column ame
-        return $data[0][$selector->friend()->name];
+        return $data[0]["id"];
+       
     }
 
 
@@ -1970,7 +2060,7 @@ class table extends entity {
         //There should only one record 
         if (count($result) !== 1) {
             $str = json_encode($result);
-            throw new \Exception("Invalid friendly name result $str");
+            throw new Exception("Invalid friendly name result $str");
         }
         //
         //Return the sting friend.
@@ -1980,14 +2070,14 @@ class table extends entity {
     //
     //Returns the "relational dependency". It is the longest identification path 
     //from this entity. 
-    //The dependency is the count of the targets involved in the join of this view
-    //based on the dependency network (i.e., the path whose joins return the highest 
-    //number of targets);
-    //How to obtain the dependency:- 
-    //1. Test if it is already set inorder to trivialise this process
+    //The dependency is the count of the target involed in the join of this view
+    //based on the dependecy network i.e(the path whose join return the highest 
+    //number of targets is the join);
+    //how to obtain the dependency 
+    //1. test if it is already set inorder to trivialise this process
     //2. Create a dependecy network with this entity as its source
     //3. Using the dependency network create a join from it 
-    //4. Count the number of targets in the join 
+    //4. count the number of targets in the join 
     function get_dependency(): ?int {
         //
         //1. Test if the dependecy was set to trivilalize this process
@@ -1999,10 +2089,15 @@ class table extends entity {
         //To create this network we need the foreign strategy 
         $dependency = new dependency($this);
         //
-        //3.Create a join using the paths dependency network 
-        $join = new join($dependency->paths);
+        //3.create a join using the dependency network 
+        $join = new join();
+        $join->import($dependency);
         //
-        //Check for network building errors, including, cyclic loops
+        //Execute the network using the current option for throeing execption
+        //to establish the actual paths and join
+        $join->execute();
+        //
+        //Check for an network building erreos, including, cyclic loops
         $this->errors += $dependency->errors;
         //
         //If there are errors return a null
@@ -2010,11 +2105,198 @@ class table extends entity {
             return null;
         }
         //
-        //4. Count the number of joints in the join 
-        $depth =  $join->joints->count();
-        //
-        return $depth;
+        //4. count the number of targets in the join 
+        return count($join->targets->keys());
     }
+
+    //
+    //
+    ///Update this entity given the primary key and the columns 
+    //all of which are optional. The points to note are:-
+    //1. Any error raised during this process will be reported as a warning.
+    //2. The returned expresion is either a literal or a warning
+    function update_cross_members(literal $pk, array $alias, bool $is_cross): expression {
+        //
+        //Prepare to collect warning messages
+        $msgs = [];
+        //
+        //1. Compile the set clause of the update statement
+        //
+        //Begin with an empty set clause
+        $set = [];
+        // 
+        //A column should not be considered for update if...
+        $defaulted=fn($col)=>
+           // 
+           //...There is no user supplied data associated with it.
+           !isset(record::$current[$this->dbname][$this->name][$alias][$col->name])
+           //
+           //... and it is a attribute 
+           && $col instanceof attribute
+           //
+           //...with a predefined default value.
+           &! is_null($col->default);
+        
+        //
+        //Write the members to the database.
+        //
+        //Get all the columns to take part in this update. They should:-
+        $columns = array_filter($this->columns(), fn($col) =>
+            //
+            //Match the cross input paremeter
+            $col->is_cross_member() === $is_cross
+            //
+            //and should exclude primary keys, as these never get
+            //written.
+            &! $col instanceof primary
+            // 
+            //Discard defaulted attributes 
+            &! $defaulted($col)
+        );
+        //
+        //Save the update columns; there may be errors hence the dirty 
+        //description
+        $dirty_exps = array_map(fn($col) => $col->save($alias), $columns);
+        //
+        //Clean the expressions to remove all the errors
+        $exps = array_filter($dirty_exps, fn($exp) => !($exp instanceof myerror));
+        //
+        //Continue only if valid cases is not empty
+        if (count($exps) === 0) {
+            return $pk;
+        }
+        //
+        //Loop through the indexed array of exps pairing the cname with its
+        // respective value, e.g., name='kamau'
+        foreach ($exps as $cname => $literal) {
+            array_push($set, "`$cname` = {$literal->to_str()}");
+        }
+        //
+        //implode them with a , separator
+        $str_set = implode(',', $set);
+        //
+        //2. Construct the full update statement
+        //3. Execute the update (if it is necessary)
+        try {
+            //
+            //This is an update statement 
+            $stmt = "UPDATE \n"
+                    //
+                    //Update this entity
+                    . "`{$this->name}` \n"
+                    . "SET \n"
+                    //
+                    //get the values as key values pairs 
+                    . "$str_set \n"
+                    //
+                    //The joins, if any for now there are no joins 
+                    //
+                    //the where condition is that the primary value is equal to the 
+                    //primary column
+                    . "WHERE `{$this->name}`={$pk->to_str()}\n";
+            //
+            //execute
+            $this->open_dbase($this->dbname)->query($stmt);
+        }
+        //
+        catch (Exception $ex) {
+            //
+            return new myerror($ex->getMessage());
+        }
+        //
+        return $pk;
+    }
+
+}
+
+//
+//Models an alias of an entity
+class alien extends table {
+
+    //
+    public $alias_name;
+
+    //
+    function __construct(string $dbname, string $ename, string $alias_name) {
+        //
+        //The alias name is the name of the parent entity 
+        $this->alias_name = $ename;
+        //
+        parent::__construct($alias_name, $dbname);
+        //
+        //activate the columnns of this alien this is inorder to receate the parent 
+        //columns rerouting them to this new alien 
+        $this->activate_columns();
+        //
+        //activate the indices too of the parent to re route them 
+        $this->activate_indices();
+    }
+
+    //
+    //recreates the columns of the parent 
+    function activate_columns() {
+        //
+        //Get the parent entity 
+        $dbase = $this->open_dbase($this->dbname);
+        $entity = $dbase->entities[$this->alias_name];
+        //
+        foreach ($entity->columns as $cname => $column) {
+            //
+            //Depending on a column's class name......
+            switch ($column->class_name) {
+                case 'attribute':
+                    //
+                    //Create am attribute column
+                    $alien_column = new attribute($this->dbname, $this->name, $column->name, $column->data_type,
+                            $column->default, $column->is_nullable, $column->comment, $column->length);
+                    break;
+                case 'foreign':
+                    $alien_column = new foreign($this->dbname, $this->name, $column->name,
+                            $column->data_type, $column->default, $column->is_nullable,
+                            $column->comment, $column->length, $column->ref);
+                    break;
+                case 'primary':
+                    $alien_column = new primary($this->dbname, $this->name, $column->name,
+                            $column->data_type, $column->default, $column->is_nullable,
+                            $column->comment, $column->length);
+                    break;
+                default:
+                    throw new \Exception("Column of class $this->class_name is not known");
+            }
+            //
+            //Offload any other root column property to the caputured version
+            mutall::offload_properties($alien_column, $column);
+            //
+            //Place the capured column to its proper home
+            $this->columns[$cname] = $alien_column;
+        }
+    }
+
+    //
+    //activate the indices of this alien inorder to reroute them 
+    function activate_indices() {
+        //
+        //Get the parent entity 
+        $dbase = $this->open_dbase($this->dbname);
+        $entity = $dbase->entities[$this->alias_name];
+        //Loop through all the entity indies to access the index columns
+        foreach ($entity->indices as $ixname => $root_index) {
+            //
+            //Create the capture index
+            $col_index = new index($this->dbname, $this->name, $ixname);
+
+            //Loop through the root index columns to access the column name
+            foreach (array_keys($root_index->columns) as $cname) {
+                //
+                //Set the index column to match those of this database
+                $col_index->columns[$cname] = $this->columns[$cname];
+            }
+            //
+            //Add the captured index to the entity indices
+            $this->indices[$ixname] = $col_index;
+        }
+    }
+
 }
 
 //
@@ -2022,6 +2304,11 @@ class table extends entity {
 //in the database model. To resolve the root entity requires the inclusion of a
 //config file in the main application.
 class view extends entity {
+
+    //
+    //Defining the instance of a child class column that feed the entity with more 
+    //properties popilated by the function get column()
+    public $columns;
     //
     //The criteria of extracting information from the from an entity as a 
     //boolean expression.
@@ -2034,13 +2321,11 @@ class view extends entity {
     public ?join $join;
     //
     //Other clasuses of an sql that teh user can provide after a view is creatred
-    public ?string $group_by = null;
+    public ?array $group_by;
 
     //We dont expext to callt this constructor from Js, because the data types 
     //are not simple
     function __construct(
-            //
-            //The base of this view
             entity $from,
             //
             //An array of named expressions, i.e., fields    
@@ -2049,30 +2334,31 @@ class view extends entity {
             //The join that this view uses to access/define its data
             join $join,
             //
-            //The name of the view; this is needed if this view participates in 
-            //other view    
+            //The name of the view    
             string $name,
             //
-            //The where clause as an expression
-            expression $where = null,
+            //The where clause which is an expression which evaluates a boolean
+            ?expression $where = null,
             //
-            //The group by clause -- which is an array of cou,umns
-            array /*<column>*/$group_by = null
-    ){
+            //Group by is an array
+            ?array /*<column>*/$group_by=null
+    ) {
         //
         //Properties are saved directly since this class is not callable from 
         //javascript
         $this->from = $from;
         $this->join = $join;
         $this->where = $where;
-        $this->group_by = $group_by;
+        $this->group_by=$group_by;
         //
         //The columnsn of a view are expected to be fields, i.e., named 
         //expresions. We use the name to index the columns.
         $keys = array_map(fn($field) => $field->name, $columns);
         $this->columns = array_combine($keys, $columns);
         //
-        parent::__construct($name);
+        //An entity parent requires both the ename and the 
+        //dbname.
+        parent::__construct($name, $from->dbname);
     }
 
     //
@@ -2157,33 +2443,65 @@ class view extends entity {
         return $sql;
     }
 
-    
+    //Displays the sql results. This useful for running tests in php, i.e., 
+    //without having to rely on javsacript to do the viewing
+    //The user is responsible for compiling valid clauses for the where and 
+    //order by extensions of the this view's sql statement.
+    function show(string $where = "", string $order_by = ""): string {
+        //
+        //Note the extension to avoid overriting the where clasus expression
+        $this->where = $where;
+        //
+        $this->order_by = $order_by;
+        //
+        //Execute this sql 
+        $array = $this->execute();
+        //
+        //Get the field members 
+        $fields = $this->fields->members;
+        //
+        //Ouptut a table
+        $html = "<table name='{$this->entity->name}'>";
+        //
+        //Echo the header row
+        $html .= $this->show_header();
+        //
+        //Loop through the array and display the results in a table 
+        foreach ($array as $row) {
+            //
+            //This is a one field result
+            $html .= "<tr>";
+            //
+            //Step through the fields
+            foreach ($fields as $fname => $field) {
+                //
+                //Get the field value
+                $value = $row[$fname];
+
+                $html .= $field->show($value);
+            }
+            $html .= "</tr>";
+        }
+        $html .= "</table>";
+        //
+        //
+        return $html;
+    }
+
     //Returns the standard string representation of a select sql statement
     public function stmt(): string {
         //
         //Ensure that each view constructor argument is set. If not we will 
         //assume the default values.
         //
-        //If the fields are not set, then use all of those of the 'from' clause
+        //If the fields are not set, then use all of those of the 'from' clauas
         if (is_null($this->columns)) {
             $this->columns = $this->from->columns;
         }
         //
-        //Convert the columns into thier sql string equivalnets
-        $columns_str = implode(
-            //
-            //The coma sparates the columns    
-            ",", 
-            //
-            //Note the as clause, to ensure the columns are properly named
-            array_map(
-                //
-                //Note that its the string version of a column we want, NOT
-                //THE EXPRESSION     
-                fn($col) => "\n\t{$col->to_str()} as `$col->name`", 
-                $this->columns
-            )
-        );
+        //Note the real value of the to_str() method. The __toString() will not
+        //do!
+        $columns_str = implode(",", array_map(fn($col) => $col->to_str(), $this->columns));
         //
         //If the join is not set, then assume none
         $join = is_null($this->join) ? '' : $this->join->stmt();
@@ -2191,32 +2509,32 @@ class view extends entity {
         //Compile the where clause in such a way that exra conditions can
         //be added at query time. For better performance, the where clause is 
         //ommited all togeher if not required
-        $where = is_null($this->where) ? '' : "WHERE \n\t{$this->where->to_str()}";
+        $where = is_null($this->where) ? '' : "WHERE {$this->where->to_str()}";
         //
-        //Get the from expression
-        $fromxp = $this->from instanceof view 
-                ? $this->from->stmt() : $this->from->to_str();
+        //The opening and closing brackets of the from clause are required by 
+        //view only. Let $b be teh set of brackets
+        $b = $this->from instanceof entity ? ['', ''] : ['(', ')'];
+        //
+        //Geth the from expression
+        $fromxp = $this->from instanceof view ?
+                $this->from->stmt() : $this->from->to_str();
         //
         //Add the group by if necessary
-        $group = "";
-        if (!is_null($this->group_by)){
+        $group="";
+        //
+        if(!is_null($this->group_by)){
             //
-            //Convert the group by columns to a comma separated list of column
-            //names;
-            $group_by_str = implode(
-                //
-                //Use the comma as the separator
-                ", ",
-                //
-                //Convert the roup by columns to thier string equivalents
-                array_map(fn($col)=>"$col", $this->group_by)
+            //Convert group by columns into their string equivalent
+            $group_by_str= implode(
+            ",",array_map(fn($col)=>"$col", $this->group_by)
             );
             //
-            $group =  " group by \n\t$group_by_str";
+            //Complete the group by clause
+            $group = "group by $group_by_str";
         }
         //
         //Construct the sql (select) statement. Note use of the alias. It allows 
-        //us to formulate a generalised sql that is valid for both primary
+        //us to formulate a genealised sql that is valid for both primary
         //and secondary entities, i.e, views. For instance, let $x be a primary 
         //entity or view. The generalised sql is:-
         //
@@ -2242,30 +2560,24 @@ class view extends entity {
         //
         //select * from (client) as client
         //
-        //in statement (1) above. Hence the brackets are conditional.
-        //
-        //The opening and closing brackets of the from clause are required by 
-        //view only. Let $b be the set of brackets
-        $b = $this->from instanceof entity ? ['', ''] : ['(', ')'];
-        //
-        //Now compile teh full sttaement
+        //in statement (1) above. Hence thh brackets are conditional.
         $stmt = "SELECT \n"
                 //
                 //List all the required fields
-                . "\t$columns_str \n"
+                . "$columns_str \n"
                 . "FROM \n"
                 //
                 //Use the most general form of the 'from' clause, i.e., one with
                 //conditional brackets and a valid AS phrase
-                ."\t". $b[0] . $fromxp . $b[1] . "\n"
+                . $b[0] . $fromxp . $b[1] . "\n"
                 //
                 //Add the joins, if any.
-                . "$join\n"
+                . "{$join}\n"
                 //
                 //Add the where clause, if necessary    
-                . $where."\n"
+                . $where
                 //
-                //Add the group by clause            
+                //Add the Group by clause           
                 . $group;
         //
         //Return the complete sttaement        
@@ -2285,38 +2597,295 @@ class view extends entity {
         //
         $this->columns = $this->from->columns;
     }
+
+    //Echoes the label format of data
+    private function show_label($array) {
+        //
+        //Get the fields 
+        $fields = $this->fields->get_array();
+        //
+        //Ouptut a table
+        echo "<div name='{$this->entity->name}'>";
+        echo $this->header();
+        //
+        //Loop through the array and display the results in a table 
+        foreach ($array as $row) {
+            //
+            //Step through the columns
+            foreach ($fields as $field) {
+                //
+                //Get the indexes of the field
+                $name = is_null($field->alias) ? $field->column->name : $field->alias;
+                //
+                //Get the field value
+                $value = $row[$name];
+
+                echo "<span> $name :<span>$value></span>";
+            }
+        }
+        echo "</div>";
+    }
+
+    //
+    //returns the title heads of the various fields 
+    private function show_header() {
+        //
+        //Get the fields in this sql 
+        $cols = $this->fields->get_array();
+        //
+        //Loop through the fields and display the <tds>
+        foreach ($cols as $col) {
+            //
+            $name = is_null($col->alias) ? $col->to_str() : $col->alias;
+            echo "<th>$name</th>";
+        }
+    }
+
+}
+
+//
+//Models the index of an entity (needed for unique identification of database 
+//entries) as a schema object. That means that it is capable of writing to a 
+//database
+class index extends schema {
+
+    //
+    //Saves the column names obtained by this index name
+    public $columns = [];
+
+    //
+    //The constructor requires three mandatory parameters 
+    //1. dbname the name of the database 
+    //2. ename which is the name of the entity this index belongs to 
+    //3. The name of the index 
+    function __construct(string $dbname, string $ename, string $ixname) {
+        //
+        //bind the parameters 
+        $this->dbname = $dbname;
+        $this->ename = $ename;
+        $this->ixname = $ixname;
+        //
+        //construct the parent, using a partial name that includes the entity 
+        parent::__construct("$ename.$ixname");
+    }
+
+    //Returns the string version of this index ???? 
+    function to_str(): string {
+        return "`$this->ename`";
+    }
+
+    //Returns the ename of this index???????
+    function get_ename(): string {
+        return "`$this->ename`";
+    }
+
+    //Define the entities of this index as a function. This cannot be defined
+    //as a propertu because of recurssion during serialization.
+    function entity() {
+        //
+        //Open the database of the this index
+        $dbase = $this->open_dbase($this->dbname);
+        //
+        //Retrive the entity mathing this indx
+        $entity = $dbase->entities[$this->ename];
+        //
+        //Return it.
+        return $entity;
+    }
+
+    //Save the current record using this index. The alias indicates 
+    //which among the multiple records referenced by this entity is 
+    //to be saved.
+    //
+    //This proceeds by saving every column in this index, returning 
+    //a status.The status is (an exression that is) either erroneous,
+    // insert or update.
+    // 
+    //If any column is erroneous, this index cannot be used for saving;
+    //otherwise we use use the index columns to either insert or update 
+    //this record.
+    function write(array $alias = []): expression {
+        //
+        //Save the index columns to the database, i.e., save all the 
+        //individual columns of this index.
+        $statuses = $this->write_columns($this->columns, $alias);
+        //
+        //Test if this index is valid to save the current record. An index is
+        //invalid if at least one of its columns has an erroneous status 
+        if (count($statuses['invalids']) > 0) {
+            $col_str = implode(',', array_keys($statuses['invalids']));
+            //
+            //At least one indding column is erronoeus. The index is unusable.
+            return new myerror("Unusable index: at least one of "
+                    . "its cloumns is erroneous i.e $col_str");
+        }
+        //
+        //Compile the where clause needed for testing if we need to do an update 
+        //or an insert using this index 
+        //
+        //The where is an array of "anded" conditions based columns of this index.
+        //
+        //Stating with an empty list of "ands"...
+        $condition = [];
+        //
+        //...build the where conditions.
+        foreach ($statuses['valids'] as $cname => $exp) {
+            //
+            //Create a where clause in the form, e.g., "`ename`.`cname`= '1'";
+            $condition = "`$this->ename`.`$cname`={$exp->to_str()}";
+            //
+            //push the new "where" into the array
+            $conditions[] = $condition;
+        }
+        //
+        //Stringify the where array in order to formulate a complete where 
+        //clause string 
+        $where = implode(' and ', $conditions);
+        //
+        //Try retrieve the primary key of this record based on this index
+        //
+        //Get the entity to save, taking care of aliens. It is the "from" clause
+        //of a select statement
+        $entity = $this->entity();
+        $from = $entity->fromexp();
+        //
+        //Get the primary column of the given entity not known in advance since 
+        //the entity can be an alien which is derived diferently from an entity 
+        $primary = $entity->get_primary();
+        //Formuate tehsql statement to test for existence of abscence of a record
+        $smt = "select $primary from $from where $where";
+        //
+        //Execute the select statement to obtain the key if the record exists (or
+        //none if it does not)
+        $result = database::$current[$this->dbname]->get_sql_data($smt);
+        //
+        //If no record was retrieved then we need to insert one
+        if (count($result) === 0) {
+            //
+            //Save the structural columns. The result is either an insert or an 
+            //error expression
+            log::$current->open_tag("insert");
+            $exp = $this->insert_record($alias);
+            log::$current->close_tag();
+        } else {
+            //
+            //A record was retrieved; then we need to update it
+            //
+            //Retrieve the primary key
+            $key = $result[0][$entity->get_source()];
+            //
+            $exp = new literal($key, "update");
+        }
+        //
+        return $exp;
+    }
+
+   //Save all the non-cross member columns (excluding primary keys) of 
+   //this entity.
+    private function insert_record($alias): expression {
+        //
+        //Collect all the structural columns of this index's entity. These are 
+        //the non cross members, i.e., structiral columns excluding primary
+        //key
+        $columns = array_filter(
+                $this->entity()->columns,
+                fn($col) => !$col->is_cross_member() &!$col instanceof primary
+        );
+        //
+        //1. Save the structural columns of this entity to the database
+        $dirty_exps = array_map(fn($col) => $col->save($alias), $columns);
+        $exps = array_filter($dirty_exps, fn($exp) => $exp instanceof literal);
+        //
+        //The cleaned columns should not be empty
+        if (count($exps) === 0) {
+            return new myerror("No data to insert");
+        }
+        // 
+        //2. Compile the insert clause, i.e, {Insert into ename (cnmanes,...) values(strings......)}
+        //by considering only the vaid cases.
+        //
+        //Get the involved columns in a string derived from the statuses as a  string 
+        //i.e `client`.`client`,......
+        //Get the name of the mandatory columns names from the status
+        $columns_names = array_keys($exps);
+        //
+        //map the column names to their complete sql names, e,g., clent.name; 
+        //then implode them with a comma separator
+        $column_str = implode(',', array_map(fn($cname) => "`$cname`", $columns_names));
+        //
+        //Collect all the values as a comma separated string
+        $values_str = implode(',', array_map(fn($exp) => $exp->to_str(),
+                        $exps));
+        //
+        //3. Compile the sql insert statement
+        //
+        //sql string statement
+        $smt = "INSERT \n"
+                //
+                //Get the from of the sql 
+                . "INTO  {$this->entity()}\n"
+                //
+                //the column names
+                . "({$column_str})\n"
+                //
+                //The values
+                . "VALUES ($values_str)\n";
+
+        //
+        //4. Execute the sql
+        //
+        try {
+            
+            $dbase = $this->open_dbase("mutall_users");
+            $dbase->query($smt);
+            //
+            //Return the last inserted id
+            $primarykey = $dbase->lastInsertId();
+            //
+            return new literal($primarykey, "insert");
+        }
+        //
+        catch (\Exception $ex) {
+            //on an update what should i return
+            return new myerror($ex->getMessage());
+        }
+    }
+
 }
 
 //Modeling the columns of an entity as the smallest package whose 
-//contents can be "saved" to a database. It is an expresion. 
-//Note: this class is not abstract as we can use it to create
-//columns. This is important in the conyext of left joins
-class column extends schema implements expression{
-    //
-    //The parent/home of this column; it is protected to prevent recurssion when 
-    //the database object is json encoded
-    protected entity $entity;
-    //
-    //To allow access to the protcted entity
-    function get_entity():entity {return $this->entity;}
+//contents can be "saved" to a database. It is an expresion
+abstract class column extends schema implements expression{
     //
     //Every column should have a name 
     public $name;
+    //the three properties that are required to identify a column the name, ename and 
+    //the dbname 
+    public $ename;
     //
+    //The parent of this column protected inorder to enable json encoding
+    public $dbname;
+
+    //
+    //The class constructor
     function __construct(
             //
-            //The paremt/home of this column
-            entity $parent,
+            //The name of the database inwhich the column is found
+            string $dbname,
+            //
+            //The entity in which the coumn is located 
+            string $ename,
             //
             //The actual name of the column 
             string $name
     ) {
         //
         //bind the arguments
-        $this->entity= $parent;
         $this->name = $name;
+        $this->ename = $ename;
+        $this->dbname = $dbname;
         //
-        parent::__construct("$parent->name.$name");
+        parent::__construct("$ename.$name");
     }
 
     // //Returns an error report and the numbet\r of errors it contains
@@ -2344,68 +2913,89 @@ class column extends schema implements expression{
     
     //Yield the entity of this column
     function yield_entity(): \Generator {
-        yield $this->entity;
+        //
+        //This database must be opened by now. I cannot tell when this is not 
+        //true
+        yield database::$current[$this->dbname]->entities[$this->ename];
     }
  
-    //Returns the string version of this column, taking care of 
-    //multi-database scenarios
-    function __toString() {
+    //Since i can not acess a protected property
+    //(Lawrence, who uses this method? Shoudld it not be named entity() as it is
+    //tring to return the entity of this column?)
+    function get_parent() {
         //
-        //Compile and return the column name, e.g., 
-        //mutall_user.developer.name
+        //Test first if the entity exists before returninig
+        $entity = database::$current->entities[$this->ename] ?? null;
+        //
+        //If the entity is a null or undefined inform the user to check the 
+        //spellings 
+        if (is_null($entity) || !isset($entity)) {
+
+            throw new \Exception("The parent entity named $this->ename an database $this->dbname was not found "
+                    . "please check your spelling and ensure you have the correct database name");
+        }
+        return $entity;
+    }
+
+    //Returns the non-structural colums of this entity, a.k.a, cross members. 
+    //These are optional foreign key columns, i.e., thhose that are nullable.
+    //They are important for avoidng cyclic loops during saving of data to database
+    function is_cross_member() {
         return 
-           //
-            //add the entity name
-          "`{$this->entity->name}`"
-          //
-          //..add the column name component
-          . ".`$this->name` ";
+            $this instanceof foreign 
+            && $this->is_nullable === 'YES'
+            &! $this->is_id();
+    }
+
+    //Returns a true if this column is used by any identification index; 
+    //otherwise it returns false. Identification columns are part of what is
+    //knwn as structural columns.
+    function is_id(): bool {
+        //
+        //Get the indices of the parent entity 
+        $indices = database::$current[$this->dbname]->entities[$this->ename]->indices;
+        //
+        //test if this column is used as an index 
+        foreach ($indices as $index) {
+            //
+            //Map this index to its column name
+            $cnames = array_map(fn($col) => $col->name, $index->columns);
+            if (in_array($this->name, $cnames)) {
+                return true;
+            }
+        }
+        //
+        return false;
+    }
+
+    //
+    //Returns a true if this column can be used for fomulating a friendly 
+    //identifier.
+    function is_descriptive(): bool {
+        //
+        //The descriptive columns are those named, name, title or decription 
+        return in_array($this->name, ['name', 'description', 'title', 'id']);
+    }
+
+    //Returns the string version of thus column, taking care of multi-database
+    //scenarios
+    function __toString() {
+        return "`$this->dbname`.`$this->ename`.`$this->name` ";
     }
 
     //
     //The expression string version of a comlumn has the form
-    //``$ename`.`$cname`
+    //`$dbname`.`$ename`.`$cname`
     function to_str(): string {
         return "$this";
     }
-    
     //
-    //Convert the static column object to an active one
-    static function create(string $dbname, string $tname, stdClass $column):column {
-        //
-        //Depending on a column's class name......
-        switch ($column->class_name) {
-            case 'attribute':
-                //
-                //Create an attribute column
-                $active_column = new attribute($dbname, $tname, $column->name, $column->data_type,
-                        $column->default, $column->is_nullable, $column->comment, $column->length);
-                break;
-            case 'foreign':
-                $active_column = new foreign($dbname, $tname, $column->name,
-                        $column->data_type, $column->default, $column->is_nullable,
-                        $column->comment, $column->length, $column->ref);
-                break;
-            case 'primary':
-                $active_column = new primary($dbname, $tname, $column->name,
-                        $column->data_type, $column->default, $column->is_nullable,
-                        $column->comment, $column->length);
-                break;
-            default:
-                throw new \Exception("Column of class $this->class_name is not known");
-        }
-        //
-        //Offload any other root column property to the caputured version
-        mutall::offload_properties($active_column, $column);
-        //
-        return $active_column;
-    }
-
 }
-//Modelling primary (as opposed to derived) columns needed for data capture and 
-//storage. These are columns extracted from the information schema directly 
-//(so they need to be checked for integrity).
+//Modelling primary (as opposed to derived) needed for data capture and storage
+//These are columns extracted from the information schema directly (so they need
+//to be checked for integrity.
 abstract class capture extends column {
+
     //
     //The construction details of the column includes the following;- 
     //
@@ -2425,13 +3015,15 @@ abstract class capture extends column {
     //
     //The size ofthe column
     public ?int $length;
+
     //
-    //Every capture column should be checked for compliance to the Mutall 
-    //framework.
+    //Every capture column for compliance to the Mutall framework
     abstract function verify_integrity();
+
     //
     function __construct(
-            table $parent,
+            string $dbname,
+            string $ename,
             string $name,
             string $data_type,
             ?string $default,
@@ -2450,45 +3042,9 @@ abstract class capture extends column {
         //
         //Create the parent column that requires the dbname, the ename and the 
         //column name  
-        parent::__construct($parent, $name);
-    }
-//Returns the non-structural colums of this entity, a.k.a, cross members. 
-    //These are optional foreign key columns, i.e., thhose that are nullable.
-    //They are important for avoidng cyclic loops during saving of data to database
-    function is_cross_member() {
-        return 
-            $this instanceof foreign 
-            && $this->is_nullable === 'YES'
-            &! $this->is_id();
+        parent::__construct($dbname, $ename, $name);
     }
 
-    //Returns a true if this column is used by any identification index; 
-    //otherwise it returns false. Identification columns are part of what is
-    //known as structural columns.
-    function is_id(): bool {
-        //
-        //Get the indices of the parent entity 
-        $indices = $this->entity->indices;
-        //
-        //Test if this column is used as an index 
-        foreach ($indices as $cnames) {
-            //
-            if (in_array($this->name, $cnames)) {
-                return true;
-            }
-        }
-        //
-        return false;
-    }
-
-    //
-    //Returns a true if this column can be used for fomulating a friendly 
-    //identifier.
-    function is_descriptive(): bool {
-        //
-        //The descriptive columns are those named, name, title or decription 
-        return in_array($this->name, ['name', 'description', 'title', 'id']);
-    }
 }
 
 //
@@ -2500,7 +3056,8 @@ class primary extends capture {
 
     //
     function __construct(
-            entity $entity,
+            string $dbname,
+            string $ename,
             string $name,
             string $data_type,
             ?string $default,
@@ -2511,7 +3068,7 @@ class primary extends capture {
         //
         //To construct a column we only need the dbname, ename and the 
         //column name 
-        parent::__construct($entity, $name, $data_type, $default, $is_nullable, $comment, $length);
+        parent::__construct($dbname, $ename, $name, $data_type, $default, $is_nullable, $comment, $length);
     }
 
     //
@@ -2532,8 +3089,8 @@ class primary extends capture {
         //2. It must be named the same way as the home entity. The names are case 
         //sensitive, so 'Application' is different from 'application' -- the reason
         //we empasise sticking to lower case rather than camel case
-        if ($this->name !== $this->entity->name) {
-            $error = new \Error("The primary key column $this should be named the same its home entity {$this->entity->name}");
+        if ($this->name !== $this->ename) {
+            $error = new \Error("The primary key column $this should be named the same its home entity $this->ename");
             array_push($this->errors, $error);
         }
     }
@@ -2556,7 +3113,8 @@ class attribute extends capture implements expression {
     //
     //create the attributes with is structure components see in in capture above 
     function __construct(
-            entity $entity,
+            string $dbname,
+            string $ename,
             string $name,
             string $data_type,
             ?string $default,
@@ -2564,7 +3122,7 @@ class attribute extends capture implements expression {
             string $comment,
             ?int $length
     ) {
-        parent::__construct($entity, $name, $data_type, $default, $is_nullable, $comment, $length);
+        parent::__construct($dbname, $ename, $name, $data_type, $default, $is_nullable, $comment, $length);
     }
 
     
@@ -2581,45 +3139,108 @@ class attribute extends capture implements expression {
         
     }
 
+    //
+    //Writes the record value of this entity based on an alias which indicates 
+    //which record of this entity is being saved 
+    //Returns a status can can be either erroneus or literal 
+    function write(array $alias = []): expression {
+        //
+        //Test if the value of this attribute is available in 
+        //the current record.
+        //
+        //If the value is set... 
+        if (isset(record::$current[$this->dbname][$this->ename][$alias][$this->name])) {
+            //
+            //Ensure that the attribute's size for identifiers
+            //is less or equal to the size of the column.
+            $exp = record::$current[$this->dbname][$this->ename][$alias][$this->name];
+            $size= strlen($exp->to_str());
+            if($size> $this->length 
+               && $this->is_id()
+               && $this->data_type=== "varchar"
+            ){
+                return new myerror("The size of column $this->full_name "
+                    . "is $size which is larger than $this->length");
+            } 
+            //...return the atom
+            return $exp; 
+        }
+        //
+        //The attribute's value not set; try the default.
+        if($this->default!== 'NULL' &! is_null($this->default)){
+            //
+            //Parse the defalt value to get an expression.
+            $exp = mutall::parse_default($this->default);
+            //
+            //Save the returned atom to trivialize this process
+            record::$current[$this->dbname][$this->ename][$alias][$this->name] = $exp;
+            //
+            //return the expression
+            return $exp;
+        } 
+        //
+        //
+        //Create an erroneous atom to be returned 
+        $error = new myerror("Attribute $this->ename.$this->name is not found");
+        //
+        //Save the returned atom to trivialize this process
+        record::$current[$this->dbname][$this->ename][$alias][$this->name] = $error;
+        //
+        //return the erroneous atom
+        return $error;
+    }
+
 }
 
 //
 //Modelling derived columns, i.e., those not read off the information schema. 
+//Not all colunms are expressions. For instance, foreign key columns are not 
+//expressions. So, field extending a column is not enough to express a field.
 class field extends column implements expression {
+
     //
     //This is the calculated/derived expression that is represented by
     //this field. 
     public expression $exp;
+
     //
     function __construct(
-        //
-        //The parent/home entity of the field.
-        entity $parent,
-        //
-        //The field name, used as as in 'as id
-        string $name,
-        //
-        //The expression which produces the field's value
-        expression $exp
+            string $dbname,
+            string $ename,
+            string $name,
+            expression $exp
     ) {
         //
         $this->exp = $exp;
         //
-        parent::__construct($parent, $name);
+        parent::__construct($dbname, $ename, $name);
     }
 
-    //The component of a field used in aselect statement
-    //e.g., SELECT {$this->to_str()} AS {$this->name}
+    //Note: the __toString() of a field inherits from that of the column. The 
+    //to_str() method is needed for formulating the field in a select statement
+    //For example:-
+    //
+    //Let $f be a variable of type field, so that
+    //
+    //$f = new field('mutall_login', 'application', 'id__', $exp)
+    //
+    //If $f was used in a select statement that produced the following: 
+    //
+    //select CONCAT(....) as id__ from mutall_login 
+    //
+    //the concat bit is the return value for $f->to_str()
+    //
+    //In contrast the __toString() function would return 
+    //'mutal_login.application.id__'
     function to_str(): string {
-       return $this->exp->to_str();
+        return "{$this->exp->to_str()} as `$this->name`";
     }
 
     //
-    //Override the magic to string methd to ensure that the name of a 
+    //Override the magic tostring methd to ensure that the name of a 
     //field does not include a dbname
     function __toString() {
-        //
-        return "`{$this->get_entity()->name}`.`$this->name`";
+        return "`$this->ename`.`$this->name`";
     }
 
     //Yield the primary *nort derived) attributes of this entity. They are needed
@@ -2638,50 +3259,28 @@ class field extends column implements expression {
     }
 
 }
-
-//The link interface allows us to express relationhip between 2 columns
-//as a string. Foreig and link casses implements it
-interface ilink{
-    //
-    //A link must implement the on string needed by a join clause
-    //Examples of such strings are:-
-    //for many-to-one cases: todo.developer == developer.developer
-    //for one-to-one case: developer.developer = user.user
-    function on_str():string; 
-}
-
 //
-//This class is used for establishing a link between any 2 columns
-//irrespective of whether its a many to one or one to one
-class link implements ilink{
+//This interface is for establishing links between entities.
+interface link{
     //
-    //The 2 entties being linked
-    public column $a;
-    public column $b;
-    //
-    function __construct(column $a, column $b){
-        $this->a = $a;
-        $this->b = $b;
-    }
-    //
-    //Example of the on clause of a one to many link:-
-    //developer.developr = user.user
-    function on_str(): string {
-        return "$this->a = $this->b";
-    }
+    //Returns the onclause of an sql statement
+    function on_str():string;
 }
 
-//A foreign key column participates in data capture. It implements the 
-//many-to-one link between 2 entities. The home entity is the one that
-//houses the column. The second entity, a.k.a, away entity, is the one pointed 
-//to by the relationshp
-class foreign extends capture implements ilink{
+
+//This is the class of columns whose sole purpose is to establish relationhips
+//between entities. It participates in data capture. primary feature is the 
+//referenced entity
+class foreign extends capture implements link {
+
     //
-    //The name of the referenced table and database
+    //The name of the referenced table and database names
     public \stdClass /* {ref_table_name, ref_db_name} */ $ref;
+
     //
     function __construct(
-            entity $entity,
+            string $dbname,
+            string $ename,
             string $name,
             string $data_type,
             ?string $default ,
@@ -2693,9 +3292,25 @@ class foreign extends capture implements ilink{
         //
         //save the ref 
         $this->ref = $ref;
-        parent::__construct($entity, $name, $data_type, $default, $is_nullable, $comment, $length);
+        parent::__construct($dbname, $ename, $name, $data_type, $default, $is_nullable, $comment, $length);
     }
-
+    //
+    //This function returns an sql clause that equates this foreign key field to
+    //a primary key e.g., tracker.developer=developer.developer
+    function on_str(): string {
+        //
+        //Get the home entity name of the foreign key field
+        $home= $this->home()->name;
+        //
+        //Get the away entity name
+        $away=$this->away()->name;
+        //
+        //Formulate the equation
+        $str="`$home`.`$away`=`$away`.`$away`";
+        //
+        //Return the onclause
+        return $str;
+    }
     //A foreign must have satisfy the following conditions to be compliant to the
     //Mutall framework
     //1. The datatype of the foreigner must be of int
@@ -2716,21 +3331,6 @@ class foreign extends capture implements ilink{
             $error = new \Error("The foreign key column $this should reference a table {$this->ref->table_name} using the primary key");
             array_push($this->errors, $error);
         }
-    }
-    
-    //Implement the on clause for a many-to-one relationship. It has a form
-    //such as: todo.developer = developer.developer
-    function on_str():string{
-        //
-        //Define the column on the many side, i.e., freign key column on the
-        //the home side.
-        $many = "`{$this->home()->name}`.`$this->name`";
-        //
-        //Define the one side, i.e., the primary key column on the away side
-        $one = "`{$this->away()->name}`.`{$this->away()->name}`";
-        //
-        //Compile and return the equation
-        return "$many = $one";
     }
 
     //
@@ -2759,32 +3359,250 @@ class foreign extends capture implements ilink{
     //in our data model.
     public function home(): entity {
         //
-        return $this->entity;
+        //Get the name of the home database
+        $dbname = $this->dbname;
+        //
+        //Get the actual home database.
+        $dbase = $this->open_dbase($dbname);
+        //
+        //Get the home entity name.
+        $ename = $this->ename;
+        //
+        //Get the actual home entity.
+        $entity = $dbase->entities[$ename];
+        //
+        return $entity;
     }
 
-    //Yield the entity asssociated with this column
+    //Returns true if this foreiger qualifies to be alien. It does if there is
+    //more than 1 column (of the home entity) that has the same reference table 
+    //name
+    function is_alien(): bool {
+        // 
+        //Get the home entity
+        $entity = database::$current[$this->dbname]->entities[$this->ename];
+        //
+        //Get the reference entity
+        $ref = $this->ref;
+        //
+        //Collect all the columns of the home entity that have this reference table
+        $similar = array_filter($entity->columns,
+                fn($col) =>
+                $col instanceof foreign && $col->ref->table_name === $ref->table_name && $col->ref->db_name === $ref->db_name
+        );
+        //
+        //If the there is more than one case, then true.
+        if (count($similar) === 1) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    //Yield teh attribute of an entity
     function yield_entity(): \Generator {
-        yield $this->entity;
+        //
+        //This database must be opened by now. I cannot tell when this is not 
+        //true
+        yield database::$current[$this->dbname]->entities[$this->ename];
     }
 
     //returns the name
     function get_ename(): string {
-        return "{$this->entity->name}.$this->name";
+        return "{$this->ename}.$this->name";
     }
 
-    //Tests if a foreign key is hierarchical or not
+    //Tests if a foreihn key is hierarchical or not
     function is_hierarchical(): bool {
-        //
-        //A foreign key is hierarchical if...
         return
-            //
-            //...the table it references is the same as parent of 
-            //this  
-            $this->ref->table_name == $this->entity->name
-            //
-            //in the same database    
-            && $this->ref->db_name == $this->entity->dbase->name;
+                $this->ref->table_name == $this->ename && $this->ref->db_name == $this->dbname;
     }
+
+    //Save this foreign key to the current database. This entails saving the 
+    //entity corresponding to the referenced table name.
+    //The alias derives the parent record if the referenced table name 
+    //is the same as this record. This version of saving a foreign key,
+    // takes contextual distances into account.
+    function write(array $alias = []): expression{
+        //
+        //If the foreign key is already set... 
+        if (isset(record::$current[$this->dbname][$this->ename][$alias][$this->name])) {
+            //
+            //...return the atom 
+            return record::$current[$this->dbname][$this->ename][$alias][$this->name];
+        }
+        //
+        //Depending on whether we have a hierarchical situation or not,
+        // formulate the source alias
+        if ($this->ename === $this->away()->name) {
+            //
+            //We have a hierarchial situation
+            //
+            //The source alias is the parent of the given one, if valid
+            //
+            //The aliased enity has no parent
+            if (count($alias) === 0) {
+                return new myerror("Missing parent of $this->ename");
+            }
+            //
+            //Drop the last array suffix to get the parent alias as the source
+            $source_alias = array_slice($alias, 0, count($alias) - 1);
+        } else {
+            //
+            //We have a non-hierarchical case.
+            //
+            //The source alias is the same as the given one
+            $source_alias = $alias;
+        }
+        //
+        $dest_alias = null;
+        //
+        //Use contextual distancing to get the best alias for the destination
+        if (!$this->try_nearest_alias($this->away()->name, $source_alias, $this->ref->db_name, $dest_alias)) {
+            //
+            //If the distance cnnot be found, then the destination alias is an
+            //Error expression. Return it
+            return $dest_alias;
+        }
+        //
+        //
+        //The alias can be an error!!!. Take care of it.
+        //
+        //Return an error incase of an ambigous destination alis to stop this 
+        //foreign key from saving 
+        if ($dest_alias instanceof expression) {
+            return new myerror("foreign key $this->partial_name was not saved", $dest_alias);
+        }
+        //
+        //Get the reference entity
+        $entity = $this->away();
+        //
+        //Save it using the best destination alias
+        $atom = $entity->save($dest_alias);
+        //
+        return $atom;
+        //
+        //Decide if we require to do an indirect save or not. We do if the 
+        //result is erroneous
+        //return $result->is_error() ? $this->save_indirect($result):$result;
+    }
+
+    //Save this foreigner indirectly,i.e, vai a partial select statenmebnt
+    private function save_indirect(expression $result, entity $ref) {
+        //
+        //Saving indirect is allowed when this option is set. By defult it is not
+        //set
+        if (!record::$save_indirect) {
+            return $result;
+        }
+        //
+        //Only entties whose purpose is for administration are considered
+        $considered = isset($ref->purpose) && $ref->purpose === 'admin';
+        //
+        if (!considered) {
+            return $result;
+        }
+        //
+        //Create a partial select
+        $select = new partial_select($fields, $from, $this->condition());
+        //
+        $records = $select->execute($this->dbname);
+        //
+        //Count the no of records
+        switch (count($records)) {
+            case 0:
+                $error2 = new myerror('Indirect indexxing also failed', $result);
+                return $error2;
+            case 1:
+                //
+                //Get the primary key and return it
+                $primary = $records[0][0];
+                return new literal($primary);
+            default:
+                $error2 = new myerror("Ambiguity error. No of recrods =" . count($records), $result);
+                return $error2;
+        }
+    }
+
+    //Try to return the destinaton alias that is the nearest to the source 
+    //alias. It can also be an error
+    public function try_nearest_alias($ename, array $source_alias, $dbname, &$result): bool {
+        //
+        //The home entity must be set by now; otherwise somethng is not right
+        if (!isset(record::$current[$dbname][$ename])) {
+            $result = new myerror('Unable to evaluate the foreign key as its home entity is not saved yet');
+            return false;
+        }
+        //
+        //Collect all the aliases associated wirh the given entity name. They
+        //are the keys of the \Ds\Map used for manging aliases
+        $aliases = record::$current[$dbname][$ename]->keys();
+        //
+        //Compute the contextual distances/alias pairs
+        $pairs = array_map(
+                //
+                //Compute the distance of each destination alias from the source
+                fn($alias) => ['alias' => $alias, 'distance' => $this->distance($source_alias, $alias)],
+                //
+                //Turn the aliases to an array from a set.
+                $aliases->toArray()
+        );
+        //
+        //Get list of distances, Distance is the 2nd element of the pair. 
+        //that arreya re 0 based.
+        $distances = array_map(fn($pair) => $pair['distance'], $pairs);
+        //
+        //
+        //Get the least distance. THIS THROWS A RUNTIME ERROR IF THE ARRAY iS 
+        //EMPTY. But, IT CANNOT BE EMPTY!
+        $least = min($distances);
+        //
+        //Filter the alias with the least distance
+        $filter = array_filter($pairs, fn($pair) => $pair['distance'] === $least);
+        //
+        //Report ambiguity
+        if (count($filter) > 1) {
+            $result = new myerror('Ambiguity error', $filter);
+            return false;
+        }
+        //
+        //Note: The filtered elements are still indexed by their positions.
+        //Index them numerically
+        $filtered_values = array_values($filter);
+        //
+        //Return the only filtered element, as the aliias.
+        $result = $filtered_values[0]['alias'];
+        return true;
+    }
+    
+    //Returns the contextual distance between two contexts, a.k.a, aliases
+    //E.g the distance between [3,8,6,2] and [3,8,4,3] is 4 
+    //The shared elements are [3,8].
+    private function distance(array $alias_source, array $alias_dest): int {
+        //
+        //Start with a shared length of 0
+        $l=0;
+        //
+        //Loop throgh the elements of the source context and stop when ...
+        for(;$l<count($alias_source);$l++){
+           //
+           //...the index to the destination alias is not defined...
+           if(!isset($alias_dest[$l])){break;}
+           // 
+           //... or the elements of the indexed source and destination are 
+           //different
+           if($alias_source[$l] !== $alias_dest[$l]){break;} 
+        } 
+        //
+        //At this point $l represents the number of elements in the shared 
+        //array
+        //
+        //return the distance as the sum of the size of the source (without the 
+        //shared elements)and the size of the destination (also without the shared
+        //elements)
+        return count($alias_source) + count($alias_dest) - 2*$l;
+    }
+
 }
 
 //This class models a column in an entity that points to a referenced entity.
@@ -2828,28 +3646,43 @@ class pointer extends foreign {
     //
     //Get the string version of this object that will aid in searching 
     function __toString() {
-        return "{$this->dbase->name}.{$this->entity->name}.$this->name";
+        return "$this->dbname.$this->ename.$this->name";
     }
     //
     //The expression string version of a comlumn has the form
     //`$dbname`.`$ename`.`$cname`
     function to_str(): string {
-        return "$this as `$this->name`";
+        return "$this as $this->name";
     }
 
 }
 
+// 
+//This class modeles a field primary key that creates a link from a 
+//view to a table in the data model.
+class field_primary extends field {
+    // 
+    //
+    function __construct(string $dname, string $ename, string $name, expression $exp){
+        parent::__construct($dname, $ename, $name, $exp);
+    }
+    // 
+    //The to string of this sql is the this ename.name.
+    public function to_str(): string {
+        return "`$this->ename`.`$this->name`";
+    }
+}
+
 //Expression for handling syntax and runtime errors in the code execution note that 
 //the error class does not have an sql string equivalent 
-//$msg is the error message that resulted to this error 
+//$smg is the error message that resulted to this error 
 //$suplementary data is any additional information that gives more details about 
 //this error.
 //Error seems to be an existing class!!
-//
-//My error can be participate as an output expression in schema::save()
-class myerror implements expression, answer{
+class myerror implements expression {
+
     //
-    //Keeping track of the row counter for error reporting in a multi-row dataset
+    //Keeping track of the row counter for error repoerting in a multi-row dataset
     static /* row id */  ?int $row = null;
     //The supplementary data is used for further interogation of the error 
     //message. 
@@ -2857,7 +3690,7 @@ class myerror implements expression, answer{
 
     //
     //Construction requires a mandatory error message and some optional suplementary 
-    //data that aids in debugging
+    //data that aids in deburging
     function __construct(string $msg, $supplementary_data = null) {
         $this->msg = $msg;
         $this->supplementary_data = $supplementary_data;
@@ -2874,59 +3707,41 @@ class myerror implements expression, answer{
     }
 
     //An error is always an error.
-    function is_error() {return true;
+    function is_error() {
+        return true;
     }
 
     //
     //There are no entity in an error  
-    function yield_entity(): \Generator {}
+    function yield_entity(): \Generator {
+        
+    }
 
     //
     //There are no attributes in  error 
-    function yield_attribute(): \Generator {}
+    function yield_attribute(): \Generator {
+        
+    }
 
 }
 
-//Home for methods shared between a scalar defined in this namespace and
-//that defined in the capture namespace
-trait scalar_trait{
-    
-    //A simple mechanism for distinguishing between different scalars
+//This is the simplest form of a scalar expression.
+class literal implements expression {
+
+    //
+    //A simple mechanism for distinguishing between diferent literals
     public $type;
     //
     //This is the value to be represented as an expression. It has to be a absic
     //type that can be converted to a string.
-    public /* string|int|boolean|null*/ $value;
-    
-    //
-    //When you siimplify a scalar you get the same thing because a scaler
-    //is both an operand, i.e., input expression, and an answer, i.e., output 
-    //expression.
-    function simplify():answer{
-        return $this;
-    }
+    public /* mixed */ $value;
 
-    //String representation of a literal. Note tha there are no quotes, or special
-    //processing of empty cases
-    function __toString() {
-        return "$this->value";
-    }
-}
-
-//This is the simplest form of an expression. It is encountered
-//in sql operatiopns, as an answer to schema::save() and as an
-//operand in input operations
-class scalar implements expression, answer, operand {
-    //
-    //Copy implementations from the root scalar trait
-    use \scalar_trait;
     //
     function __construct($value, $type = null) {
         //
-        //The value of a scalar is a basic_value. It  is 
-        //what PHP  defines as a scalar AND as a null
-        if (!(is_scalar($value) || is_null($value))) {
-            throw new \Exception('The value of a literal must be a scalar or null');
+        //The value of a literal is a scalar. See PHP  definition of a scalar
+        if (!is_scalar($value)) {
+            throw new \Exception('The value of a literal must be a scalar');
         }
         //
         //save the value
@@ -2938,12 +3753,16 @@ class scalar implements expression, answer, operand {
     //Converting a literal to an sql string
     public function to_str(): string {
         //
-        //A string version of a scalar is the string version of its value. For
-        //null cases, its the word null without quotes; otherwise  
-        //it should be enclosed in single quotes as required by mysql
-        return is_null($this->value) ? 'null': "'$this->value'";
+        //A string version of a literal is teh string version of its value; hence 
+        //it should be enclosed in siglge quotes as requred by mysql
+        return "'$this->value'";
     }
-    
+
+    //String representation of a literal. Note tha there are no quotes, or special
+    //processing of empty cases
+    function __toString() {
+        return "$this->value";
+    }
 
     //There are no entoties in a literal expression
     function yield_entity(): \Generator {
@@ -2954,11 +3773,11 @@ class scalar implements expression, answer, operand {
     function yield_attribute(): \Generator {
         
     }
+
 }
 
-//Modelling the null value. A null needed for supporting both the
-//capuire and reiorting f data. So, it is both an answer and an operand
-class null_ implements expression, answer, operand{
+//Modeling the null value.
+class null_ implements expression{
     //
     function __construct(){}
     // 
@@ -2975,11 +3794,6 @@ class null_ implements expression, answer, operand{
     //
     function __toString() {
         return $this->to_str();
-    }
-    //
-    //As an operand, a null simplifies to itself
-    function simplify():answer{
-        return $this;
     }
 }
 
@@ -3015,7 +3829,7 @@ class log extends \DOMDocument {
             $root = $this->createElement('capture.data');
             $this->appendChild($root);
             //
-            //Place the root at the top of the stack
+            //Place the root at the top of the atck
             $this->stack = [$root];
         }
     }
@@ -3041,7 +3855,7 @@ class log extends \DOMDocument {
         }
         //
         //Create the element
-        $elem = $this->createElement($obj->full_name());
+        $elem = $this->createElement($obj->full_name);
         $this->current()->appendChild($elem);
         //
         //Place it in the stack
@@ -3176,9 +3990,13 @@ abstract class network extends schema {
 
     //Executing the network establishes and sets its associated paths. Any errors 
     //encountered are handled according to the throw_excepon setting. If true, 
-    //an expetion will be thrown immediately. If not, it is save in the error 
+    //an expetion will be thrown immedtedly. If not, it is save in the error 
     //log. (Remmember that network is a schema object). 
-    function build_paths(bool $throw_exception = true) {
+    function Build_paths(bool $throw_exception = true) {
+        //
+        //Execute this process only if the path is not set
+        if (isset($this->paths))
+            return;
         //
         //Begin with an empty path. 
         /* path[name] */$this->paths = [];
@@ -3389,12 +4207,13 @@ class strategy_structural extends strategy {
 //means those entties that that are  not cross members)
 //parameter $source is the root orignin of this network see in network above 
 class dependency extends network {
+
     //
     //
     function __construct(entity $source) {
         //
-        //The dependency network only relies on foreigners (not pointers) keys to 
-        //create for its path
+        //The dependency network only relies on the foreign keys to create for 
+        //its path
         $strategy = new strategy_foreigner();
         //
         //Search the network paths using the foreign strategy 
@@ -3404,7 +4223,7 @@ class dependency extends network {
     //We only utilise those foreign keys that are not cross members 
     function is_included(foreign $key): bool {
         //
-        //Exclude cross members 
+        //Include the maExclude cross members 
         if ($key->is_cross_member()) {
             return false;
         }
@@ -3426,4 +4245,28 @@ class dependency extends network {
         //that are structural
         return count($id_foreigners) === 0;
     }
+
+}
+//
+//This class implements helps to implement an is_a relationship between entities
+//
+class one_2_one implements link{
+    //
+    public entity $entity1;
+    //
+    public entity $entity2;
+    //
+    function __construct(entity $entity1 ,entity $entity2){
+        //
+        $this->entity1= $entity1;
+        //
+        $this->entity2= $entity2;
+    }
+    //
+    //Returns the onclause of a one_2_one link,
+    // e.g., tracker.tracker=selector.selector
+    function on_str(): string {
+       return "`{$this->entity1->name}`.`{$this->entity1->name}`="
+       ."`{$this->entity2->name}`.`{$this->entity2->name}`";
+   }
 }
