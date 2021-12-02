@@ -5,6 +5,7 @@
 /pictures
 /tracker/v/tests/test.php
 /test/
+/.vscode/
 # sub folders
 /chama/nbproject
 /library/nbproject
@@ -15,6 +16,5 @@
 #subdirectories
 outlook/v/code/*.js
 #files
-.gitignore
-.vscode
+*.js
 *.txt
