@@ -100,11 +100,10 @@ class merger extends outlook.view implements lib.Imerge {
     public async clean_minors(consolidations:Array<{cname:string,value:string}>): Promise<void>{
         //
         //1. Delete the minors
-        let fkerror: error1451|null;
         //
         //2. Redirect the minor contributors to the principal
         //Test for a foreign key integrity violation error.
-        while((fkerror= await this.delete_minors())!== null){
+        while(!(await this.delete_minors())){
             //
             //Get the minor contributors
             const contributors:sql
@@ -117,7 +116,7 @@ class merger extends outlook.view implements lib.Imerge {
             while((duperror= await this.redirect_contributors(contributors))!== null){
                 //
                 //Merge the contributors
-                await server.exec("merger", [this], "get_contributing_members", [duperror, contributors])
+                (await server.exec("merger", [this], "get_contributing_members", [duperror, contributors]))
                     .forEach((contributor:lib.Imerge)=>this.execute());
             }
         }
@@ -229,8 +228,8 @@ class merger extends outlook.view implements lib.Imerge {
         return await server.exec("merger",[this],"delete_minors",[]);
     }
     //
-    //**This function redirects the descendant contributors to be compiled
-    public async redirect_contributors(contributors:sql): Promise<error1062|null>{
+    //
+    public async redirect_contributors(contributors :sql): Promise<error1062|null>{
         return await server.exec("merger",[this],"redirect_contributors",[contributors]);
     }
 }

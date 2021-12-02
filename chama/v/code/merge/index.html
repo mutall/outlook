@@ -30,22 +30,32 @@ require("merge.php");
             </label>
             <fieldset id="content">
                 <legend>email</legend>
-                <input type="radio" id="C.kanake" >
+                <input type="radio" id="C.kanake" name="email" >
                 <label for="C.kanake">Cyprian Kanake</label><br>
-                <input type="radio" id="C.A.kanake" >
+                <input type="radio" id="C.A.kanake"name="email" >
                 <label for="C.A.kanake">Cyprian A. Kanake</label><br>
-                <input type="radio" id="C.kanake" >
+                <input type="radio" id="C.kanake" name="email">
                 <label for="c">cypriankanake@yahoo.com</label><br>
-                <input type="radio" id="C.kanake" >
+                <input type="radio" id="C.kanake" name="email">
                 <label for="C.kanake">ckanake@yahoo.com</label><br>
-                <input type="radio" id="C.kanake" >
+                <input type="radio" id="C.kanake"name="email" >
                 <label for="C.kanake">Kanake</label><br>
+                
                 <label>
                     Specify other:
-                    <input type="text" id="member"/>
+                    <input type="text" id="member" name="email">
                 </label>
             </fieldset>
-            <input type="button" id="go" value="go" onclick="merge();"/>
+            <fieldset>
+                <legend>name</legend>
+                <input type="radio" id="Kanake" name="name" >
+                <label for="kanake">Kanake</label><br>
+                <input type="radio" id="Cyprian Ambane"name="name" >
+                <label for="Cyprian Ambane">Cyprian Ambane</label><br>
+                <input type="radio" id="Cyprian Ambane Kanake" name="name">
+                <label for="Cyprian Ambane Kanake">Cyprian Ambane Kanake</label><br>
+            </fieldset>
+            <input type="button" id="go" value="go" onclick="execute();"/>
         <fieldset id="report">
             <legend>Report</legend>
         </fieldset>

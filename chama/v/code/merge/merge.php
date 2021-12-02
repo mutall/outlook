@@ -157,9 +157,9 @@ class merger {
         $queries = array_map(fn($col)=> $this->get_column_query($col), $data_columns);
         //
         //Do a union of all the queries
-        $all_values_sql = implode("\nunion all ", $queries);
+        $all_values = implode("\nunion all ", $queries);
         //
-        return $all_values_sql;
+        return $all_values;
     }
     //
     //This method returns an sql which if executed would give us data with the
@@ -286,7 +286,8 @@ class merger {
         return $this->dbase->get_sql_data($cleaned);
     }
      //
-    //This function fetches the minor contributors and deletes them
+    //This function deletes the minor contributors and returns a true if 
+    //the deletion was successful and false if there was an integrity error
     public function delete_minors(): bool{
         //
         //Formulate a query to delete the minors
@@ -294,28 +295,60 @@ class merger {
             "delete "
                 . "$this->ref.* "
             . "from $this->ref "
-            . "inner join ($this->minors) as minors on minors.member= $this->ref.member"
+            . "inner join ($this->minors) as minors on minors.member= $this->ref"
         );
         //
-        //Execute the query
+        //Execute the query and return the output
         try{
-        $this->dbase->query($query);
+            $this->dbase->query($query);
+            //The deletion was successful
+            return true;
         }
-        catch(Exception $ex){}
+        catch(Exception $ex){
+            //
+            //The deletion failed for some reason. If the reason was due 
+            //to integrity error, we return a false, 
+            //otherwise we don't handle the exception
+            if($ex->getCode()== 23000){return false;}else{throw $ex;}
+        }
     }
     //
-    //Here we update the principal with the consolidations
+    //This function fetches the consolidations as an array, and merges them to the
+    //principal resolving the numerous duplicates during execution.
+    //e.g update `member`
+    //      set `member`.`name`='Cyprian Kanake',`memeber`.`age`=42,...
+    //           
     public function update_principal(
-        string $principal/*:sql*/, 
-        string $consolidations /*: Array<{cname:string,value:string}>*/
-    ){
+            array $consolidations /*: Array<{cname:string,value:string}>*/
+    ): void{
         //
-        //fetch the records for each corresponding column to be updated
-        //foreach(!($this->ref=null)){
+        //Map the consolidations array into an array of consolidation text
+        $texts= array_map(fn($consolidation)=>"
+            `$consolidation->cname`='$consolidation->value'
+            ",$consolidations);
+        //
+        //Join the consolidation texts with a comma separator
+        $set= join(",", $texts);
+        //
+        //Formulate  update query
+        $update= $this->dbase->chk(
+            "update "
+                . "$this->ref "
             //
-            //store the values
-        //}
+            //The inner join implements a where clause
+            . "inner join ($this->principal) as principal on principal.member= {$this->ref->pk()}"
+            . "set $set" 
+        ); 
+        //
+        //Execute the query. If the update fails, the system will crash
+            $this->dbase->query($update);
     }
-   
-}
-   
+    //
+    //This function redirects the contributors(descendants). 
+    //It is performed after the deletion is unsucessful and the 
+    //integroty violation error thrown
+    public function redirect_contributors(string $contributors/*:sql*/): string/*Promise<error1062|null>*/{
+        //
+        //
+    }
+}  

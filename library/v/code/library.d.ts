@@ -276,16 +276,18 @@ export type error1062=string;
 export type error1451=string;
 //
 export class merger{
-    constructor(m:Imerge);
+    constructor(combine:Imerge);
     get_players(): [principal,minors]|null;
     get_values(): sql;
     get_conflicts():{clean: sql, conflicts: sql};
-    get_contributors(error:error1451, minors:sql):sql
-    get_contributing_members(error:error1062,contributors:sql):Array<Imerge>
-    update_principal(consolidations:Array<{cname:string, value:string}>): void
-    get_conflicting_values(all_values:sql, conflicts:sql):Array<{cname:string,value:string}>
-    get_clean_values(all_values:sql, clean:sql): Array<{cname:string, value:string}>
+    get_contributors(error:error1451, minors:sql):sql;
+    get_contributing_members(error:error1062,contributors:sql):Array<Imerge>;
+    update_principal(consolidations:Array<{cname:string, value:string}>): void;
+    get_conflicting_values(all_values:sql, conflicts:sql):Array<{cname:string,value:string[]}>;
+    get_clean_values(all_values:sql, clean:sql): Array<{cname:string, value:string}>;
+    conflicts_exist(conflicts: sql): boolean;
+    delete_minors(): boolean;
     //
-    delete_minors(): boolean
-    redirect_contributors(contributors:sql): error1062|null
+    redirect_contributors(contributors:sql): error1062|null;
+
 }

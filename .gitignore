@@ -11,8 +11,12 @@
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
-/chama/v/data
-/chama/v/merge
+/chama/v/data/
+/chama/v/merge/
+/chama/v/code/javascript_files/
+/chama/v/code/login/
+/chama/v/code/Stylesheets/
+/chama/v/code/tests/
 #subdirectories
 outlook/v/code/*.js
 #files
