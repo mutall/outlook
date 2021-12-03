@@ -1,49 +1,44 @@
-//
+//To support declaration for the classes needed by this code that
+//are implemented in php. In future these classes will 
+//be locally (rather than globally) maintained.
 import * as lib from "../../../../library/v/code/library";
-import * as server from "../../../../library/v/code/server.js";
-import * as outlook from "../../../../outlook/v/code/outlook.js";
 //
-type sql=string;
+//The classes in this file are auto-generated and support implemetations
+//of php methods
+import * as php from "./php.js";
 //
-type error1062=string;
-//
-type error1451=string;
-//
-//
-class merger extends outlook.view implements lib.Imerge {
+export default class merger extends php.merger {
     //
-    //
-    public dbname?:string;
-    public ref_ename?:string;
-    public members?:sql;
-    public principal?:sql;
-    public minors?:sql;
-    //
+    //The 2 sqls that drive he merging process
+    public principal?:lib.sql;
+    public minors?:lib.sql;
     //
     constructor(imerge?:lib.Imerge){
-        super();
-       if(imerge !== undefined){
-           //
-           this.dbname = imerge.dbname;
-           this.ref_ename = imerge.dbname;
-           this.members = imerge.dbname;
-       }
+        super(imerge);
+        if (imerge==undefined) this.imerge = this.get_imerge();
     }
     //
-    //Merge the members specified by the Imerge object
+    //Get the details of the members to merge
+    get_imerge(): lib.Imerge{
+        //
+        //Get the dbname from the curret window document
+        const dbname:string = (<HTMLInputElement>this.get_element('dbase')).value;
+        //
+        //Read the reference entity name
+        let ename:string=(<HTMLInputElement>this.get_element('ename')).value;;
+        //
+        //Read the members sql
+        let members:lib.sql=(<HTMLInputElement>this.get_element('member')).value;;
+        //
+        return {dbname, ename, members}; 
+    }
+    
+    //
+    //Merge the members of this object
     public async execute():Promise<void>{
         //
-        //1. Get the members to merge if not avilable
-        if (this.members===undefined){
-            const imerge = await this.get_imerge();
-            this.dbname= imerge.dbname;
-            this.ref_ename= imerge.dbname;
-            this.members= imerge.members;
-        }
-        //
-        //2. From the members identify the principal and the minors
-        const players: [lib.principal,lib.minors]|null
-            = await server.exec("merger",[this],"get_players",[]);
+        //From the members identify the principal and the minor players.
+        const players = await this.get_players();
         //
         //Proceed only if the players are valid
         if(players === null){
@@ -51,78 +46,67 @@ class merger extends outlook.view implements lib.Imerge {
           return;
         }
         //
-        //3. There is a principal and a Minor, therefore, merging is possible.
+        //There is are principal and minor members, therefore, merging is 
+        //feasible.
         //
-        //3.1 Destructure the player to get the principal and the minor
-        const [principal, minors]= players;
+        //Destructure the player to access the principal and the minor
+        //members
+        const {principal, minors}= players;
         //
-        //Save the principal and minors to this object
+        //Save the principal and minors to this object for referencing 
+        //elsewhere.
         this.principal= principal;
         this.minors= minors;
         //
-        //3.2 Consolidate all the member properties to the principal
-        const consolidations: Array<{cname:string,value:string}>
-            =await this.consolidate();
+        //Get the interventions
+        const interventions = await this.consolidate();
         //
-        //3.3. Remove the minors
-        await this.clean_minors(consolidations);
-    }
-    //
-    //Collect and reconcile all the data that is distributed among the members
-    // and save it in one place, the principal
-    public async consolidate(): Promise<Array<{cname:string, value:string}>>{
-        //
-        //1.Collect the values to consolidate
-        const values:sql = await server.exec("merger",[this],"get_values",[]);
-        //
-        //2. Separate the conflicts from the clean values
-        const {clean, conflicts}= await server.exec("merger",[this],"get_conflicts",[]);
-        //
-        //Lets start by assuming there are no conflicts and hence there are no interventions
-        let interventions: Array<{cname:string, value:string}>=[];
-        //
-        //Test if there is any data that requires manual merging/intervention
-        if(this.conflicts_exist(conflicts)){
-            //
-            //Resolve the conflicts
-            interventions = await this.resolve_conflicts(all_values, conflicts);
-        }
-        //
-        //4.Combine the clean and intervened values to get the required output
-        let result: Array<{cname:string, value:string}>
-            = await this.compile_result(all_values,clean,interventions);
-        //
-        //5. Assign the result here
-        return result;
+        //Remove the minors
+        await this.clean_minors(interventions);
     }
     //
     //
-    public async clean_minors(consolidations:Array<{cname:string,value:string}>): Promise<void>{
+    //Delete the minors until there are no integrity errors; then update
+    //the principal with the consolidations
+    public async clean_minors(consolidations:lib.interventions): Promise<void>{
         //
-        //1. Delete the minors
-        //
-        //2. Redirect the minor contributors to the principal
-        //Test for a foreign key integrity violation error.
-        while(!(await this.delete_minors())){
+        //As long as you cannot delete the monors because of integrity
+        //contraints....
+        let deletion: Array<lib.pointer>|'ok';
+        while((deletion =await this.delete_minors())!=='ok'){
             //
-            //Get the minor contributors
-            const contributors:sql
-                = await server.exec("merger",[this],"get_contributors",[fkerror,this.minors!]);
+            //Redirect the minors to the principal in a controlled version
+            //to avoid cyclic loops
             //
-            //Redirect the minor contributors to the principal
-            let duperror: lib.error1062|null ;
-            //
-            //Test for duplicate error 1062
-            while((duperror= await this.redirect_contributors(contributors))!== null){
+            //Do double loops, one for non-cross members; the other for cross
+            //members 
+            for(let cross_member of [false, true]){
                 //
-                //Merge the contributors
-                (await server.exec("merger", [this], "get_contributing_members", [duperror, contributors]))
-                    .forEach((contributor:lib.Imerge)=>this.execute());
+                //Select poiinters that match the crosss member
+                let pointers = deletion.filter(pointer=>pointer.cross_member=cross_member);
+                //
+                //Redirect or merge pointers assocated with minors to the 
+                //principal/
+                for(let pointer of pointers){
+                    //
+                    //Redirect contributors pointing to minor members to point 
+                    //to the principal until there is no referential integrity 
+                    //error
+                    let redirection:lib.Imerge|'ok';
+                    while((redirection = await this.redirect_pointer(pointer))!=='ok'){
+                        //
+                        //Use the pointer members, a.k.a., contributors, to 
+                        //start a new merge operation
+                        const $merger = new merger(redirection); 
+                        //
+                        $merger.execute();
+                    }
+                }
             }
         }
         //
         //3. Update the principal
-        await server.exec("merger",[this],"update_principal",[consolidations]);
+        await this.update_principal(consolidations);
         //
         //4. Report
         this.report("Merging was successful");
@@ -132,104 +116,133 @@ class merger extends outlook.view implements lib.Imerge {
     //Show the given message in the report panel
     public report(msg: string):void{
         //
-        //
+        alert(msg);
         //
     }
     
-    //
-    //Get the details of the members to merge
-    public get_imerge(): lib.Imerge{
+    
+    //Get the consolidation data
+    public async consolidate():Promise<lib.interventions>{
         //
-        //Get the dbname from the curret window document
-        const dbname:string = (<HTMLInputElement>window.document.getElementById('dbase')).value;
+        //Get the consolidation data
+        let consolidation:{clean:lib.interventions, dirty:lib.conflicts};
+        consolidation = await this.get_consolidation();
         //
-        //Read the reference entity name
-        let ref_ename:string=(<HTMLInputElement>window.document.getElementById('ename')).value;;
+        //Use the consolidates to resolve conflicts if any
+        let interventions:lib.interventions = [];
+        if (consolidation.dirty.length!=0) 
+            interventions = await this.intervene(consolidation.dirty);
         //
-        //Read the members sql
-        let members:sql=(<HTMLInputElement>window.document.getElementById('member')).value;;
-        //
-        return {dbname, ref_ename, members}; 
-    }
-    //
-    //
-    /**
-     *The all_values parameter is an sql which yields data of the following
-     * structure:-  Array<{cname:string, value:string}> and comprises of all the
-     * clean and conflicting values.
-     * 
-     * The conflicts paramter is an sql with the following structure:-
-     * Array<{cname:string, freq: number}>  and comprises of all columns that have
-     * conflicting values
-     * 
-     * The return value, is the intervention from the user and has the following
-     * structure:-Array<{cname:string, value:string}>,where the user selects
-     * the desired values to merge.
-     */
-    public async resolve_conflicts(
-        all_values:sql,
-        conflicts:sql
-    ):Promise< Array<{cname:string, value:string}>>{
-        //
-        //1. Get the conflicting values
-        const incoherent: Array<{cname:string, value:string[]}>
-            = await server.exec("merger",[this],"get_conflicting_values",[all_values, conflicts]);
-        //
-        //2. Let the user intervene to resolve the conflicts
-        const intervention:Array<{cname:string, value:string}>= await this.intervention(incoherent);
-        //
-        //3. Return the interventions
-        return intervention;
+        //Consolidate all the member properties to the principal
+        return consolidation.clean.concat(interventions);
     }
     //
     //Here we allow the user to select correct values from the incoherent values,
     // and process the selected values and send them to the server.
-    public async intervention (
-        incoherent:Array<{cname:string, value:string[]}>
-    ): Promise<Array<{cname:string, value:string}>>{
+    async intervene (conflicts:lib.conflicts)
+    : Promise<lib.interventions>{
         //
-        //paint the body with the incoherent values
-        const mangled = document.getElementById("content");
+        //Compile the interventions Html for loading to the resolution panel
+        //  Map the conflicts to matching fields sets
+        const fields:string[] = conflicts.map(conflict=>{
+            //
+            //Destructure the cnflict
+            const {cname, values}= conflict;
+            //
+            //Convert the values to matching radio buttons
+            const radios = values.map(value=>`
+                <label>
+                    <input type = radio name='${cname}' value='${value}'
+                        onclick = ()=>{merger.show(${cname}_group, false)
+                    />
+                    ${value}
+                </label>
+            `);
+            //Add the other option
+            radios.push(`
+                <label>
+                    <input type = radio name='${cname}' value='other'
+                      onclick = ()=>{merger.show(${cname}_group, true);}
+                    />
+                    Other
+                    <div id='${cname}_group'>
+                        <label>
+                            Specify:<input type = text id='${cname}'/>
+                        </label>
+                    </div>
+                </label>
+            `);
+            //
+            //Return a field set that matches the column name
+            return `
+            <fieldset>
+                <legend>${cname}</legend>
+                ${radios.join("\n")}
+            </fieldset>
+            `;
+        }); 
+        //  Convert the fields sets to text
         //
-        //Capture the selected values
-        const coherent:Array<{cname:string, value:string}>;
-        // 
-        //return the coherent data
-        return await new Promise(coherent);
+        //Unhide the conflicts panel
+        this.get_element('resolution').hidden=false;
+        //
+        //Get the resolution tag
+        const resolution = this.get_element('resolution');
+        //
+        //Write the intervention sql to the pannel
+        resolution.innerHTML = fields.join("\n");
+        //
+        //Get the go button
+        const button = <HTMLButtonElement>this.get_element('go');
+        //
+        //Wait/return for the user's response to resolve 
+        //the required promise
+        return await new Promise(resolve=>{
+            button.onclick = ()=>{
+                //
+                //Get the checked values for each conflict
+                const interventions = conflicts.map(conflict=>{
+                    const cname = conflict.cname;
+                    const value = this.get_checked_value(cname);
+                    return {cname, value}
+                });
+                //
+                //Check that all the interventions are catered for
+                for(let intervention of interventions){
+                    if(intervention.value===null){
+                        alert(`Please resolve value for ${intervention.cname}`);
+                        return;
+                    }
+                }
+                //
+                //Resolve the promise
+                resolve(interventions); 
+            }
+        }); 
     }
-    //
-    // Here, we take the clean records, and the interventions and combine them to return a combined array structure
-    public async compile_result(
-        all_values:sql,
-        clean:sql, 
-        interventions:Array<{cname:string, value:string}>
-    ):Promise<Array<{cname:string, value:string}>>{
+    
+    //Return the named checked value is selected; otherwise null
+    private get_checked_value(cname:lib.cname):string|null{
         //
-        //Get the clean records
-        const neat: Array<{cname:string, value:string}>
-            = await server.exec("merger",[this],"get_clean_values",[all_values, clean]);
+        //Get the identified column
+        const radio = document.querySelector(`input[name='${cname}']:checked`);
         //
-        //Get the interventions
-        const intervention: Array<{cname:string, value:string}>=  await this.intervention(incoherent);
+        //Return a null value if a named radion is not set
+        if (radio===null) return null;
         //
-        //Combine both the interventions and the clean records.
-        const combined: Array<{cname: string, value: string}> = neat.concat(intervention);
+        //Get the value
+        let value = (<HTMLInputElement>radio).value;
         //
-        //Return the output
-        return combined;
-    }
-    //Test whether conflicts exist or not
-    public async conflicts_exist(conflicts: sql): Promise<boolean>{
-       return await server.exec("merger",[this],"conflicts_exist",[conflicts]);
-    }
-    //
-    //This function fetches the minor contributors and deletes them
-    public async delete_minors(): Promise<boolean>{
-        return await server.exec("merger",[this],"delete_minors",[]);
-    }
-    //
-    //
-    public async redirect_contributors(contributors :sql): Promise<error1062|null>{
-        return await server.exec("merger",[this],"redirect_contributors",[contributors]);
+        //If the value is other, read the specify field
+        if (value==='other'){
+            //
+            //Read the other/specify field. It must be set
+            const elem = this.get_element(cname);
+            //
+            value = (<HTMLInputElement>elem).value;
+            //
+            if (value==='') return null; 
+        }
+        return value;     
     }
 }

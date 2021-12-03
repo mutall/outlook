@@ -9,7 +9,6 @@ import * as schema from '../../../library/v/code/schema.js';
 //
 //System for tracking assignments for employees of an organization.
 export default class tracker extends app {
-//    alert("Hi");
     //
     //Initialize tracker.
     constructor() {

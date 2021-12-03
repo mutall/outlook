@@ -9,6 +9,7 @@
 include_once $_SERVER['DOCUMENT_ROOT'].'/library/v/code/schema.php';
 //
 include_once $_SERVER['DOCUMENT_ROOT'].'/library/v/code/sql.php';
+
 class merger {
     //
     //The datanase holding the records to merge
@@ -46,7 +47,7 @@ class merger {
     }
     //
     //Categorize the members into a principal and the minors
-    public function get_players()/*: [principal,minors]|null*/{
+    public function get_players():mixed/*: {principal,minors}|null*/{
         //
         //Get the reference contributors
         $contributor= $this->get_contributors();
@@ -79,11 +80,12 @@ class merger {
         );
         //
         //
-        $result= [$principal,$minors];
+        $result= ['principal'=>$principal,'minor'=>$minors];
         //
         //
         return $this->count_members()<=1 ? null:$result;
     }
+    
     //
     //A query formed from the union of all the queries that are based on the 
     //pointers of the referenced entity
@@ -179,12 +181,12 @@ class merger {
         //
         return $sql;
     }
-    //
-    //This function returns two queries, one for data that is clean and
-    //the other for data that needs intervention
-    public function get_conflicts(): stdClass/*:{clean: sql, conflicts: sql}*/{
+    
+    //Return consolidates as the data that takes part in conflict
+    //resolution. It comprises of both clean and conflicting values
+    function get_consolidation():stdClass/*:{clean:interventions, dirty:conflicts}*/{
         //
-        //This function separates clean data from the conflicts
+        //Formulate the dispute support sql
         $dispute= function(string $comparator): string{
             //
             //Obtain the records that are suspected to have conflicts 
@@ -199,96 +201,56 @@ class merger {
             //
             return $sql;
         };
-        $result= new stdClass();
+        //Get all the values
+        $all_values = get_values();
         //
-        //Set the clean sql of that standard class
-        $result->clean = $dispute("=1");
+        //Get the clean values
         //
-        //Set the conflicts of the standard  class
-        $result->conflict= $dispute(">1");
+        // Get the clean values have one value per column
+        $clean_sql = $dispute("=1");
         //
-        return $result;
-    }
-    //
-    /**
-     * This function takes an sql statement, runs it, and tells us if there were
-     *  any conflicts or not.
-     * If the conflicts query was executed, it will return data that has the
-     *  following structure:-
-     * Array<{cname: string, freq: number}>
-     * 
-     * @param string $conflicts. This is an sql that identifies the column 
-     * values that need user intervention
-     * @return bool
-     */
-    public function conflicts_exist(string/*sql*/ $conflicts): bool{
-        //
-        //1. Formulate the query for counting conflicts
-        $query= $this->dbase->chk(
-          "select "
-            . "count(conflicts.cname) as count "
-        . "from ($conflicts) as conflicts "
+        //Formulate the clean values
+        $clean_data= $this->dbase->chk(
+            "select "
+                . "values.cname, "
+                . "values.value "
+            . "from ($all_values) as values "
+            . "inner join ($clean_sql) as clean on clean.cname = values.cname"
         );
+        //        
+        //  Execute the clean values sql
+        $clean = $this->dbase->get_sql_data($clean_data);
         //
-        //2. Run the query and get the results
-        $results= $this->dbase->get_sql_data($query);
+        //Get the conflicting values
         //
-        //3. Use the results to find out how many conflicts there are
-        $count= $results[0]["count"];
+        //Conclicting data have more than one value per column
+        $conflicts_sql = $dispute(">1");
         //
-        //4. Return true,if there is atleast one conflict,otherwise return false.
-        return $count>0;
-    }
-    //
-    //
-    /**
-     * 
-     * @param string $all_values. This is an sql, that consists of both
-     * @param string $conflicts
-     * @return stdClass
-     */
-    public function get_conflicting_values(
-        string $all_values /*sql={cname:string, value:basic_value}[]*/, 
-        string $conflicts/*sql= {cname:string, freq:number}[]*/
-    ):array /*Array<{cname:string, values:string[]}>*/{
-        //
-        //1. Formulate the query to returnn the raw conflicting values as an array
-        $conflicting=  $this->dbase->chk(
+        //Summarise the conflicts
+        $conflicts_summary=  $this->dbase->chk(
             "select "
                 . "values.cname, "
                 . "values.value, "
                 . "JSON_ARRAYAGG(values.value) as values "
             ."from ($all_values) as values "
-            . "inner join ($conflicts) as conflicts on conflicts.freq = values. value "
+            . "inner join ($conflicts_sql) as conflicts on conflicts.cname = values.cname "
             . "group by values.cname"
         );
+        //  Execute the conflicts sql
+        $conflicts = $this->dbase->get_sql_data($conflicts_summary);
         //
-        //3. Execute the aggregated values to return the result
-        return $this->dbase->get_sql_data($conflicting);
+        $consolidates = new stdClass();
+        //
+        $consolidates->clean = $clean;
+        $consolidates->dirty = $conflicts;
     }
+    
     //
-    //Seperate all values from the conflicts to obtain the clean values
-    public function get_clean_values(
-        string $all_values /*sql={cname:string, value:basic_value}[]*/,
-        string $clean /*:sql*/
-        ): array/*Array<{cname:string, value:string}*/{
-        //
-        //1. Formulate a query to return the clean values
-        $cleaned= $this->dbase->chk(
-            "select "
-                . "values.cname, "
-                . "values.value "
-            . "from ($all_values) as values "
-            . "inner join ($clean) as cleam on clean.freq = values.value"
-        );
-        //
-        //Execute and get the clean records
-        return $this->dbase->get_sql_data($cleaned);
-    }
-     //
-    //This function deletes the minor contributors and returns a true if 
-    //the deletion was successful and false if there was an integrity error
-    public function delete_minors(): bool{
+    //This function deletes the minor contributors and returns a 'ok' if 
+    //the deletion was successful. If there was an integrity violation error
+    //then an an array of pointers is returned in preparation for the 
+    //redirection of all minor pointers to the principlal
+    public function delete_minors():mixed/*:<Array<pointer>|'ok;*/{
         //
         //Formulate a query to delete the minors
         $query= $this->dbase->chk(
@@ -301,17 +263,43 @@ class merger {
         //Execute the query and return the output
         try{
             $this->dbase->query($query);
+            //
             //The deletion was successful
-            return true;
+            return 'ok';
         }
         catch(Exception $ex){
             //
             //The deletion failed for some reason. If the reason was due 
-            //to integrity error, we return a false, 
-            //otherwise we don't handle the exception
-            if($ex->getCode()== 23000){return false;}else{throw $ex;}
+            //to integrity error, we return pointers that help in resolving the
+            //error; otherwise we don't handle the exception
+            if($ex->getCode()== 23000){return $this->get_pointers();}
+            else{throw $ex;}
         }
     }
+    //
+    //Return pointers of to the referenced entity as an array of:-
+    //type pointer = {dbname, ename, cname, cross_member:boolean}.
+    private function get_pointers(): array /*<pointer>*/{
+        //
+        $pointers = iterator_to_array($this->ref->pointers());
+        //
+        //Map tthe pointers to the desired type
+        return array_map(function($pointer){
+            //
+            //Create the output result
+            $result = new stdClass();
+            //
+            //Get the pointer away entity a.k.a., contributor;
+            $contributor = $pointer->away();
+            //
+            //Compile the result
+            $result->dbname = $contributor->dbname;
+            $result->ename = $contributor->name;
+            $result->cname = $pointer->name;
+            $result->cross_member = $pointer->is_cross_member();
+        }, $pointers);
+    }
+    //
     //
     //This function fetches the consolidations as an array, and merges them to the
     //principal resolving the numerous duplicates during execution.
@@ -344,11 +332,95 @@ class merger {
             $this->dbase->query($update);
     }
     //
-    //This function redirects the contributors(descendants). 
-    //It is performed after the deletion is unsucessful and the 
-    //integroty violation error thrown
-    public function redirect_contributors(string $contributors/*:sql*/): string/*Promise<error1062|null>*/{
+    //This function redirects the contributors to the principlal. If success it
+    //returns 'ok'; if not (because o integrity violation) it returns the
+    //imerge structure that allows us to merge the contributors. The Imerge 
+    //struuctire has the type {dbname, ename, members:sql}
+    public function redirect_pointer(stdClass /*pointer*/$pointer)/*:lib.Imerge|'ok'*/{
         //
+        //Get the contributing entity
+        $contributor = $pointer->away();
         //
+        //Formulate the redirection query for the contributors, based on the 
+        //given pointer
+        $sql = "Update "
+            //
+            //The table to update is derived from the pointer    
+            . "$contributor "
+            //
+            //Filter contributors using the minors
+            . "inner join ($this->minors) as minor on minor.member=$pointer "
+            //
+            //You need the principal; hopefully, it yields only one record, so 
+            //its a product join    
+             . "join ($this->prncipal) as principal "
+            //
+            //Its the pointer we are redirecting to the principal    
+            . "set $pointer=principal.member";
+        //
+        //Execute the query. If successful, return ok.
+        //Otherwise formulate and return the Imerge structure to support
+        //merging of the contributors
+        try{
+            $this->dbase->query($sql); 
+            //
+            //The redirection was successful
+            return 'ok';
+        } catch (Exception $ex) {
+            //
+            //The redirection faled for some reason. 
+            //
+            //If the reason was not integrity violation rethrow the Exception
+            if ($ex->getCode()==23000) throw $ex;
+            //
+            //The reason for failure was integrity violation. Continue
+            //with the rest of the code
+            //
+            //Formualate and return the Imerge structure 
+            //
+            $result = new stdClass();
+            //
+            $result->dbname = $contributor->dbname;
+            $result->ename = $contributor->name;
+            $result->members = $this->get_member_sql($pointer);
+            //
+            return $result;
+        }
     }
-}  
+    
+    //Given a pointer to a referenced entity return the sql that is
+    //required for isolatng the members to be merged. These are members
+    //that cause the integrity violation when we attempted the merge -- so they 
+    //must have result in duplicate values in a unique index 
+    private function get_member_sql(pointer $pointer):string/*sq;*/{
+        //
+        //Get the contributor table; it has the uniqque indices we require
+        //
+        //Collect all the columns from all the unique indices of the contributor
+        //that references the pointer column 
+        //
+        //Extract he pointer column to get the shared ones
+        //
+        return $this->dbase->chk(
+            "Select "
+                //The shared columns i,e, (all index minus pointer)
+                . ""
+                //
+                //The principal column (to which the pointer is redirected)  
+                //        
+                //The contributor primary key (to be counted)
+            //
+            //The members to merge come from the contributor table
+            . "from "
+                . "$contributor "
+                //
+                //Limit the cases to those pointing to the minors    
+                . "inner join ($this->minors) as minor on minor.member=$pointer "
+                //
+                //You need the principal; hopefully, it yields only one record, so 
+                //its a product join    
+                 . "join ($this->prncipal) as principal "
+            
+        );
+    }
+}   

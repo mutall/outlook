@@ -1,7 +1,8 @@
 *{
     font-family: 'Mochiy Pop P One', sans-serif;
     font-family: 'Montserrat', sans-serif;
-    font-family: 'Poppins', sans-serif; 
+    font-family: 'Poppins', sans-serif;
+    font-weight: bold; 
 }
 body{
     color: black;
@@ -34,7 +35,7 @@ fieldset{
     background: white;
     display: block;
     border-radius: 8px;
-    font-size: 20;
+    font-size: 20px;
 }
 fieldset #report{
     font-family: Verdana, Geneva, Tahoma, sans-serif;

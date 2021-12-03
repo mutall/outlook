@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <title>Merge Data</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            label{
+                display:block;
+            }
+        </style>
+        <!--
+        Accessing the merger class-->
+        <script type="module">
+            import merger from "./merge.js";
+            window.merger= merger;
+        </script>
+    </head>
+    <body>
+        <label>Database Name:
+            <input type='text' id="dbase" value='chama'/>
+        </label>
+        <label>Reference Entity Name
+            <input type='text' id="ename" value='member'/>
+        </label>
+        <!--
+        Specify the merge sql -->
+        <label>Enter the Sql for the Data to Merge
+            <textarea id="members" rows='10' cols='50'>
+                select member from member where email like '%kanake%'
+            </textarea>
+        </label>
+        
+        <!--
+        Do the conflict resolution here -->
+        <div id="conflicts" hidden class='conflicts'>
+            Conflict Resolution
+            <div id='resolution'></div>
+            <button id='go'>Proceed</button>
+        </div>
+        <div class='report'>
+            Report
+            <div id='report'></div>
+        </div>
+        <!--
+        Start the merging process-->
+        <div class='go'>
+            <button id="merge"  onclick="(new merger()).execute()">Ok</button>
+        </div>
+    </body>
+</html>

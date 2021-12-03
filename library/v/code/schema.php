@@ -2,7 +2,7 @@
 
 require_once 'config.php';
 //
-//The supper class that supports the common methods for all the classes 
+//The super class that supports the common methods for all the classes 
 //in a mutall project. 
 class mutall {
 
@@ -27,13 +27,13 @@ class mutall {
         //
         $this->class_name = $reflect->getShortName();
         //
-        //Add tehnnamespace from which this obet was created
+        //Add the namespace from which this objet was created
         $this->ns = $reflect->getNamespaceName();
     }
 
     //The function that supports executon of arbitray methods on arbitrary class
     //objects from Javascript. This method is called from export.php. 
-    static function fetch() {
+    static function fetch()/*:result*/ {
         //
         //The class name must be set 
         if (!isset($_REQUEST['class'])) {
@@ -467,13 +467,19 @@ class schema extends mutall {
 //Answer is an expression that can particicate as an output expression 
 //from a save operation. The Typescript's style of definition would be
 //type answer = myerror|scalar. Without this union way of expressing ourselves
-//we have implemented it as an interface where myerror and scalar implements
-//tthis interface.
+//in PHP we have implemented it as an interface where myerror and scalar implements
+//this interface.
 interface answer{
     //
-    //answers must be convertible to strings for reporting logging
+    //Answers must be convertible to strings for xml logging
     //purposes
     function __toString();
+    //
+    //At some point, we need to enrich an aswer with position data
+    //when its available. The data can be recovred using this function
+    //
+    function  get_position()/*:[rowIndex, colIndex?]|null*/; 
+        
 }
 
 //An operand is an expression that can take part in input operations. It can be
@@ -529,6 +535,14 @@ class function_ implements expression, answer{
     //
     //???
     public bool $is_view;
+    //
+    //Requirements for supporting the get_position() method
+    public /*[rowIndex, colIndex?]*/$position = null;
+    //
+    //This functin is imporant for transferring expression ppostion data 
+    //between exprssions. E.g., 
+    //$col->ans->position = $col->exp->get_postion()
+    function get_position(){return $this->position; }
     //
     function __construct(string $name, array/*expression[]*/ $args){
         //
@@ -1635,10 +1649,10 @@ abstract class entity extends schema implements expression {
         }
     }
 
-    //Returns an array of pointers as all the foreigners that reference this 
-    //entity. Simolar to foreigensrs(), output of this function cannot be 
-    //buffered, because, with abiliy to add view to the database, the pointers 
-    //of an entity can change
+    //Yields an array of pointers as all the foreigners that reference this 
+    //entity. This function is similar to foreigners(), except that its output 
+    //cannot be buffered, because, with ability to add views to the database, 
+    //the pointers of an entity can change.
     function pointers(): \Generator/* pointers[] */ {
         //
         //The search for pinters will be limited to the currently open
@@ -2791,7 +2805,6 @@ class foreign extends capture implements ilink{
 // The diference between a pointer and a foreign is that the pointers it not 
 //homed at the entity it found
 class pointer extends foreign {
-
     //
     function __construct(foreign $col) {
         parent::__construct(
@@ -2851,10 +2864,19 @@ class myerror implements expression, answer{
     //
     //Keeping track of the row counter for error reporting in a multi-row dataset
     static /* row id */  ?int $row = null;
+    
     //The supplementary data is used for further interogation of the error 
     //message. 
     public $supplementatry_data;
-
+    //
+    //Requirements for supporting the get_position() method
+    public /*[rowIndex, colIndex?]*/$position = null;
+    //
+    //This functin is imporant for transferring expression ppostion data 
+    //between exprssions. E.g., 
+    //$col->ans->position = $col->exp->get_postion()
+    function get_position(){return $this->position; }
+    
     //
     //Construction requires a mandatory error message and some optional suplementary 
     //data that aids in debugging
@@ -2897,7 +2919,14 @@ trait scalar_trait{
     //This is the value to be represented as an expression. It has to be a absic
     //type that can be converted to a string.
     public /* string|int|boolean|null*/ $value;
-    
+    //
+    //Requirements for supporting the get_position() method
+    public /*[rowIndex, colIndex?]*/$position = null;
+    //
+    //This functin is imporant for transferring expression ppostion data 
+    //between exprssions. E.g., 
+    //$col->ans->position = $col->exp->get_postion()
+    function get_position(){return $this->position; }
     //
     //When you siimplify a scalar you get the same thing because a scaler
     //is both an operand, i.e., input expression, and an answer, i.e., output 
@@ -2911,6 +2940,7 @@ trait scalar_trait{
     function __toString() {
         return "$this->value";
     }
+    
 }
 
 //This is the simplest form of an expression. It is encountered
@@ -2959,6 +2989,14 @@ class scalar implements expression, answer, operand {
 //Modelling the null value. A null needed for supporting both the
 //capuire and reiorting f data. So, it is both an answer and an operand
 class null_ implements expression, answer, operand{
+    //
+    //Requirements for supporting the get_position() method
+    public /*[rowIndex, colIndex?]*/$position = null;
+    //
+    //This functin is imporant for transferring expression ppostion data 
+    //between exprssions. E.g., 
+    //$col->ans->position = $col->exp->get_postion()
+    function get_position(){return $this->position; }
     //
     function __construct(){}
     // 
