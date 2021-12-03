@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <title>Merge Data</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!--
+        Accessing the merger class-->
+        <script type="module">
+            import merger from "./merger.js";
+            window.merger= merger;
+        </script>
+    </head>
+    <body>
+        <!--
+        Specify the merge sql -->
+        <div id="sql"></div>
+        <button id="merge" onclick="merger.run()">Ok</button>
+    </body>
+</html>

@@ -1,48 +1,45 @@
-//
+//To support data types for this project. In future these data tyoes will 
+//be locally maintained
 import * as lib from "../../../../library/v/code/library";
+//
+//To support running of php code from javascript
 import * as server from "../../../../library/v/code/server.js";
-import * as outlook from "../../../../outlook/v/code/outlook.js";
 //
-type sql=string;
-//
-type error1062=string;
-//
-type error1451=string;
-//
-//
-class merger extends outlook.view implements lib.Imerge {
+export default class merger implements lib.Imerge {
     //
+    //Implementation of te Imebre interface
+    public dbname: lib.dbname;
+    public ename: lib.ename;
+    public members:lib.sql;
     //
-    public dbname?:string;
-    public ref_ename?:string;
-    public members?:sql;
-    public principal?:sql;
-    public minors?:sql;
+    //The 2 sqls that drive he merging process
+    public principal?:lib.sql;
+    public minors?:lib.sql;
     //
-    //
-    constructor(imerge?:lib.Imerge){
-        super();
-       if(imerge !== undefined){
-           //
-           this.dbname = imerge.dbname;
-           this.ref_ename = imerge.dbname;
-           this.members = imerge.dbname;
-       }
+    constructor(imerge:lib.Imerge){
+        //
+        this.dbname = imerge.dbname;
+        this.ename = imerge.ename;
+        this.members = imerge.members;
+    }
+    //The main merge process
+    static async run():Promise<void>{
+        //
+        //Get the members to merge
+        const imerge:lib.Imerge = merger.get_imerge();
+        //
+        //Create the merger object
+        const m = new merger(imerge);
+        //
+        //Execute the merge
+        await m.execute();
     }
     //
     //Merge the members specified by the Imerge object
     public async execute():Promise<void>{
         //
-        //1. Get the members to merge if not avilable
-        if (this.members===undefined){
-            const imerge = await this.get_imerge();
-            this.dbname= imerge.dbname;
-            this.ref_ename= imerge.dbname;
-            this.members= imerge.members;
-        }
-        //
-        //2. From the members identify the principal and the minors
-        const players: [lib.principal,lib.minors]|null
+        //From the members identify the principal and the minors
+        const players: {principal:lib.sql,minors:lib.sql}|null
             = await server.exec("merger",[this],"get_players",[]);
         //
         //Proceed only if the players are valid
@@ -51,35 +48,37 @@ class merger extends outlook.view implements lib.Imerge {
           return;
         }
         //
-        //3. There is a principal and a Minor, therefore, merging is possible.
+        //There is are principal and minor members, therefore, merging is 
+        //feasible.
         //
-        //3.1 Destructure the player to get the principal and the minor
-        const [principal, minors]= players;
+        //Destructure the player to access the principal and the minor
+        //members
+        const {principal, minors}= players;
         //
         //Save the principal and minors to this object
         this.principal= principal;
         this.minors= minors;
         //
-        //3.2 Consolidate all the member properties to the principal
-        const consolidations: Array<{cname:string,value:string}>
+        //Consolidate all the member properties to the principal
+        const consolidations: Array<{cname:lib.cname,value:lib.basic_value}>
             =await this.consolidate();
         //
-        //3.3. Remove the minors
+        //Remove the minors
         await this.clean_minors(consolidations);
     }
     //
     //Collect and reconcile all the data that is distributed among the members
     // and save it in one place, the principal
-    public async consolidate(): Promise<Array<{cname:string, value:string}>>{
+    public async consolidate(): Promise<Array<{cname:string, value:lib.basic_value}>>{
         //
         //1.Collect the values to consolidate
-        const values:sql = await server.exec("merger",[this],"get_values",[]);
+        const all_values:lib.sql = await server.exec("merger",[this],"get_values",[]);
         //
         //2. Separate the conflicts from the clean values
         const {clean, conflicts}= await server.exec("merger",[this],"get_conflicts",[]);
         //
         //Lets start by assuming there are no conflicts and hence there are no interventions
-        let interventions: Array<{cname:string, value:string}>=[];
+        let interventions: lib.interventions =[];
         //
         //Test if there is any data that requires manual merging/intervention
         if(this.conflicts_exist(conflicts)){
@@ -89,7 +88,7 @@ class merger extends outlook.view implements lib.Imerge {
         }
         //
         //4.Combine the clean and intervened values to get the required output
-        let result: Array<{cname:string, value:string}>
+        let result:lib.interventions
             = await this.compile_result(all_values,clean,interventions);
         //
         //5. Assign the result here
@@ -97,27 +96,42 @@ class merger extends outlook.view implements lib.Imerge {
     }
     //
     //
-    public async clean_minors(consolidations:Array<{cname:string,value:string}>): Promise<void>{
+    //Delete the minors until there are no integrity errors; then update
+    //the principal with the consolidations
+    public async clean_minors(consolidations:lib.interventions): Promise<void>{
         //
-        //1. Delete the minors
-        //
-        //2. Redirect the minor contributors to the principal
-        //Test for a foreign key integrity violation error.
-        while(!(await this.delete_minors())){
+        //As long as you cannot delete the monors because of integrity
+        //contraints....
+        let deletion: Array<lib.pointer>|'ok';
+        while((deletion =await this.delete_minors())!=='ok'){
             //
-            //Get the minor contributors
-            const contributors:sql
-                = await server.exec("merger",[this],"get_contributors",[fkerror,this.minors!]);
+            //Redirect the minors to the principal in a controlled version
+            //to avoid cyclic loops
             //
-            //Redirect the minor contributors to the principal
-            let duperror: lib.error1062|null ;
-            //
-            //Test for duplicate error 1062
-            while((duperror= await this.redirect_contributors(contributors))!== null){
+            //Do double loops, one for non-cross members; the other for cross
+            //members 
+            for(let cross_member of [false, true]){
                 //
-                //Merge the contributors
-                (await server.exec("merger", [this], "get_contributing_members", [duperror, contributors]))
-                    .forEach((contributor:lib.Imerge)=>this.execute());
+                //Select poiinters that match the crosss member
+                let pointers = deletion.filter(pointer=>pointer.cross_member=cross_member);
+                //
+                //Redirect or merge pointers assocated with minors to the 
+                //principal/
+                for(let pointer of pointers){
+                    //
+                    //Redirect contributors pointing to minor members to point 
+                    //to the principal until there is no referential integrity 
+                    //error
+                    let redirection:lib.Imerge|'ok';
+                    while((redirection = await this.redirect_pointer(pointer))!=='ok'){
+                        //
+                        //Use the pointer members, a.k.a., contributors, to 
+                        //start a new merge operation
+                        const $merger = new merger(redirection); 
+                        //
+                        $merger.execute();
+                    }
+                }
             }
         }
         //
@@ -132,24 +146,24 @@ class merger extends outlook.view implements lib.Imerge {
     //Show the given message in the report panel
     public report(msg: string):void{
         //
-        //
+        alert(msg);
         //
     }
     
     //
     //Get the details of the members to merge
-    public get_imerge(): lib.Imerge{
+    static get_imerge(): lib.Imerge{
         //
         //Get the dbname from the curret window document
         const dbname:string = (<HTMLInputElement>window.document.getElementById('dbase')).value;
         //
         //Read the reference entity name
-        let ref_ename:string=(<HTMLInputElement>window.document.getElementById('ename')).value;;
+        let ename:string=(<HTMLInputElement>window.document.getElementById('ename')).value;;
         //
         //Read the members sql
-        let members:sql=(<HTMLInputElement>window.document.getElementById('member')).value;;
+        let members:lib.sql=(<HTMLInputElement>window.document.getElementById('member')).value;;
         //
-        return {dbname, ref_ename, members}; 
+        return {dbname, ename, members}; 
     }
     //
     //
@@ -166,42 +180,31 @@ class merger extends outlook.view implements lib.Imerge {
      * structure:-Array<{cname:string, value:string}>,where the user selects
      * the desired values to merge.
      */
-    public async resolve_conflicts(
-        all_values:sql,
-        conflicts:sql
-    ):Promise< Array<{cname:string, value:string}>>{
+    public async resolve_conflicts(all_values:lib.sql,conflicts:lib.sql)
+        :Promise< lib.interventions>{
         //
-        //1. Get the conflicting values
-        const incoherent: Array<{cname:string, value:string[]}>
+        //Get the conflicting values
+        const incoherent: lib.conflicts
             = await server.exec("merger",[this],"get_conflicting_values",[all_values, conflicts]);
+            
+        //Let the user intervene to resolve the conflicts
+        const intervention:lib.interventions= await this.intervene(incoherent);
         //
-        //2. Let the user intervene to resolve the conflicts
-        const intervention:Array<{cname:string, value:string}>= await this.intervention(incoherent);
-        //
-        //3. Return the interventions
+        //Return the interventions
         return intervention;
     }
     //
     //Here we allow the user to select correct values from the incoherent values,
     // and process the selected values and send them to the server.
-    public async intervention (
-        incoherent:Array<{cname:string, value:string[]}>
-    ): Promise<Array<{cname:string, value:string}>>{
-        //
-        //paint the body with the incoherent values
-        const mangled = document.getElementById("content");
-        //
-        //Capture the selected values
-        const coherent:Array<{cname:string, value:string}>;
-        // 
-        //return the coherent data
-        return await new Promise(coherent);
+    public async intervene (conflicts:lib.conflicts)
+    : Promise<lib.interventions>{
+        
     }
     //
     // Here, we take the clean records, and the interventions and combine them to return a combined array structure
     public async compile_result(
-        all_values:sql,
-        clean:sql, 
+        all_values:lib.sql,
+        clean:lib.sql, 
         interventions:Array<{cname:string, value:string}>
     ):Promise<Array<{cname:string, value:string}>>{
         //
@@ -210,26 +213,28 @@ class merger extends outlook.view implements lib.Imerge {
             = await server.exec("merger",[this],"get_clean_values",[all_values, clean]);
         //
         //Get the interventions
-        const intervention: Array<{cname:string, value:string}>=  await this.intervention(incoherent);
+        const intervention: Array<{cname:string, value:string}>
+            =  await this.intervention(incoherent);
         //
         //Combine both the interventions and the clean records.
-        const combined: Array<{cname: string, value: string}> = neat.concat(intervention);
+        const combined: Array<{cname: string, value: string}> 
+            = neat.concat(intervention);
         //
         //Return the output
         return combined;
     }
     //Test whether conflicts exist or not
-    public async conflicts_exist(conflicts: sql): Promise<boolean>{
+    public async conflicts_exist(conflicts: lib.sql): Promise<boolean>{
        return await server.exec("merger",[this],"conflicts_exist",[conflicts]);
     }
     //
     //This function fetches the minor contributors and deletes them
-    public async delete_minors(): Promise<boolean>{
+    public async delete_minors(): Promise<Array<lib.pointer>|'ok'>{
         return await server.exec("merger",[this],"delete_minors",[]);
     }
-    //
-    //
-    public async redirect_contributors(contributors :sql): Promise<error1062|null>{
-        return await server.exec("merger",[this],"redirect_contributors",[contributors]);
+    
+    public async redirect_pointer(pointer:lib.pointer):Promise<lib.Imerge|'ok'>{
+        return await server.exec("merger",[this],"redirect_pointer", [pointer]);
     }
+    
 }

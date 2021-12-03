@@ -63,7 +63,7 @@ class record extends schema{
     //2. Test for syntax errors
     //3. Script the milk into the database
     //4. Return the result as list of syntax or runtime errors 
-    function write(array $alias=[]):expression{
+    function write($alias):answer{
         //
         //We dont expect an allias for a record.
         if (count($alias)!==0){throw new \Exception('We dont expect an alias for a record');}
@@ -254,7 +254,7 @@ class record extends schema{
                         //
                         //Convert our basic value, in the atom, to an expression.
                         //Null values are treated specialy from literals.
-                        $exp = is_null($value) ? new null_(): new literal($value);
+                        $exp = is_null($value) ? new null_(): new scalar($value);
                         //
                         //Save the position if it is provided 
                         if(isset($Iatom[1])){
@@ -266,7 +266,7 @@ class record extends schema{
                         //
                         //Convert our basic value, in the atom, to an expression.
                         //Null values are treated specialy from literals.
-                        $exp = is_null($Iatom) ? new null_(): new literal($Iatom);
+                        $exp = is_null($Iatom) ? new null_(): new scalar($Iatom);
                     }
                     //
                     //Store the literal in the pot.
@@ -380,7 +380,7 @@ class record extends schema{
                         
                         //
                         //Convert it into a literal expression.
-                        $exp= is_null($value)? new null_() : new literal($value);
+                        $exp= is_null($value)? new null_() : new scalar($value);
                         //
                         //pack the expression
                         $this->pack($exp, $cname, $ename, $new_alias, $dbname);
@@ -459,7 +459,7 @@ class record extends schema{
         //
         //Save the non-cross member columns to return a collection 
         //of syntax or runtime errors.
-        $collection = $this->save();
+        $collection = $this->save([]);
         //
         //Prepare to dump the syntax and runtime errors 
         $result =$log->open_tag("show.errors");
@@ -578,7 +578,7 @@ class record extends schema{
                         $Iexp->type="error";          
                     //
                     // 
-                    }elseif ($exp instanceof literal) {
+                    }elseif ($exp instanceof scalar) {
                         //
                         //Set the primary key type... 
                         $Iexp->type="pk";
