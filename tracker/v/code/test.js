@@ -3,7 +3,7 @@
 import * as server from '../../../library/v/code/server.js';
 //
 //Load some json text to the current database 
-function load_text() {
+export function load_text() {
     //
     //open the window for the load data.
     const win = window.open();
@@ -23,7 +23,8 @@ function load_text() {
         // 
         //Save the data in to the database.
         const Imala = server.exec('record', [], 'load_text', [path, file_type]);
-        //
-        return text;
+        // 
+        //Report the outcome of the save
+        alert(Imala);
     });
 }

@@ -1,6 +1,8 @@
 //
 // 
-import * as schema from ".schema.js"
+import * as schema from "./schema.js"
+import * as quest from "./questionnaire.js"
+
 //We don't need to export things from a d.ts.
 //export {node, database,editor,record,ename,dbname };
 //
@@ -31,9 +33,6 @@ class database {
     //Returns data as an array of simple objects after executing 
     //the given sql on this database
     get_sql_data(sql: string): Ifuel;
-    //
-    //
-    get_col_meta(sql:string):Ifuel;
     // 
     //Returns the accounting details of a specified account 
     accounting(accname: string): Ifuel;
@@ -104,7 +103,8 @@ export type pk= number;
 export type position =[rowIndex,cellIndex];
 //
 //The actual value being sent to the server 
-type basic_value = boolean|number|string|null;
+export type basic_value = boolean|number|string|null;
+
 //
 //An atom is the smallest datatype that is aware of its origin.
 export type atom = [basic_value, position?];
@@ -116,6 +116,7 @@ type rowIndex= number;
 //
 //The complete label format 
 type label = [dbname, ename, alias, cname, atom];
+
 //
 //The index of the value being saved
 type col_position= number;
@@ -145,6 +146,7 @@ class record {
     load_text(filename:string, format:'label'|'tabular'|'javax'):Imala;
 
 }
+
 //
 //This interface is stripped version of a php expression 
 //its main purpose is to support reporting errors and the primary
@@ -239,6 +241,49 @@ export class node{
     ): Inode;
     
 }
+
+//The PHP tracker class, to be re-placed in the tracker.d.ts later
+export class tracker{
+    constructor();
+    //
+    //Re-establish the links between the user and the application sub-systems.
+    relink_user(links:Array<{ename, cname}>): boolean;
+}
+
+//The questionnaire format for loading large tables
+export class questionnaire{
+    //
+    constructor(milk:quest.Iquestionnaire|string/*excel_filename*/);
+    //
+    //The general style of loading that data tat can be customised
+    //to other types, e.g., common, user_inputs, etc.
+    load(
+        //
+        //XML file for logging the loadin process
+        xmlfile:string="log.xml",
+        //
+        //Error file for logging table loading exceptions
+        errorfile:string="file.html"
+    ):quest.Imala;
+    
+    //The most common way of calling questionaire::load, returning a html 
+    //report
+    load_common(
+        //
+        //XML file for logging the loadin process
+        xmlfile:string="log.xml",
+        //
+        //Error file for logging table loading exceptions
+        errorfile:string="file.html"
+    ):string/*html report*/;
+    
+    //
+    //Load user inputs from a crud page, returning a result fit for
+   //updatng the page.
+    load_user_inputs():Imala;
+}
+
+//To suppoty the accounting subsystem
 export class accounting{
     constructor(bus:string,acc:string,date:string);
     records(dis_type:"closed"|"open"|"all"):Ifuel;
@@ -246,16 +291,29 @@ export class accounting{
     close_books():Imala;
 }
 //
-// 
+//Results of interrogating products. This is a special case of I fuel 
 export interface Iproduct{
     id: string,
     title: string,
     cost: number | null,
     solution_id: string,
     solution_title: string,
-    listener:string
+    listener:string,
+    is_global:'yes'|'no'
 }
-// 
+//
+//The php extension of athe class in app.ts
+export class app{
+    constructor(app_id: string);
+    get_products():Array<Iproduct>
+    customed_products():Array<{role_id:string,product_id:string}>
+    //
+    //Returns those produts available to a user for this application. These
+    //are free products as well as any that the user has are paid 
+    //for, a.k.a., assets
+    available_products(email:string):Array<{product_id:string}>
+}
+
 export class app{
     constructor(app_id: string);
     get_products():Array<Iproduct>
@@ -263,31 +321,85 @@ export class app{
     subscribed_products(email:string):Array<{product_id:string}>
 }
 //
+<<<<<<< HEAD
+//The following data types support the data merging operations. In future
+//these declarions will be managed by a local file, rather than this
+//global ones 
+=======
+//The following data types supports the data merging operations
+>>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
+//
+export type sql = string;
 //
 export interface Imerge{
-  dbname?:string,
-  ref_ename?:string,
-  members?:sql  
+  dbname:string,
+  ename:string,
+  members:sql  
+<<<<<<< HEAD
 }
-export type principal=sql;
-export type minors=sql;
 
-export type error1062=string;
-export type error1451=string;
+type interventions = Array<intervention>;
+
+interface intervention{
+    cname:cname, 
+    value:basic_value
+}
+
+=======
+}
+
+type interventions = Array<intervention>;
+
+interface intervention{
+    cname:cname, 
+    value:basic_value
+}
+
+>>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
+type conflicts = Array<conflict>;
+
+interface conflict{
+    cname:cname,
+    values: Array<basic_value>
+}
+//
+//A pointer is an extension of a foreign ket=y column.
+export type pointer = {
+    //Name of the column/field
+    cname: cname,
+    //
+    //Name of the table containing the column
+    ename: ename,
+    //
+    //Name of the database in which teh table is contained. 
+    dbname: dbname, 
+    //
+    //Is the column structural or is to a cross member 
+    cross_member:boolean};
 //
 export class merger{
-    constructor(combine:Imerge);
-    get_players(): [principal,minors]|null;
+    constructor(imerge:Imerge);
+    get_players(): {principal:sql,minors:sql}|null;
     get_values(): sql;
-    get_conflicts():{clean: sql, conflicts: sql};
-    get_contributors(error:error1451, minors:sql):sql;
-    get_contributing_members(error:error1062,contributors:sql):Array<Imerge>;
-    update_principal(consolidations:Array<{cname:string, value:string}>): void;
-    get_conflicting_values(all_values:sql, conflicts:sql):Array<{cname:string,value:string[]}>;
-    get_clean_values(all_values:sql, clean:sql): Array<{cname:string, value:string}>;
-    conflicts_exist(conflicts: sql): boolean;
-    delete_minors(): boolean;
+<<<<<<< HEAD
     //
-    redirect_contributors(contributors:sql): error1062|null;
+    get_consolidation():{clean:interventions, dirty:conflicts};
+    
+    update_principal(consolidations:interventions): void;
+    //
+=======
+    get_conflicts():{clean: sql, conflicts: sql};
+    update_principal(consolidations:interventions): void;
+    get_conflicting_values(all_values:sql, conflicts:sql):conflicts;
+    get_clean_values(all_values:sql, clean:sql):interventions;
+    conflicts_exist(conflicts: sql): boolean;
+    //
+>>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
+    //To be implemented in PHP
+    delete_minors(): Array<pointer>|'ok';
+    redirect_pointer(pointer:pointer):Imerge|'ok'
+}    
+<<<<<<< HEAD
+=======
 
-}
+>>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091

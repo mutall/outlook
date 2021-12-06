@@ -1,0 +1,118 @@
+html {
+    height: 100vh;
+    width: 100vw;
+}
+/*Grid design and styling procedure*/
+body {
+    font-weight: bolder;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    overflow: hidden;
+    display: grid;
+    gap: 1.5px;
+    grid-template-columns: 20% 15% 40% 25%;
+    grid-template-rows: 10% 5% 20% 5% 20% 5% 30% 5%;
+    grid-template-areas:
+        "header header header header"
+        "steps_title words_title messages_title terms_title"
+        "steps words messages terms"
+        "status_title words messages terms"
+        "status words messages terms"
+        "ui_title words messages terms"
+        "interactions words messages terms"
+        "btns words messages terms";
+}
+#steps_title{
+    grid-area: steps_title;
+    background-color: skyblue;
+}
+#status_title{
+    grid-area: status_title;
+    background-color: skyblue;
+}
+#ui_title{
+    grid-area: ui_title;
+    background-color: skyblue;
+}
+#btns{
+    grid-area: btns;
+    background-color: skyblue;
+}
+#words_title{
+    grid-area: words_title;
+    background-color: skyblue;
+}
+#messages_title{
+    grid-area: messages_title;
+    background-color: skyblue;
+}
+#terms_title{
+    grid-area: terms_title;
+    background-color: skyblue;
+}
+
+#header {
+    grid-area: header;
+    display: grid;
+    background-color: lightblue;
+}
+#company{
+    grid-row: header;
+    font-weight: bold;
+    font-size: 35px;
+    place-self: center;
+    padding-right: 50%;
+}
+.heading {
+    grid-row: header;
+}
+#steps {
+    grid-area: steps;
+    background-color: lightblue;
+    overflow: scroll;
+    overflow-x: hidden;
+}
+#words {
+    grid-area: words;
+    background-color:lightgoldenrodyellow;
+    overflow:scroll;
+}
+#messages {
+    grid-area: messages;
+    overflow: scroll;
+    overflow-x: hidden;
+    background-color: #ebebeb;
+}
+#terms {
+    grid-area: terms;
+    background-color:#ececf6;
+    overflow:scroll;
+}
+#status{
+    grid-area: status;
+    background-color: lightgoldenrodyellow;
+    overflow: scroll;
+    overflow-x: hidden;
+}
+#interactions {
+    grid-area: interactions;
+    background-color: lightgoldenrodyellow;
+    overflow: scroll;
+    overflow-x: hidden;
+}
+.footer {
+    grid-area: footer;
+    background-color: lightblue;
+}
+#buttons{
+    margin-top: 80%;
+}
+label{
+    display: block;
+}
+.disabled{
+    display: none;
+    opacity: 0.5;
+    background: #CCC;
+}
