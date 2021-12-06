@@ -3,6 +3,7 @@
         <title>Merge Data</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
         <style>
             label{
                 display:block;
@@ -12,10 +13,17 @@
         Accessing the merger class-->
         <script type="module">
             import merger from "./merge.js";
+=======
+        <!--
+        Accessing the merger class-->
+        <script type="module">
+            import merger from "./merger.js";
+>>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
             window.merger= merger;
         </script>
     </head>
     <body>
+<<<<<<< HEAD
         <label>Database Name:
             <input type='text' id="dbase" value='chama'/>
         </label>
@@ -46,5 +54,11 @@
         <div class='go'>
             <button id="merge"  onclick="(new merger()).execute()">Ok</button>
         </div>
+=======
+        <!--
+        Specify the merge sql -->
+        <div id="sql"></div>
+        <button id="merge" onclick="merger.run()">Ok</button>
+>>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
     </body>
 </html>
