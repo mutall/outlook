@@ -9,9 +9,9 @@ import * as php from "./php.js";
 //
 export default class merger extends php.merger {
     //
-    //The 2 sqls that drive he merging process
-    public principal?:lib.sql;
-    public minors?:lib.sql;
+    //The members that drive the merging process
+    get principal():number|undefined {return this.imerge!.principal; };
+    get minors():lib.sql|undefined{return this.imerge!.minors};
     //
     constructor(imerge?:lib.Imerge){
         super(imerge);
@@ -28,7 +28,7 @@ export default class merger extends php.merger {
         let ename:string=(<HTMLInputElement>this.get_element('ename')).value;;
         //
         //Read the members sql
-        let members:lib.sql=(<HTMLInputElement>this.get_element('member')).value;;
+        let members:lib.sql=(<HTMLInputElement>this.get_element('members')).value;;
         //
         return {dbname, ename, members}; 
     }
@@ -55,8 +55,8 @@ export default class merger extends php.merger {
         //
         //Save the principal and minors to this object for referencing 
         //elsewhere.
-        this.principal= principal;
-        this.minors= minors;
+        this.imerge!.principal= principal;
+        this.imerge!.minors= minors;
         //
         //Get the interventions
         const interventions = await this.consolidate();
@@ -70,23 +70,22 @@ export default class merger extends php.merger {
     //the principal with the consolidations
     public async clean_minors(consolidations:lib.interventions): Promise<void>{
         //
-        //As long as you cannot delete the monors because of integrity
-        //contraints....
-        let deletion: Array<lib.pointer>|'ok';
+        //Redirect the minors to the principal until all the minors 
+        //can be deleted without violating the unique index integrity contraint.
+        let deletion:Array<lib.pointer>|'ok' 
         while((deletion =await this.delete_minors())!=='ok'){
             //
-            //Redirect the minors to the principal in a controlled version
-            //to avoid cyclic loops
+            //Redirect the minors to the principal
             //
-            //Do double loops, one for non-cross members; the other for cross
-            //members 
+            //Avoid cyclic merging by first attending to structural member 
+            //ponters followed by the cross members
             for(let cross_member of [false, true]){
                 //
-                //Select poiinters that match the crosss member
-                let pointers = deletion.filter(pointer=>pointer.cross_member=cross_member);
+                //Select pointers that match the cross member frag
+                let pointers = 
+                    deletion.filter(pointer=>pointer.is_cross_member=cross_member);
                 //
-                //Redirect or merge pointers assocated with minors to the 
-                //principal/
+                //Redirect all the selected pointers
                 for(let pointer of pointers){
                     //
                     //Redirect contributors pointing to minor members to point 
@@ -95,11 +94,40 @@ export default class merger extends php.merger {
                     let redirection:lib.Imerge|'ok';
                     while((redirection = await this.redirect_pointer(pointer))!=='ok'){
                         //
-                        //Use the pointer members, a.k.a., contributors, to 
-                        //start a new merge operation
-                        const $merger = new merger(redirection); 
-                        //
-                        $merger.execute();
+                        //On an index by index basis....
+                        for (let index of pointer.indices){
+                            //
+                            //...and on a signature by signature basis....
+                            for (let signature of index.signatures){
+                                //
+                                //Merge the pointer members that share the 
+                                //same signanture
+                                //
+                                //Compile the Imerge data
+                                //
+                                const dbname = pointer.column.dbname;
+                                const ename = pointer.column.ename;
+                                //
+                                //Use the signaure to constrain the pointer members
+                                const members:lib. sql = `
+                                    SELECT
+                                        member 
+                                    FROM
+                                        (${index.members}) as member
+                                    WHERE 
+                                        signature='${signature}'
+                                `
+                                //
+                                //Assemble the imerge components together
+                                const imerge = {dbname, ename, members};
+                                //
+                                //Use the pointer members, a.k.a., contributors, 
+                                //to start a new merge operation
+                                const $merger = new merger(imerge); 
+                                //
+                                $merger.execute();
+                            }
+                        }
                     }
                 }
             }
@@ -146,14 +174,14 @@ export default class merger extends php.merger {
         //  Map the conflicts to matching fields sets
         const fields:string[] = conflicts.map(conflict=>{
             //
-            //Destructure the cnflict
+            //Desructure the cnflict
             const {cname, values}= conflict;
             //
             //Convert the values to matching radio buttons
             const radios = values.map(value=>`
                 <label>
-                    <input type = radio name='${cname}' value='${value}'
-                        onclick = ()=>{merger.show(${cname}_group, false)
+                    <input type = 'radio' name='${cname}' value='${value}'
+                        onclick = "merger.show('${cname}_group', false)"
                     />
                     ${value}
                 </label>
@@ -161,13 +189,13 @@ export default class merger extends php.merger {
             //Add the other option
             radios.push(`
                 <label>
-                    <input type = radio name='${cname}' value='other'
-                      onclick = ()=>{merger.show(${cname}_group, true);}
+                    <input type = 'radio' name='${cname}' value='other'
+                      onclick = "merger.show('${cname}_group', true)"
                     />
                     Other
                     <div id='${cname}_group'>
                         <label>
-                            Specify:<input type = text id='${cname}'/>
+                            Specify:<input type = 'text' id='${cname}'/>
                         </label>
                     </div>
                 </label>
@@ -245,5 +273,4 @@ export default class merger extends php.merger {
         }
         return value;     
     }
-    
 }
