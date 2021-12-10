@@ -3,36 +3,31 @@
         <meta charset="UTF-8">
         <title>SVG circle that covers the top</title>
         <style>
-            html{
-                height:100%;
-                width: 100%;
-                background-color:orange;
-            }
             body{
                 height:100%;
                 width: 100%;
-                background-color:black;
                 margin: 0 0 0 0;
             }
-            svg{
-                background-color: white;
-                
-            }
             circle{
-                cursor: grab;
+                cursor: crosshair;
             }
+        #circle1{
+                background-color:whitesmoke;
+        }
+        }
         </style>
     </head>
     <body>
-        <svg height="100%" width="100%" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="60" fill="cyan" />
+        <svg id="circle1" height="100%" width="100%" viewBox="0 0 120 120">
+            <circle cx="70" cy="10" r="30" fill="cyan" />
+            <circle cx="10" cy="90" r="30" fill="green"/>
+            <line x1="0" y1="120" x2="60" y2="60" stroke="black" stroke-width="2"/>
             <text 
                 x="60" 
                 y="60" 
                 text-anchor="middle" 
-                fill="black" font-size="15px" 
-                font-family="'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif">
-            SVG CIRCLE
+                fill="black" font-size="25px">
+            .
         </svg>
     </body>
 </html>

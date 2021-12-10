@@ -1,5 +1,5 @@
 /* global mutall, await, fetch, self, $dbnames, $dbname, json_str, ellipses, entity, coodinate, sql, hidden_entites, Entity_relation, input, hidden_entities, column, table, cancel, r_entities, attribute_comments, $alterable_entity, static_entity, selector */
-import database from "./library.js";
+import {database} from "./library.js";
 //
 //
 //Panning and zooming step (you may want to consider 2 steps, one for zooming
@@ -105,7 +105,7 @@ class alterable_column extends column{
 
 ////This class was motivated by the need to present any data model in a graphical 
 //way
-class page_graph {
+export default class page_graph {
     
     //Use the querystring passed on from PHP to construct this page
     constructor($request) {

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 //To support declaration for the classes needed by this code that
 //are implemented in php. In future these classes will 
 //be locally (rather than globally) maintained.
@@ -17,49 +16,11 @@ export default class merger extends php.merger {
     constructor(imerge?:lib.Imerge){
         super(imerge);
         if (imerge==undefined) this.imerge = this.get_imerge();
-=======
-//To support data types for this project. In future these data tyoes will 
-//be locally maintained
-import * as lib from "../../../../library/v/code/library";
-//
-//To support running of php code from javascript
-import * as server from "../../../../library/v/code/server.js";
-//
-export default class merger implements lib.Imerge {
-    //
-    //Implementation of te Imebre interface
-    public dbname: lib.dbname;
-    public ename: lib.ename;
-    public members:lib.sql;
-    //
-    //The 2 sqls that drive he merging process
-    public principal?:lib.sql;
-    public minors?:lib.sql;
-    //
-    constructor(imerge:lib.Imerge){
-        //
-        this.dbname = imerge.dbname;
-        this.ename = imerge.ename;
-        this.members = imerge.members;
-    }
-    //The main merge process
-    static async run():Promise<void>{
-        //
-        //Get the members to merge
-        const imerge:lib.Imerge = merger.get_imerge();
-        //
-        //Create the merger object
-        const m = new merger(imerge);
-        //
-        //Execute the merge
-        await m.execute();
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
     }
     //
     //Get the details of the members to merge
     get_imerge(): lib.Imerge{
         //
-<<<<<<< HEAD
         //Get the dbname from the curret window document
         const dbname:string = (<HTMLInputElement>this.get_element('dbase')).value;
         //
@@ -78,11 +39,6 @@ export default class merger implements lib.Imerge {
         //
         //From the members identify the principal and the minor players.
         const players = await this.get_players();
-=======
-        //From the members identify the principal and the minors
-        const players: {principal:lib.sql,minors:lib.sql}|null
-            = await server.exec("merger",[this],"get_players",[]);
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
         //
         //Proceed only if the players are valid
         if(players === null){
@@ -102,42 +58,8 @@ export default class merger implements lib.Imerge {
         this.principal= principal;
         this.minors= minors;
         //
-<<<<<<< HEAD
         //Get the interventions
         const interventions = await this.consolidate();
-=======
-        //Consolidate all the member properties to the principal
-        const consolidations: Array<{cname:lib.cname,value:lib.basic_value}>
-            =await this.consolidate();
-        //
-        //Remove the minors
-        await this.clean_minors(consolidations);
-    }
-    //
-    //Collect and reconcile all the data that is distributed among the members
-    // and save it in one place, the principal
-    public async consolidate(): Promise<Array<{cname:string, value:lib.basic_value}>>{
-        //
-        //1.Collect the values to consolidate
-        const all_values:lib.sql = await server.exec("merger",[this],"get_values",[]);
-        //
-        //2. Separate the conflicts from the clean values
-        const {clean, conflicts}= await server.exec("merger",[this],"get_conflicts",[]);
-        //
-        //Lets start by assuming there are no conflicts and hence there are no interventions
-        let interventions: lib.interventions =[];
-        //
-        //Test if there is any data that requires manual merging/intervention
-        if(this.conflicts_exist(conflicts)){
-            //
-            //Resolve the conflicts
-            interventions = await this.resolve_conflicts(all_values, conflicts);
-        }
-        //
-        //4.Combine the clean and intervened values to get the required output
-        let result:lib.interventions
-            = await this.compile_result(all_values,clean,interventions);
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
         //
         //Remove the minors
         await this.clean_minors(interventions);
@@ -198,7 +120,6 @@ export default class merger implements lib.Imerge {
         //
     }
     
-<<<<<<< HEAD
     
     //Get the consolidation data
     public async consolidate():Promise<lib.interventions>{
@@ -214,55 +135,10 @@ export default class merger implements lib.Imerge {
         //
         //Consolidate all the member properties to the principal
         return consolidation.clean.concat(interventions);
-=======
-    //
-    //Get the details of the members to merge
-    static get_imerge(): lib.Imerge{
-        //
-        //Get the dbname from the curret window document
-        const dbname:string = (<HTMLInputElement>window.document.getElementById('dbase')).value;
-        //
-        //Read the reference entity name
-        let ename:string=(<HTMLInputElement>window.document.getElementById('ename')).value;;
-        //
-        //Read the members sql
-        let members:lib.sql=(<HTMLInputElement>window.document.getElementById('member')).value;;
-        //
-        return {dbname, ename, members}; 
-    }
-    //
-    //
-    /**
-     *The all_values parameter is an sql which yields data of the following
-     * structure:-  Array<{cname:string, value:string}> and comprises of all the
-     * clean and conflicting values.
-     * 
-     * The conflicts paramter is an sql with the following structure:-
-     * Array<{cname:string, freq: number}>  and comprises of all columns that have
-     * conflicting values
-     * 
-     * The return value, is the intervention from the user and has the following
-     * structure:-Array<{cname:string, value:string}>,where the user selects
-     * the desired values to merge.
-     */
-    public async resolve_conflicts(all_values:lib.sql,conflicts:lib.sql)
-        :Promise< lib.interventions>{
-        //
-        //Get the conflicting values
-        const incoherent: lib.conflicts
-            = await server.exec("merger",[this],"get_conflicting_values",[all_values, conflicts]);
-            
-        //Let the user intervene to resolve the conflicts
-        const intervention:lib.interventions= await this.intervene(incoherent);
-        //
-        //Return the interventions
-        return intervention;
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
     }
     //
     //Here we allow the user to select correct values from the incoherent values,
     // and process the selected values and send them to the server.
-<<<<<<< HEAD
     async intervene (conflicts:lib.conflicts)
     : Promise<lib.interventions>{
         //
@@ -347,24 +223,10 @@ export default class merger implements lib.Imerge {
     
     //Return the named checked value is selected; otherwise null
     private get_checked_value(cname:lib.cname):string|null{
-=======
-    public async intervene (conflicts:lib.conflicts)
-    : Promise<lib.interventions>{
-        
-    }
-    //
-    // Here, we take the clean records, and the interventions and combine them to return a combined array structure
-    public async compile_result(
-        all_values:lib.sql,
-        clean:lib.sql, 
-        interventions:Array<{cname:string, value:string}>
-    ):Promise<Array<{cname:string, value:string}>>{
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
         //
         //Get the identified column
         const radio = document.querySelector(`input[name='${cname}']:checked`);
         //
-<<<<<<< HEAD
         //Return a null value if a named radion is not set
         if (radio===null) return null;
         //
@@ -382,31 +244,6 @@ export default class merger implements lib.Imerge {
             if (value==='') return null; 
         }
         return value;     
-=======
-        //Get the interventions
-        const intervention: Array<{cname:string, value:string}>
-            =  await this.intervention(incoherent);
-        //
-        //Combine both the interventions and the clean records.
-        const combined: Array<{cname: string, value: string}> 
-            = neat.concat(intervention);
-        //
-        //Return the output
-        return combined;
-    }
-    //Test whether conflicts exist or not
-    public async conflicts_exist(conflicts: lib.sql): Promise<boolean>{
-       return await server.exec("merger",[this],"conflicts_exist",[conflicts]);
-    }
-    //
-    //This function fetches the minor contributors and deletes them
-    public async delete_minors(): Promise<Array<lib.pointer>|'ok'>{
-        return await server.exec("merger",[this],"delete_minors",[]);
-    }
-    
-    public async redirect_pointer(pointer:lib.pointer):Promise<lib.Imerge|'ok'>{
-        return await server.exec("merger",[this],"redirect_pointer", [pointer]);
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
     }
     
 }

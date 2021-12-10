@@ -321,13 +321,9 @@ export class app{
     subscribed_products(email:string):Array<{product_id:string}>
 }
 //
-<<<<<<< HEAD
 //The following data types support the data merging operations. In future
 //these declarions will be managed by a local file, rather than this
 //global ones 
-=======
-//The following data types supports the data merging operations
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
 //
 export type sql = string;
 //
@@ -335,7 +331,6 @@ export interface Imerge{
   dbname:string,
   ename:string,
   members:sql  
-<<<<<<< HEAD
 }
 
 type interventions = Array<intervention>;
@@ -345,17 +340,6 @@ interface intervention{
     value:basic_value
 }
 
-=======
-}
-
-type interventions = Array<intervention>;
-
-interface intervention{
-    cname:cname, 
-    value:basic_value
-}
-
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
 type conflicts = Array<conflict>;
 
 interface conflict{
@@ -381,25 +365,12 @@ export class merger{
     constructor(imerge:Imerge);
     get_players(): {principal:sql,minors:sql}|null;
     get_values(): sql;
-<<<<<<< HEAD
     //
     get_consolidation():{clean:interventions, dirty:conflicts};
     
     update_principal(consolidations:interventions): void;
     //
-=======
-    get_conflicts():{clean: sql, conflicts: sql};
-    update_principal(consolidations:interventions): void;
-    get_conflicting_values(all_values:sql, conflicts:sql):conflicts;
-    get_clean_values(all_values:sql, clean:sql):interventions;
-    conflicts_exist(conflicts: sql): boolean;
-    //
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
     //To be implemented in PHP
     delete_minors(): Array<pointer>|'ok';
     redirect_pointer(pointer:pointer):Imerge|'ok'
 }    
-<<<<<<< HEAD
-=======
-
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
