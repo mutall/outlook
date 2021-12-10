@@ -1,64 +1,46 @@
 <html>
     <head>
-        <title>Merge Data</title>
+        <title>Merge</title>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
-        <style>
-            label{
-                display:block;
-            }
-        </style>
-        <!--
-        Accessing the merger class-->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&family=Poppins:wght@400&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="./style.css"/>
         <script type="module">
             import merger from "./merge.js";
-=======
-        <!--
-        Accessing the merger class-->
-        <script type="module">
-            import merger from "./merger.js";
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
+            //
             window.merger= merger;
+            //import {page_graph from "./page_graph.js";
+            //
+            //window.page_graph= page_graph;
         </script>
     </head>
     <body>
-<<<<<<< HEAD
-        <label>Database Name:
-            <input type='text' id="dbase" value='chama'/>
-        </label>
-        <label>Reference Entity Name
-            <input type='text' id="ename" value='member'/>
-        </label>
-        <!--
-        Specify the merge sql -->
-        <label>Enter the Sql for the Data to Merge
-            <textarea id="members" rows='10' cols='50'>
-                select member from member where email like '%kanake%'
-            </textarea>
-        </label>
-        
-        <!--
-        Do the conflict resolution here -->
-        <div id="conflicts" hidden class='conflicts'>
-            Conflict Resolution
-            <div id='resolution'></div>
-            <button id='go'>Proceed</button>
+        <div id="header">
+            <!-- comment -->
+            MERGING DATA
         </div>
-        <div class='report'>
-            Report
-            <div id='report'></div>
+        <div id="members">
+            <label>
+                Database:
+                <select  id="dbase" onchange="page_graph.changedb()" placeholder="database">
+                    <option>mutall_chama</option><br>
+                </select>
+            </label>
+            <label>
+                Reference Entity name:
+                <select  id="ename" onchange="page_graph.display_entity()" placeholder="entity">
+                    <option>member</option>
+                </select>
+            </label>
+            <label> 
+                Enter the SQL for selecting the records to merge:<br/>
+                <textarea id="sql" name="name" rows="5" cols="10">select * from member where name like (%kanake%);</textarea>
+            </label>
+            <input id="Go" type="button" value="Go" 
+            onclick="const merger= new merger(); await merger.execute();">
         </div>
-        <!--
-        Start the merging process-->
-        <div class='go'>
-            <button id="merge"  onclick="(new merger()).execute()">Ok</button>
+        <div id="resolve">resolve
         </div>
-=======
-        <!--
-        Specify the merge sql -->
-        <div id="sql"></div>
-        <button id="merge" onclick="merger.run()">Ok</button>
->>>>>>> d6f602ee62ba568a442aa77bc3420888897c8091
     </body>
 </html>

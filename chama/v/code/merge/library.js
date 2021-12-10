@@ -2,7 +2,6 @@
 
 'use strict';
 //
-export default class database{}
 
 //The super class for shared methods
 class mutall{
@@ -122,7 +121,7 @@ class mutall_error extends Error{
 
 //Is a mutall object that models a database class. Its key feature is the 
 //collection of entities.
-class database extends mutall{
+export class database extends mutall{
     //
     //A collection of entotes for this dataase
     entities=[];
