@@ -2,7 +2,7 @@
  //
 //Define the schema to make use of the database methods that 
 //are already defined.
-include_once '../../../library/v/code/schema.php';
+include_once $_SERVER['DOCUMENT_ROOT'].'/library/v/code/schema.php';
 //
 //The class that houses all server functionality of
 //an application.
@@ -45,12 +45,13 @@ class app extends database{
     //particular application
     function execution_products(): string{
        return "SELECT
-                 `product`.`id` as id ,
+                `product`.`id` as id ,
                 `product`.`name` as title,
-                 `product`.`cost` as cost,
+                `product`.`cost` as cost,
                 `solution`.`id` as solution_id ,
                 `solution`.`name` as solution_title ,
-                `solution`.`listener` as listener
+                `solution`.`listener` as listener,
+                'no' as is_global
             FROM `execution`
                  inner JOIN `application` ON `execution`.`application`=`application`.`application`
                  inner JOIN `product` on `execution`.`product`=`product`.`product`
@@ -63,12 +64,13 @@ class app extends database{
     //available for all applications 
     function global_products():string{
        return "SELECT
-                 `product`.`id` as id ,
+                `product`.`id` as id ,
                 `product`.`name` as title,
-                 `product`.`cost` as cost,
+                `product`.`cost` as cost,
                 `solution`.`id` as solution_id ,
                 `solution`.`name` as solution_title ,
-                `solution`.`listener` as listener
+                `solution`.`listener` as listener,
+                'yes' as is_global
             FROM `product`
                 inner join `resource` on `resource`.`product`=`product`.`product`
                 inner join `solution` on `resource`.`solution`=`solution`.`solution`
@@ -76,27 +78,52 @@ class app extends database{
             WHERE `execution`.`product` is null"; 
     }
     // 
-    //Returns all the products that are subscribed by a certain 
-    //user 
-    function subscribed_products(string $email){
-        $sql ="SELECT
+    //Returns all the products that are available to the given user for this
+    //application.
+    function available_products(string $email){
+        //
+        //Get products that are sssets for the user. These are products that 
+        //have a cost but the user has subscribed to them explicitly
+        $assets ="SELECT
                  `product`.`id` as product_id
             FROM `product`
                 inner JOIN `asset` ON `asset`.`product`=`product`.`product`
                 inner JOIN  `player` on `asset`.`player`=`player`.`player`
-                inner join  `user` on `user`.`user`= `player`.`player`
-                inner join `application` on `application`.`application`= `player`.`player`
-            WHERE `user`.`email`='$email' and `application`.`id`='$this->id'";
+                inner join subscription on subscription.player = player.player
+                inner join  `user` on subscription.user = `user`.`user`
+                inner join `application` on player.application = `application`.`application`
+            WHERE
+                `user`.`email`='$email' "
+                ."and `application`.`id`='$this->id' "
+                ."and not(`product`.`cost`=0 or `product`.`cost` is null)";
+        //
+        //Get the free products that match this user and application 
+        $freebies ="SELECT
+                 `product`.`id` as product_id
+            FROM `product`
+                inner join `custom` ON `custom`.`product`=`product`.`product`
+                inner join `role` on `custom`.`role` = `role`.`role`
+                inner join  `player` on player.`role`=`role`.`role`
+                inner join subscription on subscription.player = player.player
+                inner join  `user` on subscription.user = `user`.`user`
+                inner join `application` on player.application = `application`.`application`
+            WHERE
+                `user`.`email`='$email' "
+                ."and `application`.`id`='$this->id' "
+                ."and (`product`.`cost`=0 or `product`.`cost` is null)";
+        
+        //Available products are (paid for) assets and (free) cases
+        $sql = "$assets union $freebies"; 
          // 
         //Return the executed sql.
         return $this->get_sql_data($sql);
     }
     // 
-    //Returns all the products a user can play in an application
+    //Returns all the products available in this application.
     function get_products(){
         $sql ="{$this->execution_products()} "
             . " UNION "
-             . " {$this->global_products()}";
+            . " {$this->global_products()}";
         return $this->get_sql_data($sql);
     }    
 }

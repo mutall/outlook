@@ -5,12 +5,15 @@
 \set_error_handler(function($errno, $errstr, $errfile, $errline /*, $errcontext*/) {
     throw new \ErrorException($errstr, $errno, E_ALL, $errfile, $errline);
 });
-//To resolve reference to the mutall class
+//To resolve reference to the mutall and schema classes
 include_once $_SERVER['DOCUMENT_ROOT'].'/library/v/code/schema.php';
 //
 include_once $_SERVER['DOCUMENT_ROOT'].'/library/v/code/sql.php';
 
-class merger {
+//The merger class needs to extend the schema object so that we can access
+//the method for opening databases. This is particularly important when dealing
+//with pointers in a multi-database context.
+class merger extends schema{
     //
     //The datanase holding the records to merge
     public database $dbase;
@@ -31,10 +34,13 @@ class merger {
    // 
    function __construct(stdClass $Imerge) {
         //
+        //Initialize the schema parent 
+        parent::__construct();
+        //
         //Destructure the members
         $this->dbname= $Imerge->dbname;
-        $this-> ename= $Imerge->ename;
-        $this-> members= $Imerge->members;
+        $this->ename= $Imerge->ename;
+        $this->members= $Imerge->members;
         //
         //Principal and minors are conditional
         if (isset($Imerge->principal)) $this->principal = $Imerge->principal;
@@ -47,29 +53,44 @@ class merger {
         $this->ref = $this->dbase->entities[$this->ename];  
     }
     //
-    //Categorize the members into a principal and the minors
+    //Categorize the members into a principal and the minors and return the 
+    //result. There must be at least one minor
     public function get_players()/*: {principal:int,minors:sql}|null*/{
         //
         //Get the reference contributors (as a union)
         $contributor= $this->get_contributors();
         //
         //Get the principal sql
-        $principal_sql = $this->dbase->chk(
-            "select "
-                . "member.member, "
-                . "count(contributor.contributor) as value "
-            . "from ($this->members) as member "
-                . "inner join ($contributor) as contributor on contributor.member= member.member "
+        $principal_sql = is_null($contributor)
+            //    
+            //If there is no contribuore, then teh first member is the
+            //principal   
+            ? $this->dbase->chk(
+                "select "
+                    . "member.member "
+                . "from ($this->members) as member "
+                //
+                //Pick the first in the list    
+               . "limit 1 offset 0"
+              )      
             //
-            //Summarise the ccontributions of each member
-            . "group by member.member "
-            //
-            //Ensure that the highest contibutor is at the top
-            . "order by count(contributor.contributor) desc "
-            //
-            //Pick the first in the list    
-           . "limit 1 offset 0"
-        );
+            //If there is a contributor, pick the least expensive one
+            : $this->dbase->chk(
+                "select "
+                    . "member.member, "
+                    . "count(contributor.contributor) as value "
+                . "from ($this->members) as member "
+                    . "inner join ($contributor) as contributor on contributor.member= member.member "
+                //
+                //Summarise the ccontributions of each member
+                . "group by member.member "
+                //
+                //Ensure that the highest contibutor is at the top
+                . "order by count(contributor.contributor) desc "
+                //
+                //Pick the first in the list    
+               . "limit 1 offset 0"
+            );
         //
         //Run the pincipal sql to get the only member
         $result = $this->dbase->get_sql_data($principal_sql);
@@ -80,7 +101,7 @@ class merger {
         //Retrieve the principal
         $this->principal = $result[0]['member'];
         //
-        //All the members without the principal, i.e., where the principal is null
+        //Minors are all the members without the principal
         $minors = $this->dbase->chk(
             "select "
                 ."member "
@@ -88,20 +109,29 @@ class merger {
             ."where not (member =$this->principal)"
         );
         //
+        //There must be at least one minor; otherwise return a null
+        if ($this->dbase->get_sql_data(
+           "select count(member) as freq from ($minors) as member"     
+        )[0]['freq']==0) return null;
+        //
+        //
         //Compile and return th results
         return ['principal'=>$this->principal,'minors'=>$minors];
     }
     
     //
     //A query formed from the union of all the queries that are based on the 
-    //pointers of the referenced entity
-    public function get_contributors():string{
+    //pointers of the referenced entity -- if any
+    public function get_contributors()/*string|null*/{
         //
         //Get the reference entity
         $entity= $this->ref;
         //
         //Get all the pointers to the reference entity
         $pointers= iterator_to_array($entity->pointers());
+        //
+        //If there are no pointers, then return a null
+        if (count($pointers)==0) return null;
         //
         //Map the pointers to their corresponding sql statements
         $sql= array_map(fn($pointer)=> $this->get_pointer_sql($pointer), $pointers);
@@ -315,31 +345,11 @@ class merger {
             else{throw $ex;}
         }
     }
-    //
-    //Returns a pointer; it has teh following shape:-
-    /*
-    {
-        column: {
-            dbname: lib.dbname,
-            ename:lib.ename,
-            cname:lib.cname,
-        },
-        is_cross_member:boolean, 
-        indices:Array<{
-            name:string, 
-            signatures:Array<{
-                //
-                //Generates the signature is
-                id:lib.sql, 
-                //
-                //Constrain the members using the siganture id
-                members:lib.sql
-            }>
-        }>
-    }
-    */
+    
+    //Returns all the pointers to the reference table, unconditionally
     private function get_pointers(): array /*<pointer>*/{
         //
+        //Collect all the ponters to the reference table
         $pointers = iterator_to_array($this->ref->pointers());
         //
         //Map tthe pointers to the desired type
@@ -394,24 +404,28 @@ class merger {
     //This function redirects a pointer to the principlal. The shape of a 
     //pointer is {dbname, ename, cname, is_cros_member:boolean}
     //If successful the function returns 'ok'; if not (because of integrity 
-    //violation) it returns the structure (Imerge) that allows us to merge pointer 
-    //members. The Imerge structure has the shape {
-    //dbname:string, ename:string, members:sql, principal:pk, minors:sql}
-    public function redirect_pointer(stdClass /*pointer*/$pointer)/*:lib.Imerge|'ok'*/{
+    //violation) it returns an array of indices
+    //An index has the following shape:-
+    /*index = {
+        signatures:Array<{signature}
+        members:lib.sql
+    }
+    */
+    public function redirect_pointer(stdClass /*pointer*/$pointer)/*:Array<index>|'ok'*/{
         //
         //Formulate the redirection query for the contributors, based on the 
         //given pointer
         $sql = "Update "
             //
-            //The table to update is derived from the pointer    
+            //The table to update, contributor, is derived from the pointer    
             . "`$pointer->dbname`.`$pointer->ename` "
             //
             //Filter contributors using the minors
             . "inner join ($this->minors) as minor "
                 . "on minor.member=`$pointer->ename`.`$pointer->cname` "
             //
-            //Its the pointer we are redirecting to the principal    
-            . "set $pointer=$this->principal ";
+            //It is the pointer we are redirecting to the principal    
+            . "set `$pointer->ename`.`$pointer->cname` = $this->principal ";
         //
         //Execute the query. If successful, return ok; otherwise formulate and 
         //return the Imerge structure to support merging of the pointee members
@@ -425,53 +439,126 @@ class merger {
             //The redirection failed for some reason. 
             //
             //If the reason was not integrity violation re-throw the Exception
-            if ($ex->getCode()=="23000") throw $ex;
+            if ($ex->getCode()!=="23000") throw $ex;
             //
             //The reason for failure was integrity violation. Compile and 
-            //return the Imerge structure
-            //
-            $result = new stdClass();
-            //
-            $result->dbname = $pointer->dbname;
-            $result->ename = $pointer->name;
-            $result->members = $this->get_member_sql($pointer);
-            //
-            return $result;
+            //return the array of indices
+            return $this->get_indices($pointer);
         }
     }
     
+    //Return the index-based data that is needed to merge pointers members that
+    //that would violate unique key integrity if they where re-diredtd to the 
+    //same principal. The data has the shape:-
+    /*
+        {
+        //
+        //Index name (for reporting purposes)
+        ixname:string;
+        //
+        //An sql that generates a merging signature bases on the
+        //violaters, i.e., the columns of an index needed to determine
+        //integrity violaters. The sql has the shape:
+        //Array<{signature}>
+        signatures:Array<{signature:string}>, 
+        //
+        //The sql that is to be constrained by a specific to generate
+        //the pointer members that need to be merged. he sql has the shape:-
+        //Array<{signature, member}
+        members:sql
+    }
+    */
+    private function get_indices(stdClass $pointer):array/*<index>*/{
+        //
+        //Open teh pointer database
+        $dbase = $this->open_dbase($pointer->dbname);
+        //
+        //Get the contributor table, i.e,, the away table of the pointer
+        $contributor = $dbase->entities[$pointer->ename];
+        //
+        //Start with an empry array of indices
+        $indices = [];
+        //
+        //For each index of the contributor, yield it if valid
+        foreach($contributor->indices as $ixname=>$index){
+            //
+            //The index must contain the pointer; otherwise skip it.
+            if (!(in_array($pointer->cname, $index))) continue;
+            //
+            //Compile the member sql
+            //
+            //Drop the pointer from the index the get signature columns
+            $cnames = array_filter($index, fn($cname)=>$cname!==$pointer->cname);
+            //
+            //Convert the array of column names to comma separated fields
+            $cnames_str = join(", ", $cnames);
+            //
+            //Formulate the siganture id
+            $signature = "JSON_ARRAY($cnames_str)";
+            //
+            //Get the members sql. It has teh structure:
+            //Array<{member:pk, signature:string}>
+            //where the siganture is an array of all the signature columns
+            $members = $this->get_member_sql($dbase, $signature, $pointer);
+            //
+            //Get the acutal sigantures
+            $signatures = $this->get_signatures($dbase, $signature, $members);
+            //
+            //Only non-empty signatures are considerd
+            if (count($signatures)==0) continue;
+            //
+            //Construct the index-based data and grow the indices
+            $data = new stdClass();
+            $data->ixname = $ixname;
+            $data->members = $members;
+            $data->signatures = $signatures;
+            //
+            //Push teh data to the array.
+            $indices[]=$data;
+        }
+        //
+        //There must be at least one index whose unique key integrity would
+        //be violated for re-direction to have failed.
+        if (count($indices)==0) 
+            throw new Exception(
+               "No index from "
+                .json_encode($contributor->indices)
+                ." in '$pointer->ename' for signature '$signature' "
+                . "was found to be unique key violated. Thats unexpected");
+        //
+        return $indices;
+    }
+    
+    
     //Given a pointer to a referenced entity return the sql that is
-    //required for isolatng the members to be merged. These are members
+    //required for isolating the members to be merged. These are members
     //that cause the integrity violation when we attempted the merge -- so they 
-    //must have result in duplicate values in a unique index 
-    private function get_member_sql(stdClass $pointer):string/*sq;*/{
+    //must have resulted in duplicate values in a unique index 
+    private function get_member_sql(database $dbase, string $signature, stdClass $pointer):string/*sql*/{
         //
-        //Get the pointer table; it has the unique indices we require
-        //
-        //Collect all the columns from all the unique indices of the contributor
-        //that references the pointer column 
-        //
-        //Extract the pointer column (from all the collected ones) to get the 
-        //shared ones
-        //
-        //Get the (raw) pointer members being re-directed
-        $redirects = $this->dbase->chk(
+        //Get the all pointer members taking part in this merge process
+        return $dbase->chk(
             "Select "
-                //The shared columns i.e., all index minus pointer plus 
-                //the principal to which the pointers are redirected
-                . "$shareds, "
+                //The shared columns as the sgnature 
+                . "$signature as signature, "
                 //        
-                //The pinter member to be counted
-                ."`$pointer->ename`.`$pointer->ename` as pk "
+                //The members primary key
+                ."`$pointer->ename`.`$pointer->ename` as member "
             //
             //The members to merge come from the pointer table
             . "from "
                 . "`$pointer->dbname`.`$pointer->ename` "
                 //
-                //Limit the cases to those pointing to the minors    
-                . "inner join ($this->minors) as minor "
-                    . "on minor.member=`$pointer->ename`.`$pointer->cname` "
+                //Limit the cases to those pointing to all the reference 
+                //members (not just minors!)
+                . "inner join ($this->members) as member "
+                    . "on member.member=`$pointer->ename`.`$pointer->cname` "
         );
+    }
+
+    //Summarise the pointer members to isolate groups of members to be
+    //merged. Members of the same group have the same signature
+    private function get_signatures(database $dbase, string $signature, string /*sql*/ $members):array/*<signature>*/{
         //
         //Summarise the re-directs to get the members to be merged. They have 
         //the following shape:
@@ -479,21 +566,29 @@ class merger {
         //where value is that of a shared column. The set of shared clumns 
         //define the identity of members to merge to a joint principal. It is a
         //signature
-        return $this->dbase->chk(
+        $sql = $dbase->chk(
             "Select "
-                //The shared columns i.e., all index minus pointer
-                . "JSON_ARRAY($shareds) as signature, "
-                //        
-                //The count of all the primary keys of the pointer members to 
-                //to be redirected
-                . "JSON_ARRAY_AGGREG(pk) as members "
-            //
-            //The members to merge come from the pointer table
+                //The siganture's id
+                . "signature "
             . "from "
-                . "($redirects) as redirect "
+                //
+                //The members to merge
+                . "($members) as member "
+             //
             . "group by "
-                . "JSON_ARRAY($shareds)"
-            ."having count(pk)>1"
+                //
+                //Use the signature to summarise
+                . "$signature "
+            //
+            //Only cases where a signature has more than one member
+            //are considered
+            ."having count(member)>1"
         );
+        //
+        //Execute the query and return the desired data
+        $rows = $dbase->get_sql_data($sql);
+        //
+        //Simplify the signatures to a simple string array, and return
+        return array_map(fn($row)=>$row['signature'], $rows);
     }
 }   

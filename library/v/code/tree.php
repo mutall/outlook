@@ -1,13 +1,13 @@
 <?php
-include_once 'schema.php';
+
 //
 abstract class node extends mutall {
     //
-    //Short name of this node
+    //Short version of the fullname
     public $name;
     //
-    //The full name of the parent 
-    public $parent_name;
+    //The full 
+    public $full_name;
     //
     //The creation date.
     public $creation_date;
@@ -16,62 +16,26 @@ abstract class node extends mutall {
     public $modification_date;
     //
     //
-    public $size;
-    //
-    //
-    public ?folder $parent;
-    //
-    //
     function __construct(
-        //
-        //This is the name of the node.
-        string $name,
-        //
-        //This is the name of the parent node
-        string $parent_name,
-        //
-        ?folder $parent
-    ){
-        //
-        $this->parent= $parent;
+            string $name,
+            string $full_path
+            
+    ) {
         //
         //Get the name of this folder which is the last 
-        $this->name= $name;
+        $this->name=$basename;
         //
         //Save the fullname 
-        $this->parent_name = $parent_name;
+        $this->full_name = $path;
         //
         //This is the creation date
-        $this->creation_date = filectime($this->absolute_name());
+        $this->creation_date = filectime($this->full_name);
         //
         //Get the date this folder was modified
-        $this->modification_date= filemtime($this->absolute_name());
+        $this->modification_date= filemtime($this->full_name);
         //
         //Get the size of this folder 
-        $this->size= filesize($this->absolute_name());
-    }
-    //
-    //The full name is a path relative to the document root and it is a 
-    //combination of the $name and the $parent_name.
-    function full_name():string{
-        //
-        //Formulate the complete full path with no error checks
-        $file=  "$this->parent_name\\$this->name";
-        var_dump($this->parent_name);
-        //
-        return $file; 
-    }
-    //
-    //The absolute path of a file is the canonical form of that file
-    //name is the document root + the full name and it must exist
-    function absolute_name():string{
-        //
-        $file= realpath($_SERVER["DOCUMENT_ROOT"])."\\".$this->full_name();
-        //
-        //Report an error if the file does not exist
-        if(!file_exists($file))
-            throw new Exception ("File/folder $file does not exist");
-        return $file;
+        $this->size= filesize($this->full_name);
     }
     //Form a complete node structure using the initial path and return 
     //the node.
@@ -85,100 +49,82 @@ abstract class node extends mutall {
         string /*"file"|"folder"*/ $target
     ): node {
         //
-        //1. Make the initial path absolute by canonicalizing it,i.e., expressing
-        //it in the standard well known format.
-        //e.g., the relative path 'pictures/water/logo.jpeg'
-        //  becomes 
-        //  'D:/mutall_projects/chama/pictures/water/logo.jpeg'
-        $abs_path= realpath($initial_path);
-        //
-        //Check if the initial path does indeed exist.
-        if ($abs_path === false){
-            throw new Exception("This path '$initial_path' does not exist");
-        }
+        //1. Make the initial path absolute. 
+        //e.g /pictures/water/logo.jpeg.
+        $abs_path= $this->get_absolute_path($initial_path);
         //
         //2.Separate the target file and the node path from the initial absolute 
-        //path so that we have 2 components as follows:- 
-        //'D:/mutall_projects/chama/pictures/water'
-        //'logo.jpeg'
+        //path. e.g /pictures/water,  logo.jpeg
         //
-        //2.1 Get the node path including the drive 
+        //2.1) the node path 
         $node_path_str= pathinfo($abs_path, PATHINFO_DIRNAME);
         //
-        //2.2 The target path depends on the user specification; there may be 
-        //none
-        $target_file = $target==="file" 
+        //2.2)The target path depends on the use specifications
+        $taget_file = $target==="file" 
             ? pathinfo($abs_path, PATHINFO_FILENAME)
             :"";
-        //
-        //2.3.Strip off the root directory
-        
-        //
-        //Get the root directory
-        $root_dir= $_SERVER['DOCUMENT_ROOT'];
-        //
-        //Now Strip this root from the node path string
-        $node_path_str2= substr($node_path_str, strlen($root_dir));
         //
         //3. Build the node network from the node path array
         //
         //3.1) Convert the node path into an array 
-        $node_path= explode("\\",$node_path_str2);
+        $node_path= split($node_path_str, "/");
         //
         //Reverse the elements in the node path
         $reversed= array_reverse($node_path);
         //
         //Create a root folder, i.e., one with no parent. 
         $node= new rich_folder($reversed, "", null);
+        
         //
         //Return the node promised 
-        return $node;   
+        return $node;
+     
+        
     }
 }
-//
-//Modelling an ordinary file folder
 class folder extends node{
-    //
-    //These are the files and subfolders of this folder
-    public ?array $children= null;
     //
     //
     function __construct(
         string $name,
-        string $parent_name,           
+        string $full_name,           
         ?folder $parent
     ) {
         //
-        parent::__construct($name, $parent_name, $parent);
+        parent::__construct($name, $full_name, $parent);
+        //
+        $this->children = null;
     }
 }
 //
-//A rich folder is one where nodes along the initial path are populated with
-//children
+//
 class rich_folder extends folder {
     //
     //
     function __construct(
-        //
-        //Reversed path i.e., the node at the top of the stack 
-        //corresponds  to the name of the path
-        array $node_path,
-        string $parent_name,           
-        ?folder $parent
+            //
+            //Reversed path i.e., the node at the top of the stack 
+            //corresponds  to the name of the path
+            array $node_path,
+            string $full_name,           
+            ?branch $parent
     ) {
-        //Ensure that there is at least one element in the path
-        if(count($node_path)===0){
+        //Ensure that there is atleast one element in the path
+        if(count($node_path===0)){
             throw  new myerror("Empty path not allowed");
         }
         //
         //Get the name of this folder which is at the top of the stack 
         $name = $node_path[count($node_path)-1];
         //
+        //Concatenate the name to complete the full name
+        $full_name = $full_name."/".$name;
+        //
         //Pop the last component of the node path to avoid recreating
         //this folder.
         $node_path2 = array_pop($node_path);
         //
-        parent::__construct($name, $parent_name, $parent);
+        parent::__construct($name, $full_name, $parent);
         //
         //Use a generator to retrieve the children indexed by their names
         $this->children = iterator_to_array(
@@ -189,7 +135,7 @@ class rich_folder extends folder {
         //to be generated
         if(count($node_path2)===0){return;}
         //
-        $node = new rich_folder($node_path2, $parent_name, $this);
+        $node = new rich_folder($node_path2, $full_name, $this);
         //
         //Promote the current ordinary node to a rich one.
         $this->children[$node_path2[count(node_path2)-1]] = $node;
@@ -200,7 +146,7 @@ class rich_folder extends folder {
     function get_children(){
         //
         //Scan the server for folders in this full_path
-        $paths = scandir($this->absolute_name());
+        $paths = scandir($this->full_name);
         //
         //Map all the ifolders to nodes. 
         foreach ($paths as $path){
@@ -223,23 +169,21 @@ class rich_folder extends folder {
     }
 }
 //
-//
 class file extends node {
-    //
-    //
-    public string $icon;
     function __construct(
         //
         //The name of the leaf
         string $name,
         //
         //The full path of this leaf
-        string $parent_name,
+        string $full_name,
+        //
+        //The visual representation of this leaf
+        string $icon,
         //
         //The optional parent
-        ?folder $parent
+        ?branch $parent
     ) {
-       //
-       parent::__construct($name, $parent_name, $parent);
+       parent::__construct($name, $full_name, $icon, $parent); 
     }
 }

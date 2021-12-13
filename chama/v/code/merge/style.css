@@ -23,7 +23,7 @@ body{
     grid-template-rows: 10% 90%;
     grid-template-areas: 
         "header header"
-        "members resolve";
+        "mem resolve";
 }
 /*Style the merger header*/
 #header{
@@ -34,8 +34,8 @@ body{
     font-size: xx-large;
     border-radius: 10px;
 }
-#members{
-    grid-area:members;
+#mem{
+    grid-area:mem;
     display:flex;
     margin: 50px 10px 0px 20px;
     flex-direction: column;
@@ -45,7 +45,7 @@ body{
     background-color: white
 }
 /*styling the Go button*/
-#Go{
+#run{
     margin: 10px 100px 10px 10px;
     /*Centering the radio button*/
     position:absolute;
@@ -55,14 +55,14 @@ body{
     /*Set the border of the onclick button to none*/
     border: none;
     height: 40px;
-    width: 80px;
+    width: auto;
     font-size: 20px;
     border-radius: 20px;
     /*Set the transition property for the background on hover*/
     transition: background-color .5s;
 }
 /*Set the on hover, for the GO button*/
-#Go:hover{
+#run:hover{
     background-color:gold;
 }
 /*Setting the properties for the options*/
@@ -87,7 +87,6 @@ textarea{
     border: none;
     border-radius: 15px;  
 }
-/*Index HTML file*/
-#custom{
-    display: block;
+label{
+    display:block;
 }

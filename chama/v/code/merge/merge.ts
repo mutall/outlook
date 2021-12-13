@@ -9,6 +9,12 @@ import * as php from "./php.js";
 //
 export default class merger extends php.merger {
     //
+    //Track the current class for global access
+    static current:merger;
+    //
+    //The stack for supporting detection of endless merger execution
+    static stack:Array<lib.Imerge>=[];
+    //
     //The members that drive the merging process
     get principal():number|undefined {return this.imerge!.principal; };
     get minors():lib.sql|undefined{return this.imerge!.minors};
@@ -17,6 +23,7 @@ export default class merger extends php.merger {
         super(imerge);
         if (imerge==undefined) this.imerge = this.get_imerge();
     }
+    //
     //
     //Get the details of the members to merge
     get_imerge(): lib.Imerge{
@@ -33,9 +40,38 @@ export default class merger extends php.merger {
         return {dbname, ename, members}; 
     }
     
+    static async  run():Promise<void>{
+        //
+        //Create a merger object ansdsave it for global access
+        merger.current = new merger();
+        //
+        //Exeute the merging process
+        merger.current.execute();
+    }
+    
     //
     //Merge the members of this object
     public async execute():Promise<void>{
+        //
+        //Avoid endless looping
+        //
+        //Get the key merge parameters
+        const key:lib.Imerge = {
+            dbname:this.dbname,
+            ename:this.ename,
+            members:this.members
+        };
+        //Stop if the key is alray in the stack
+        if (merger.stack.includes(key)){
+            //
+            //Compile message
+            const msg = "Endless looping for Imerge '"+JSON.stringify(key)+"'";
+            throw new Error(msg);
+        }
+        //
+        //Push the merger key to the stack
+        merger.stack.push(key)
+        //
         //
         //From the members identify the principal and the minor players.
         const players = await this.get_players();
@@ -63,9 +99,11 @@ export default class merger extends php.merger {
         //
         //Remove the minors
         await this.clean_minors(interventions);
+        //
+        //Remove the merger key from the stack
+        merger.stack.pop();
     }
-    //
-    //
+    
     //Delete the minors until there are no integrity errors; then update
     //the principal with the consolidations
     public async clean_minors(consolidations:lib.interventions): Promise<void>{
@@ -75,62 +113,9 @@ export default class merger extends php.merger {
         let deletion:Array<lib.pointer>|'ok' 
         while((deletion =await this.delete_minors())!=='ok'){
             //
-            //Redirect the minors to the principal
-            //
-            //Avoid cyclic merging by first attending to structural member 
-            //ponters followed by the cross members
-            for(let cross_member of [false, true]){
-                //
-                //Select pointers that match the cross member frag
-                let pointers = 
-                    deletion.filter(pointer=>pointer.is_cross_member=cross_member);
-                //
-                //Redirect all the selected pointers
-                for(let pointer of pointers){
-                    //
-                    //Redirect contributors pointing to minor members to point 
-                    //to the principal until there is no referential integrity 
-                    //error
-                    let redirection:lib.Imerge|'ok';
-                    while((redirection = await this.redirect_pointer(pointer))!=='ok'){
-                        //
-                        //On an index by index basis....
-                        for (let index of pointer.indices){
-                            //
-                            //...and on a signature by signature basis....
-                            for (let signature of index.signatures){
-                                //
-                                //Merge the pointer members that share the 
-                                //same signanture
-                                //
-                                //Compile the Imerge data
-                                //
-                                const dbname = pointer.column.dbname;
-                                const ename = pointer.column.ename;
-                                //
-                                //Use the signaure to constrain the pointer members
-                                const members:lib. sql = `
-                                    SELECT
-                                        member 
-                                    FROM
-                                        (${index.members}) as member
-                                    WHERE 
-                                        signature='${signature}'
-                                `
-                                //
-                                //Assemble the imerge components together
-                                const imerge = {dbname, ename, members};
-                                //
-                                //Use the pointer members, a.k.a., contributors, 
-                                //to start a new merge operation
-                                const $merger = new merger(imerge); 
-                                //
-                                $merger.execute();
-                            }
-                        }
-                    }
-                }
-            }
+            //Redirect all contributors pointing to the minors to point
+            //to the principal
+            await this.redirect_minors(deletion);
         }
         //
         //3. Update the principal
@@ -138,6 +123,79 @@ export default class merger extends php.merger {
         //
         //4. Report
         this.report("Merging was successful");
+    }
+    
+    //Redirect all contributors pointing to the minors to point
+    //to the principal. The given list of pointers must be the dones that
+    //caused the previous deltion process to fail, so integrity must have been
+    //violated
+    public async redirect_minors(pointers:Array<lib.pointer>):Promise<void>{
+        //
+        //Avoid cyclic merging possibility by first attending to structural 
+        //member ponters followed by the cross members.
+        for(let cross_member of [false, true]){
+            //
+            //Select pointers that match the cross member frag
+            let selected_pointers = 
+                pointers.filter(pointer=>pointer.is_cross_member=cross_member);
+            //
+            //For every selected pointer...
+            for(let pointer of selected_pointers){
+                //
+                //...re-direct the pointer to the principal until redirection
+                //is successful.
+                let redirection:Array<lib.index>|'ok';
+                while((redirection = await this.redirect_pointer(pointer))!=='ok'){
+                    //
+                    //Redirection of the current pointer was not successful
+                    //(because of referential integrity violation)
+                    //
+                    //Merge the pointer members and re-try
+                    await this.merge_pointer_members(pointer, redirection);
+                }
+            }
+        }    
+    }
+    
+    //Merge the members of the pointer
+    public async merge_pointer_members(pointer:lib.pointer, indices:Array<lib.index>)
+        :Promise<void>
+    {
+        //
+        //On an index by index basis....
+        for (let index of indices){
+            //
+            //...and on a signature by signature basis....
+            for (let signature of index.signatures){
+                //
+                //Merge the pointer members that share the 
+                //same signanture
+                //
+                //Compile the Imerge data
+                //
+                const dbname = pointer.dbname;
+                const ename = pointer.ename;
+                //
+                //Use the signaure to constrain the pointer members
+                const members:lib. sql = `
+                    SELECT
+                        member 
+                    FROM
+                        (${index.members}) as member
+                    WHERE 
+                        signature='${signature}'
+                `
+                //
+                //Assemble the imerge components together
+                const imerge = {dbname, ename, members};
+                //
+                //Use the pointer members, a.k.a., contributors, 
+                //to start a new merge operation
+                const $merger = new merger(imerge); 
+                //
+                await $merger.execute();
+            }
+        }
     }
     
     //
@@ -181,7 +239,7 @@ export default class merger extends php.merger {
             const radios = values.map(value=>`
                 <label>
                     <input type = 'radio' name='${cname}' value='${value}'
-                        onclick = "merger.show('${cname}_group', false)"
+                        onclick = "merger.current.show_panel('${cname}_group', false)"
                     />
                     ${value}
                 </label>
@@ -190,10 +248,10 @@ export default class merger extends php.merger {
             radios.push(`
                 <label>
                     <input type = 'radio' name='${cname}' value='other'
-                      onclick = "merger.show('${cname}_group', true)"
+                      onclick = "merger.current.show_panel('${cname}_group', true)"
                     />
                     Other
-                    <div id='${cname}_group'>
+                    <div id='${cname}_group' hidden>
                         <label>
                             Specify:<input type = 'text' id='${cname}'/>
                         </label>

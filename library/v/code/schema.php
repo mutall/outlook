@@ -55,7 +55,7 @@ class mutall {
         if (!isset($_REQUEST['margs'])) {
             throw new \Exception("Method parameters not found");
         }
-        $margs = json_decode($_REQUEST['margs'], JSON_THROW_ON_ERROR);
+        $margs = json_decode($_REQUEST['margs'], null, 512, JSON_THROW_ON_ERROR);
         //
         //This method is executable at an object state or static state
         //controlled by the is_static property at the request
@@ -70,7 +70,7 @@ class mutall {
             if (!isset($_REQUEST['cargs'])) {
                 throw new \Exception("Class constructor parameters not found");
             }
-            $cargs = json_decode($_REQUEST['cargs'], JSON_THROW_ON_ERROR);
+            $cargs = json_decode($_REQUEST['cargs'], null, 512, JSON_THROW_ON_ERROR);
             $obj = new $class(...$cargs);
             //
             //Execute on object method
@@ -184,12 +184,11 @@ class mutall {
     //Offload the properties from the source to the destination
     static function offload_properties($dest, $src) {
         //
-        if (is_null($src)) {
-            echo '';
-        }
+        //If the source is empry, there is nothing to offload
+        if (is_null($src)) return;
         //
-        // throuhg all the proprties of the source and each property to the
-        //destination if it does not exist
+        //Loop through all the keys of the source and for each key add it to 
+        //to the destination if it does not exist
         foreach ($src as $key => $value) {
             //
             if (!isset($dest->$key)) {
@@ -273,10 +272,9 @@ class schema extends mutall {
     //errors are manaed by ths property
     public array /* error[] */$errors = [];
 
-    //
-    //Define the full name of a mutall object set the error handling
-    function __construct(string $partial_name) {
-        //
+    //The partial name is used for identifying this object in the
+    //context of generating xml logs
+    function __construct(string $partial_name='no_name') {
         //
         $this->partial_name = $partial_name;
         //
@@ -437,16 +435,18 @@ class schema extends mutall {
             return;
         }
         //
-        //Decode the comment json string to a php (stdClass) object, it may 
-        //fail. 
+        //Decode the comment (which should be in proper json format) to a php 
+        //(stdClass) object, it may fail. 
         try {
             //
-            //Add the comment property to teh entoty
-            $comment = json_decode($json, JSON_THROW_ON_ERROR);
+            //Add the comment property to the entity
+            $comment = json_decode($json, null, 512, JSON_THROW_ON_ERROR);
             //
-            if (!is_array($comment)) {
-                $error = new \Error("the comment of $this->partial_name as $json"
-                        . " is not a proper json format");
+            //The comment shound be an object. E.g,,
+            //{"cx":200, "cy":"-23"}.
+            if (!is_object($comment)) {
+                $error = new \Error("The comment of $this->partial_name as '$json'"
+                        . " does not evaluate to an object");
                 array_push($this->errors, $error);
                 return;
             }
@@ -1476,13 +1476,11 @@ class database extends schema {
         //in a config file.
         $this->pdo = new PDO($dbname, config::username, config::password);
         //
-        //Throw exceptions on database errors, rather thn returning
-        //false on querying the dabase -- which can be tedious to handle for the 
-        //errors 
-        //$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        //
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
-                
+        //Throw exceptions on database errors, rather than returning
+        //false on querying the dabase -- which can be tedious to handle 
+        //quering errors
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        //        
         //Prepare variables (e.g., current and userialised) to support the 
         //schema::open_databes() functionality. This is designed to open a database
         //without having to use the information schema which is terribly slow.
@@ -1645,37 +1643,6 @@ abstract class entity extends schema implements expression {
                     continue;
                 }
                 yield $col;
-            }
-        }
-    }
-
-    //Yields an array of pointers as all the foreigners that reference this 
-    //entity. This function is similar to foreigners(), except that its output 
-    //cannot be buffered, because, with ability to add views to the database, 
-    //the pointers of an entity can change.
-    function pointers(): \Generator/* pointers[] */ {
-        //
-        //The search for pinters will be limited to the currently open
-        // databases; otherwise we woulud have to open all the databse on the 
-        //server.
-        foreach (database::$current as $dbase) {
-            foreach ($dbase->entities as $entity) {
-                foreach ($entity->foreigners() as $foreigner) {
-                    //
-                    //A foreigner is a pointer to this entity if its reference match
-                    //this entity. The reference match if...
-                    if (
-                    //...database names must match...
-                            $foreigner->ref->db_name === $this->dbname
-                            //
-                            //...and the table names match
-                            && $foreigner->ref->table_name === $this->name
-                    ) {
-                        //
-                        //Create a pointer 
-                        yield new pointer($foreigner);
-                    }
-                }
             }
         }
     }
@@ -1879,11 +1846,11 @@ class table extends entity {
     //The parent database. It is protectde to avoid recursion duing json encoding
     protected database $dbase; 
     //
-    //To allow external access to this dataase....
+    //To allow external access to this table's protected database
     function get_dbase(){return $this->dbase; }
     //
-    //To access the name of the dbase outside of this table
-    function dbname(){return $this->dbase->name; }
+    //The database name associated with this table
+    public string $dbname;
     //
     //The relation depth of this entity.  
     public ?int $depth = null;
@@ -1899,12 +1866,45 @@ class table extends entity {
     //
     function __construct(database $parent,string $name) {
         //
+        parent::__construct($name);
+        //
         $this->dbase = $parent;
         //
-        parent::__construct($name);
+        //Set the database name for global access
+        $this->dbname = $parent->name; 
     }
     
-    //
+    //Yields an array of pointers as all the foreigners that reference this 
+    //table. This function is similar to foreigners(), except that its output 
+    //cannot be buffered, because, with ability to add views to the database, 
+    //the pointers of an entity can change.
+    function pointers(): \Generator/* pointers[] */ {
+        //
+        //The search for pinters will be limited to the currently open
+        // databases; otherwise we woulud have to open all the databse on the 
+        //server.
+        foreach (database::$current as $dbase) {
+            foreach ($dbase->entities as $entity) {
+                foreach ($entity->foreigners() as $foreigner) {
+                    //
+                    //A foreigner is a pointer to this entity if its reference match
+                    //this entity. The reference match if...
+                    if (
+                    //...database names must match...
+                            $foreigner->ref->db_name === $this->dbname
+                            //
+                            //...and the table names match
+                            && $foreigner->ref->table_name === $this->name
+                    ) {
+                        //
+                        //Create a pointer 
+                        yield new pointer($foreigner);
+                    }
+                }
+            }
+        }
+    }
+
     //This is the string represention of this table 
     public function to_str(): string {
         return "`{$this->dbase->name}`.`$this->name`";
@@ -2315,27 +2315,28 @@ class column extends schema implements expression{
     function get_entity():entity {return $this->entity;}
     //
     //Every column should have a name 
-    public $name;
+    public string $name;
+    public string $ename;
     //
     function __construct(
             //
-            //The paremt/home of this column
+            //The parent/home of this column
             entity $parent,
             //
             //The actual name of the column 
             string $name
     ) {
         //
-        //bind the arguments
+        parent::__construct("$parent->name.$name");
+        //
+        //Save the constructor arguments
         $this->entity= $parent;
         $this->name = $name;
-        //
-        parent::__construct("$parent->name.$name");
+        $this->ename = $parent->name;
     }
 
     // //Returns an error report and the numbet\r of errors it contains
     public function get_error_report(int &$no_of_errors, string &$report): void {
-        //        
         //        
         $count = count($this->errors);
         $no_of_errors += $count;
@@ -2361,24 +2362,15 @@ class column extends schema implements expression{
         yield $this->entity;
     }
  
-    //Returns the string version of this column, taking care of 
-    //multi-database scenarios
+    //Returns the string version of this column. NB. There is no reference to
+    //a database. Compare this with the capture:: version.
     function __toString() {
-        //
-        //Compile and return the column name, e.g., 
-        //mutall_user.developer.name
-        return 
-           //
-            //add the entity name
-          "`{$this->entity->name}`"
-          //
-          //..add the column name component
-          . ".`$this->name` ";
+        return "`$this->ename`.`$this->name` ";
     }
 
     //
-    //The expression string version of a comlumn has the form
-    //``$ename`.`$cname`
+    //The expression string version of a column has the form
+    //``$ename`.`$cname`????????/
     function to_str(): string {
         return "$this";
     }
@@ -2420,6 +2412,9 @@ class column extends schema implements expression{
 //storage. These are columns extracted from the information schema directly 
 //(so they need to be checked for integrity).
 abstract class capture extends column {
+    //
+    //To support global access to database and entity names
+    public string $dbname;
     //
     //The construction details of the column includes the following;- 
     //
@@ -2465,8 +2460,19 @@ abstract class capture extends column {
         //Create the parent column that requires the dbname, the ename and the 
         //column name  
         parent::__construct($parent, $name);
+        //
+        //Initialize dataase and entity names
+        $this->dbname = $parent->dbname;
     }
-//Returns the non-structural colums of this entity, a.k.a, cross members. 
+    
+    //The string version of a capture column, iis the same as that of an
+    //ordinary column, prefixed with the database name to take care of 
+    //multi-database scenarios
+    function __toString() {
+        return "`$this->dbname`.".parent::__toString();
+    }
+    
+    //Returns the non-structural colums of this entity, a.k.a, cross members. 
     //These are optional foreign key columns, i.e., thhose that are nullable.
     //They are important for avoidng cyclic loops during saving of data to database
     function is_cross_member() {
@@ -2808,8 +2814,7 @@ class pointer extends foreign {
     //
     function __construct(foreign $col) {
         parent::__construct(
-            $col->dbname,
-            $col->ename,
+            $col->get_entity(),
             $col->name, 
             $col->data_type,
             $col->default,
@@ -2818,8 +2823,6 @@ class pointer extends foreign {
             $col->length,
             $col->ref
         );
-        $this->home = $this->home();
-        $this->away = $this->away();
     }
 
     //Pointers run in the opposite direction to corresponding foreign keys, so 
@@ -2838,11 +2841,6 @@ class pointer extends foreign {
         return parent::away();
     }
 
-    //
-    //Get the string version of this object that will aid in searching 
-    function __toString() {
-        return "{$this->dbase->name}.{$this->entity->name}.$this->name";
-    }
     //
     //The expression string version of a comlumn has the form
     //`$dbname`.`$ename`.`$cname`

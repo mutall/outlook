@@ -1,54 +1,37 @@
 <?php
-//The config class contains all the factor of the project that change with time 
-//the include 
-//1. The database credentials (username, password and the dbname)
-//1. The referenced files both for javascript and the php
+//The root configuration, e.g.., database credentials, are not expected to 
+//be server-specific and should be set up is part of Outlook's installation -- 
+//not when we switch to a different application
 class config{
     const username = "root";
-    const password = "";
+    const password =null;
     //
-    //Save the location of this file as an adress this inorder to include it in any file 
-    //that may require it as it is derived from the session since this config is saved in the session 
-    //it should have a way of locating its self 
-    public $address= '/metavisuo/v/config.php';
+    //The shared users database 
+    const dbname="mutall_users";
+    // 
+    //This is the general template for displaying the user report 
+    public string $report = "/outlook/v/code/report.html";
     //
-    //Set the various file absolute addressess as includes array which  is a public 
-    //property 
-    //the includes for the chama are the metavisuo library, exports library,
-    //and the metavisuo sql library;
-    //Note and add any other includes  from here
-    public $include =[
-        'root'=>'schema.php',
-        'sql'=>'sql.php',
-        'capture'=> 'capture.php' 
-     ];
+    //This is the complete path for the login template
+    public string $login= "/outlook/v/code/login.html";
     //
-    //The javascript import absolute paths are as an array of js
-    public $import =[
-        'root'=>"schema.js",
-    ];
+    //The complete path of the welcome template 
+    public string $welcome= "/outlook/v/code/welcome.html";
     //
+    //The database for managing users and application that are 
+    //running on this server 
+    public string $login_db = "mutall_users";
+        
+    //The crud's template
+    public string $crud = "/outlook/v/code/crud.html";
+    // 
+    //This is the general template for collecting simple user data.
+    public string $general = "/outlook/v/code/general.html";
+    // 
+    //The maximum number of records that can be retrieved from 
+    //the server using one single fetch. Its value is used to modify 
+    //the editor sql by  adding a limit clause 
+    public int $limit = 40; 
     //
-    function __construct() {
-        //
-        //The 
-    }
-    //
-    //Enabling the creation of the config object .........
-    //
-    //Return the root metaviuo library php version as a complete absolute path 
-    function root(){
-        return  $_SERVER['DOCUMENT_ROOT']. $this->include['root'];
-    }
-    //
-    //Return the root metaviuo sql_library url version as a complete absolute path 
-    function sql(){
-        return $_SERVER['DOCUMENT_ROOT']. $this->include['sql'];
-    }
-    //
-    //
-    function capture(){
-        return $_SERVER['DOCUMENT_ROOT']. $this->include['capture'];
-    }
-    
+    function __construct(){}
 }
