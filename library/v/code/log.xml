@@ -1,2 +1,2 @@
 <?xml version="1.0"?>
-<capture.data><save.structurals><save.record.unnamed alias="[]" result="runtime_error[]"/><show.errors number_of_errors="0"/></save.structurals><update.cross_members/></capture.data>
+<capture.data><save.artefact.language alias="[1]" save="structurals" result="34"><save.column.language.name result="Test"/><save.column.language.language result="34"><save.index.language.id_name result="34"/></save.column.language.language></save.artefact.language><save.artefact.language alias="[1]" save="cross_members" result="34"/></capture.data>

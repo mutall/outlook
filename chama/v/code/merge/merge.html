@@ -16,31 +16,33 @@
         </script>
     </head>
     <body>
-        <div id="header">
+        <div class="header">
             <!-- comment -->
             MERGING DATA
         </div>
-        <div id="members">
+        <div class="query">
             <label>
                 Database:
-                <select  id="dbase" onchange="page_graph.changedb()" placeholder="database">
+                <select  id="dbase" class="dbase" onchange="page_graph.changedb()" placeholder="database">
                     <option>mutall_chama</option><br>
                 </select>
             </label>
             <label>
-                Reference Entity name:
-                <select  id="ename" onchange="page_graph.display_entity()" placeholder="entity">
+                Reference Entity Name:
+                <select  id="ename" class="ename" onchange="page_graph.display_entity()" placeholder="entity">
                     <option>member</option>
                 </select>
             </label>
+            <!-- Specify the SQL to merge -->
             <label> 
                 Enter the SQL for selecting the records to merge:<br/>
-                <textarea id="sql" name="name" rows="5" cols="10">select * from member where name like (%kanake%);</textarea>
+                <textarea id="members" class="name" rows="5" cols="10">select * from member where email like '%kanake%'</textarea>
             </label>
-            <input id="Go" type="button" value="Go" 
-            onclick="const merger= new merger(); await merger.execute();">
+            <button  id="run" class="button" onclick=" merger.run()">Okay</button>
         </div>
-        <div id="resolve">resolve
+        <div id="resolve" class="conflicts">
+            <div id='resolution'></div>
+            <button id="go" class="proceed">Proceed</button>
         </div>
     </body>
 </html>

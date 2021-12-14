@@ -213,7 +213,7 @@ class editor extends selector{
             //All foreign keys need a selector (based on the away entity) to 
             //support friendly columns and their corresponding joints
             $selector  = new selector(
-                $col->away()->name, $col->away()->dbname()
+                $col->away()->name, $col->away()->dbname
             );
             //
             //Create a friendly column, NOT FIELD! so that its to_st() 

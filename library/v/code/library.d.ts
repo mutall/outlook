@@ -330,7 +330,9 @@ export type sql = string;
 export interface Imerge{
   dbname:string,
   ename:string,
-  members:sql  
+  members:sql,
+  minors?:sql,
+  principal?:number  
 }
 
 type interventions = Array<intervention>;
@@ -346,31 +348,58 @@ interface conflict{
     cname:cname,
     values: Array<basic_value>
 }
-//
-//A pointer is an extension of a foreign ket=y column.
+
+//A pointer is a foreign key column of a contributor whose integrity would
+//be violated if there is an attempt to delete a reference record. The pointer
+//would need re-direction before being deleted.
 export type pointer = {
+    //
     //Name of the column/field
     cname: cname,
     //
     //Name of the table containing the column
     ename: ename,
     //
-    //Name of the database in which teh table is contained. 
-    dbname: dbname, 
+    //Name of the database in which the table is contained. 
+    dbname: dbname,
     //
-    //Is the column structural or is to a cross member 
-    cross_member:boolean};
+    //Is the foreign key a cross member or not. This is important 
+    //for addressing possibiliy for cyclic referencing
+    is_cross_member:boolean,
+}; 
+
+//Indices of the pointer's away table that can 
+//be violated by re-direction
+export type index = {
+    //
+    //Index name (for reporting purposes)
+    ixname:string;
+    //
+    //An sql that generates a merging singature bases on the
+    //violaters, i.e., the columns of an index needed to determine
+    //integrity violaters. The sql has the shape:
+    //Array<{signature}>
+    signatures:Array<{signature:string}>, 
+    //
+    //The sql that is to be constrained by a specific to generate
+    //the pointer members that need to be merged. he sql has the shape:-
+    //Array<{signature, member}
+    members:sql
+}
+    
 //
 export class merger{
     constructor(imerge:Imerge);
-    get_players(): {principal:sql,minors:sql}|null;
+    
+    get_players(): {principal:number,minors:sql}|null;
+    
     get_values(): sql;
     //
     get_consolidation():{clean:interventions, dirty:conflicts};
     
     update_principal(consolidations:interventions): void;
     //
-    //To be implemented in PHP
     delete_minors(): Array<pointer>|'ok';
-    redirect_pointer(pointer:pointer):Imerge|'ok'
+    //
+    redirect_pointer(pointer:pointer):Array<index>|'ok'
 }    

@@ -1,6 +1,6 @@
 //
-//Resolve the mutall error class
-import {mutall_error} from "./schema.js";
+//Resolve the mutall error class, plus access to the application url
+import * as schema from "./schema.js";
 // 
 //We need the library dts to support the parametarization of the 
 //sever methods 
@@ -62,14 +62,11 @@ export async function exec<
         //
         method_name: method_name,
         //
-        margs: margs,
-        //
-        //This the application website url
-        url?: string
+        margs: margs
     ): Promise<$return> {
     //
     //Call the non parametric form of exec
-    return await exec_nonparam(class_name,method_name,margs,cargs,url);
+    return await exec_nonparam(class_name,method_name,margs,cargs);
  }
 //
 //
@@ -144,20 +141,18 @@ export async function ifetch<
     method_name: method_name,
     //
     //The method parameters
-    margs: $parameters,
-    //
-    //The application website url
-    url?:string
-
+    margs: $parameters
 ): Promise<$return> {
     //
-    //Call the non parametric form of exec
-    return await exec_nonparam(class_name,method_name,margs,null,url);
+    //Call the non parametric form of exec, without any constructor 
+    //arguments
+    return await exec_nonparam(class_name,method_name,margs);
 }
- //
- //This is the non-parametric version of exec useful for calling both the static
- // and object of the given php class
- async function exec_nonparam(
+
+//
+//This is the non-parametric version of exec useful for calling both the static
+// and object of the given php class
+export async function exec_nonparam(
     //
     //This is the name of the php class to create
     class_name: string,
@@ -170,17 +165,14 @@ export async function ifetch<
     //
     //If defined, this parameter represents the constructor arguements for the 
     //php class. It is undefined for static methods.
-    cargs:Array<any>|null=null,
-    //
-    //
-    url?:string,
+    cargs:Array<any>|null=null
  ): Promise<any>{
     //
     //Prepare to collect the data to send to the server
     const formdata = new FormData();
     //
-    //Add the application URL if it is available
-    if (url !== undefined)formdata.append("url", url);
+    //Add the application URL from the schema class
+    formdata.append("url", schema.schema.app_url);
     //
     //Add to the form, the class to create objects on the server
     formdata.append('class', class_name);
@@ -234,7 +226,7 @@ export async function ifetch<
         const msg = 
         `Error trapping failed???. <br/> Message: "${(<Error> ex).message}".<br/>Text = "${text}"`;
         //
-        throw new mutall_error(msg);
+        throw new schema.mutall_error(msg);
     }
     //
     //The json is valid.
@@ -247,5 +239,5 @@ export async function ifetch<
     const msg= <string>output.result;
     // 
     //Report the error. 
-    throw new mutall_error(msg);
+    throw new schema.mutall_error(msg);
 }

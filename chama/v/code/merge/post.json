@@ -1,1 +1,7 @@
-{"url":"http:\/\/localhost\/chama\/v\/code\/merge\/merge.html","class":"merger","cargs":"[{\"dbname\":\"mutall_chama\",\"ename\":\"member\",\"members\":\"                select * from member where email like 'George Kamau%' or email='Gk'\\n            \",\"principal\":1148,\"minors\":\"select member from (                select * from member where email like 'George Kamau%' or email='Gk'\\n            ) as member where not (member =1148)\"}]","method":"delete_minors","margs":"[]"}
+{
+    "url": "http:\/\/localhost\/chama\/v\/code\/merge\/merge.html",
+    "class": "merger",
+    "cargs": "[{\"dbname\":\"mutall_chama\",\"ename\":\"member\"}]",
+    "method": "get_players",
+    "margs": "[]"
+}

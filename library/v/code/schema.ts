@@ -2,13 +2,13 @@
 //
 //Describes the entiy names in so to maintain my code local vocabularies as 
 //derived from php
-type ename = string;
+export type ename = string;
 //
 //The database name 
-type dbname=string;
+export type dbname=string;
 //
 //These are the custom datatype for the column name to maintain a semantic meaning to my code 
-type cname=string;
+export type cname=string;
 //
 //The types of columns available in this file
 type col_type="attribute"|"primary"|"foreign"| "field";
@@ -17,7 +17,7 @@ type col_type="attribute"|"primary"|"foreign"| "field";
 //Modelling special mutall objects that are associated with a database schema.
 //Database, entity, index and column extends this class. Its main characterstic
 //is that it has an orgainzed error handling mechanism.
-class schema{
+export class schema{
     //
     //The partial name is the unique identifier of this schema object it aids in 
     ///logging and also in saving of this schema in an array since this name  is mostly
@@ -27,6 +27,12 @@ class schema{
     //Error logging is one of the major features of this schema with its ability to bash
     //its own error which affects the display of this schema 
     errors:Array<Error>;
+    //
+    //Define a globally accessible application url for supporting the working of
+    //PHP class autoloaders.
+    //The url enables us to identify the starting folder for searching for 
+    //PHP classes.
+    public static app_url:string;
     //
     //To create a schema we require a unique identification also called a partial 
     //name described above 
