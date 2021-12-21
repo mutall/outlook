@@ -183,7 +183,7 @@ export default class merger extends php.merger {
                     FROM
                         (${index.members}) as member
                     WHERE 
-                        signature='${signature}'
+                        trim(signature)='${signature}'
                 `
                 //
                 //Assemble the imerge components together

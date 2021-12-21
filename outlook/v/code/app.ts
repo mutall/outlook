@@ -5,14 +5,18 @@ import * as server from "../../../library/v/code/server.js";
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
 import * as schema from "../../../library/v/code/schema.js"
 // 
-//Get the user configurations 
-import app_config from "./config.js";
-// 
-// 
 import * as outlook from "./outlook.js";
 import * as crud from "./crud.js";
 import * as theme from "./theme.js";
 import * as login from "./login.js";
+import * as quest from "../../../library/v/code/questionnaire.js"
+
+//
+//A column on the application database that is linked to a corresponding one
+//on the user database. Sometimes this link is broken and needs to be
+//re-established.
+type replica = {ename: string, cname:string};
+
 //
 //The mechanism of linking services providers 
 //to their various consumers.
@@ -30,12 +34,10 @@ export abstract class app extends outlook.view{
     //The visitor/regular user who is attached to the application.
     public user?: outlook.user;
     //
-    //The roles available for a user of this application (as an array of class
-    //objects, rather than a role interface) 
-    //The roles a user can play in this application
+    //All the possible products that a user can access via this application
     public products: products;
     //
-    //Remmeber that static properties cannot reference class parameters, we cannot
+    //Remember that static properties cannot reference class parameters, we cannot
     //do public static current: app<role_id, ename>
     public static current: app;
     //
@@ -60,15 +62,21 @@ export abstract class app extends outlook.view{
     constructor(
         //
         //The configuration settings for this application
-        config:app_config        
+        public config:Iconfig
     ) {
         //
-        //If the url of an application is not defined, then use that of
-        //the current window
-        super(config, window.location.href);
+        //The url of an application comes from the current window
+        super(window.document.URL);
+        //
+        //Set this as teh current application
+        app.current = this;
+        //
+        //Ensure that the globally  acessible application url in the shema
+        //class is set to that of this document. This is important to support 
+        //registration autoloaders in PHP
+        schema.schema.app_url = window.document.URL;
         //
         this.dbname = this.config.app_db;
-        // 
         // 
         this.subject = config.subject;
         //
@@ -76,76 +84,27 @@ export abstract class app extends outlook.view{
         //class that extednds this ne.
         this.id = config.id;
         //
-        //Set the page document.
+        //Set the application's window.
         this.win = <Window>window;
         // 
-        //Get the inbult imala used for compiling the bootraped products 
-        const Iproducts: outlook.assets.products = this.get_Iproducts();
-        this.products = new products(Iproducts);
-        //
-        //Test if there is a user that already exists in the local 
-        //storage.
-        const user_str = this.win.localStorage.getItem("user");
-        //
-        //If this user exist use the already existing user to login
-        if(user_str !== null){
-            this.user = JSON.parse(user_str.trim());
-            this.login(this.user);
-        }
-    }
-    // 
-    //Returns a range of bootrapped products 
-    protected get_Iproducts(): outlook.assets.products{
-        // 
-        //The inbuilt solutions that are the crud solutions for the assets
-        //resources and the roles           
-        const solutions: outlook.assets.solutions={
-            crud_resource: {
-                title: "Package Solutions to Products",
-                id: "crud_resource",
-                listener:["crud",'resource', ['review'],'+',"mutall_users"]
-            },
-            crud_roles: {
-                title: "Customise Products",
-                id: "crud_roles",
-                listener:["crud",'custom', ['review'],'+',"mutall_users"]
-            },
-            crud_assets: {
-                title: "Product Subscription",
-                id: "crud_assets",
-                listener:["crud",'asset', ['review'],'+',"mutall_users"]
-            },
-            executions: {
-                title: "Specialize products",
-                id: "executions",
-                listener:["crud",'execution', ['review'],'+',"mutall_users"]
-            }
-        }
-        //  
-        //The roles and products of this application.
-        const products: outlook.assets.products = {
-            admin: {
-                    id: "admin", title: "Manage Admin Products",
-                    solutions: solutions
-                }
-                
-        }
-        return products;
- 
+        //Compile the products of this application
+        this.products = new products();
     }
     //
-    //The user must call this method on a new application object; 
+    //The user must call this method on a new application object; its main 
+    //purpose is to complete those operations of a constructor that require
+    //to function synchronously
     async initialize():Promise<void>{
         //
-        //Open the application to set the win and title properties.
+        //Open the application window to set the win and title properties.
         this.open();
         //
-        //Set the database property based on the subject property.
+        //Set the database based on the subject property.
         await this.set_dbase();
         // 
-        //Expand the inbuilt products with all those read from the database that 
-        //a) associated with this application through the execution link 
-        //b) Are not associated with any application. 
+        //Expand the inbuilt products with all those read from the database that:- 
+        //a) are associated with this application through the execution link 
+        //b) are global, i.e., not associated with specific role or application. 
         await this.products.expand();
         //
         //Set the application panels
@@ -158,10 +117,23 @@ export abstract class app extends outlook.view{
         //
         //Show the theme and the services panel
         await this.show_panels();
+        //
+        //Populate the subject selector
+        this.populate_selector();
         // 
         //Show this application on the address bar and make ensure that
         //the initial window history state is not null.
         this.save_view('replaceState');
+        //
+        //Test if there is a user that already exists in the local 
+        //storage.
+        const user_str = this.win.localStorage.getItem("user");
+        //
+        //If this user exist use the already existing user to login
+        if(user_str !== null){
+            this.user = JSON.parse(user_str.trim());
+            this.login(this.user);
+        }
     }
     //     
     //Return true/false depending on whether the named entity is linked to 
@@ -208,10 +180,10 @@ export abstract class app extends outlook.view{
   }
     //
     //Authenticate a new user that wants to access the 
-  //services of this application. 
-   //This the parameter user is usered when this method is called 
-  //by the constructor is a user is found already existing in the local 
-  //storage hence no loging in is required. 
+    //services of this application. 
+    //This the parameter user is usered when this method is called 
+    //by the constructor is a user is found already existing in the local 
+    //storage hence no loging in is required. 
     async login(User ?: outlook.user){
         //
         //If no user exists at the local storage get the user through a login 
@@ -220,7 +192,7 @@ export abstract class app extends outlook.view{
             //
             //1.Create and open the login page for the user to choose the login
             //provider.
-            const Login = new login.page(this.config, this.config.login);
+            const Login = new login.page(this.config.login);
             //
             //2.Get the authenticated user from the login popup
             this.user= <outlook.user>await Login.administer();  
@@ -235,27 +207,26 @@ export abstract class app extends outlook.view{
         //Formulate the sql statement to do the job needed 
         //
         //Select from the user database all the subscription for the user 
-        //whose email is the given one and the application_id is the given 
-        //const roles:Array<role>=mutall.execute(select:Array<exp>,from:ename, where:exp)
+        //whose email and the application_id are the given ones
         const sql=
           //
           //1. Specify what we want using a "select" clause 
           "SELECT "
             //
-            //...Specify the role id and its full name.
+            //...Specify the role id id(and its full name?).
             + "role.id "
           //
           //2. Specify the "from" clause
           +"FROM "
               +"subscription "
               //
-              //These are the joins that trace our route of intrest 
+              //These are the joins that trace our route of interest 
               + "inner join user ON subscription.user= user.user "
               + "inner join player ON subscription.player= player.player "
               + "inner join application ON player.application=application.application "
               + "inner join role on player.role = role.role "
           //
-          //3. specify the condition that we want to apply i.e "where" clause
+          //3. Specify the conditions that we want to apply i.e "where" clause
           +"WHERE "
               //
               //Specify the email condition 
@@ -266,11 +237,16 @@ export abstract class app extends outlook.view{
         //
         //Get the role ids of this user from the server
         // 
-        //Define the role_id variable.
+        //Define the role_ids variable.
         let role_ids: Array<string>;
         //
         //The server results is an array of objects
-        const ids = <Array<{id:string}>> await server.exec("database",["mutall_users"],"get_sql_data", [sql])
+        const ids = <Array<{id:string}>> await server.exec(
+            "database",
+            ["mutall_users"],
+            "get_sql_data", 
+            [sql]
+        )
         // 
         //Extract the roleid component from the server result
         this.user.role_ids = ids.map(e => e.id);
@@ -285,7 +261,7 @@ export abstract class app extends outlook.view{
         //Welcome the user to the home page unconditionaly
         await this.welcome_user();
         //
-        //Save the user in local storage to allow reaccess to this page 
+        //Save the user in local storage to allow re-access to this page 
         //without logging in.
         window.localStorage.setItem("user", JSON.stringify(this.user));
       }
@@ -329,30 +305,46 @@ export abstract class app extends outlook.view{
             }        
         );
         //
-        //4.Filter the products to remain with only those customed 
+        //4.Filter the products to remain with only those customised 
         //for this role and those that are free
-        this.products.filter(this.user!);
+        //this.products.filter(this.user!);
         // 
         //Activate the free products and those that this user is subscribed for
-        // 
-        //Get the product ids of all products this user is subscribed to
         await this.activate_products();
     }
     // 
-    //Activates all the products that are free or this user is subscribed to
+    //Activates all the products that are relevant for this user 
     async activate_products(): Promise<void>{
         // 
         //Define a set of the product ids to be activated
         const prod_id: Set<string> = new Set();
         // 
-        //Get all the free products
+        //Collect all the free products of this application that are globally 
+        //accessible
         this.products.forEach(Product => {
-            if (Product.cost === undefined || Product.cost === null || Product.cost === 0)
+            if (
+                //Free products....
+                (Product.cost === undefined 
+                || Product.cost === null 
+                || Product.cost === 0)
+                //
+                //...that are  global
+                && Product.is_global==='yes'
+            )
                 prod_id.add(Product.id)
         });
         // 
-        //Get all the subscribed products
-        const subscribed=await server.exec("app", [this.id], "subscribed_products", [this.user!.email!])
+        //Get all the application specific products available to the user. These
+        //are products that are:-
+        //- custom made for the user's role and have no cost
+        //- qualify as user's assets, i.e., they have a cost and the user has 
+        //  subscribed to them explicitly
+        const subscribed=await server.exec(
+            "app", 
+            [this.id], 
+            "available_products", 
+            [this.user!.email!]
+        )
         // 
         //Add the subscribed
         subscribed.forEach(prod => {
@@ -361,8 +353,62 @@ export abstract class app extends outlook.view{
         // 
         //Activate this product
         prod_id.forEach(id => this.products.activate(id));
-
     }
+    
+    // 
+    //Returns shared inbult unindxed products
+    public get_products_shared(): Array<outlook.assets.uproduct>{
+        //  
+        //The roles and products of this application.
+        return [
+            {
+                id: "admin", 
+                title: "Products/Assets/Subscription",
+                solutions:[ 
+                    {
+                        title: "Package Solutions to Products",
+                        id: "crud_resource",
+                        listener:["crud",'resource', ['review'],'+',"mutall_users"]
+                    },
+                    {
+                        title: "Customise Products",
+                        id: "crud_roles",
+                        listener:["crud",'custom', ['review'],'+',"mutall_users"]
+                    },
+                    {
+                        title: "Product Subscription",
+                        id: "crud_assets",
+                        listener:["crud",'asset', ['review'],'+',"mutall_users"]
+                    },
+                    {
+                        title: "Specialize products",
+                        id: "executions",
+                        listener:["crud",'execution', ['review'],'+',"mutall_users"]
+                    }
+                ] 
+            },
+            {
+                id:"setup",
+                title:"Database Administration",
+                solutions:[
+                    {
+                        title: `Relink User System to ${this.dbname}`,
+                        id: "relink_user",
+                        listener: ["event", () => this.relink_user()]
+                    },
+                    {
+                        title:"Edit any Table",
+                        id:"edit_table",
+                        listener: ["event",()=>this.edit_table()]
+                    }
+                ]
+            }
+        ]
+    }
+    
+    //Returns inbuilt (unindexed) products that are specific to this pplication
+    abstract get_products_specific(): Array<outlook.assets.uproduct>;
+    
     //
     //Register the user and return the role ids for which the 
     //user has registered.
@@ -383,7 +429,7 @@ export abstract class app extends outlook.view{
         }
         //
         //Open the popup page for roles
-        const Role = new outlook.choices<string>(this.config,inputs,"role_id"); 
+        const Role = new outlook.choices<string>(this.config.general,inputs,"role_id"); 
         //
         //Get the user roles
         const role_ids = await Role.administer(); 
@@ -399,19 +445,24 @@ export abstract class app extends outlook.view{
         //1.Collect the data needed for a successful 'first level' registartion.
         //e.g., username, application name, user_roles, email.
         // The data has the following structure "[cname, ename, simple, alias]".
-        const login_db_data:Array<library.label> = this.get_subscription_data();
+        const login_db_data: Array<quest.label> = this.get_subscription_data();
         //
         //2. Write the data into the database and return an array of error messages.
         //User.export_data(login_db_data):Promise<Array<string>>;
-        const result:library.Imala= await server.exec("record",[],"export",[login_db_data,"label"]);
+        const result:quest.Imala= await server.exec(
+            "questionnaire",
+            [login_db_data],
+            "load",
+            ["log.xml"]
+        );
         //
         //3.Verify that writing to db was successful
         //and report to the user and throw an exception.
-        const {is_error, html}= this.get_report(result)
+        const {is_error, html}= app.get_report(result)
         // 
         //Show the report if the saving was not successfull 
         if (is_error) {
-            const Report = new outlook.report(<outlook.view>app.current, html!);
+            const Report = new outlook.report(<outlook.view>app.current, html!, this.config.general);
             await Report.administer();
             // 
             //Abort the login process.
@@ -419,11 +470,11 @@ export abstract class app extends outlook.view{
         }
         //
         // The registration was successful so, return the role ids  
-        return this.user?.role_ids;
+        return this.user!.role_ids;
     }
     // 
     //Report the  runtime or syntax errors
-    private get_report(imala: library.Imala): {is_error:boolean, html?:string}{
+    static get_report(imala: quest.Imala): {is_error:boolean, html?:string}{
       // 
       // Define the structure of the report to be returned
       //  
@@ -451,17 +502,20 @@ export abstract class app extends outlook.view{
       //Report runtime errors
       /// 
       //A runtime error exists if ... 
-      if (
+      else if (
           // 
           //...the class name is tagged as syntax
           imala.class_name === "runtime"
           // 
           //... and there are indeed matching error messages 
-          && (msgs = this.get_runtime_errors(imala.result)).length>0
-     ) {
+          && (imala.label_errors.length + imala.table_errors.length>0)
+     ){
         // 
-          //Reporting syntax errors 
-          report_type = "runtime";            
+        //Reporting syntax errors 
+        report_type = "runtime";
+        //
+        //Report the raw Imala
+        msgs = [JSON.stringify(imala)];            
       }
       // 
       //Report the error messages if any. 
@@ -477,43 +531,22 @@ export abstract class app extends outlook.view{
       //Return the full report if report type is dfeiend
       return {is_error:report_type !== undefined, html}  
   }
-    // 
-    //Test for runtime errors and return them if available
-    private get_runtime_errors(
-        // 
-        //The runtime results
-        r_results: Array<[library.Iexp, library.position]>,
-    ):Array<string> {
-        // 
-        //Error messages to be returned using a referenced variable
-        let msgs: Array<string>;
-        // 
-        //Select the erroneous runtime results
-        const rf_results = r_results.filter(ins => ins[0].type === "error")
-        // 
-        //Extract the messages from the erroneous runtime result and 
-        //bind them to the input variable
-        msgs = rf_results.map(res => <string>res[0].value);
-        // 
-        //Runtime errors exist if there are atleast one error
-        return msgs;
-    }
     //
     // Return the data needed for a successful 'first level' registartion, 
     // i.e., the data required for the current visitor to be recognized as a 
     // subscriber of the current application.
-    private get_subscription_data(): Array<library.label> {
+    private get_subscription_data(): Array<quest.label> {
         //
         // Prepare an array for holding the registration data.
-        const reg:  Array<library.label>  = this.collector = [];
+        const reg:  Array<quest.label>  = this.collector = [];
         //
         //Collect the user and appication data
-        this.collector.push(['mutall_users', 'application', [], 'id', [this.id]]);
+        this.collector.push(['mutall_users', 'application', [], 'id', this.id]);
         //
         if (this.user!.email === (undefined || null)) {
             throw new schema.mutall_error("You cannot login using without an email");
         }
-        this.collector.push(['mutall_users', 'user', [], 'email', [this.user!.email!]]);
+        this.collector.push(['mutall_users', 'user', [], 'email', this.user!.email!]);
         //
         //Collect as much subcription data as there are roles
         //subscribed by this the use.
@@ -521,16 +554,16 @@ export abstract class app extends outlook.view{
             //
             //Collect all available pointers to the user to enable us link to 
             //the application's specific database.
-            this.collector.push([app.current.dbname!, myrole, [i], 'email', [this.user!.email!]]);
+            this.collector.push([app.current.dbname!, myrole, [i], 'email', this.user!.email!]);
             //
             //Indicate that we need -to  save a subscription record
-            this.collector.push(['mutall_users', "subscription", [i], 'is_valid', [true]]);
+            this.collector.push(['mutall_users', "subscription", [i], 'is_valid', true]);
             //
             //Indicate that we need to save a player 
-            this.collector.push(['mutall_users', 'player', [i], 'is_valid', [true]]);
+            this.collector.push(['mutall_users', 'player', [i], 'is_valid', true]);
             //
             //COllect the user roles in this application
-            this.collector.push(['mutall_users', 'role', [i], 'id', [myrole]]); 
+            this.collector.push(['mutall_users', 'role', [i], 'id', myrole]); 
         });
         //
         // Return the completer required array.
@@ -538,7 +571,7 @@ export abstract class app extends outlook.view{
     }
     //
     //Collector for first level login data.
-    public collector: Array<library.label> = [];
+    public collector: Array<quest.label> = [];
     // 
     //This method is defined here but will gravitate to its proper 
     //home in future 
@@ -569,11 +602,11 @@ export abstract class app extends outlook.view{
         //
         //
         //Get the template's url. 
-        const url = this.config!.welcome;
+        const url = this.config.welcome;
         //
         //Create the template using the url. A template is a page used
         //for caniblaising, i.e., it is not intended for viewing 
-        const Template = new outlook.template(this.config,url);
+        const Template = new outlook.template(url);
         //
         //Open the template (AND WAIT FOR THE WINDOW TO LOAD LOAD)
         const win = await Template.open();
@@ -588,7 +621,7 @@ export abstract class app extends outlook.view{
     }
     // 
     //Welcoming the visitor means inviting him to login and 
-    //diactivating all the services that could have been active
+    //deactivating all the services that could have been active
     private welcome_visitor() {
         //
         //Invite the user to login 
@@ -596,7 +629,7 @@ export abstract class app extends outlook.view{
                 ` Please <button onclick="app.current.login()">login</button> to access 
                 various services`;
         // 
-        //Diactivate any active service 
+        //Deactivate any active service 
         Array.from(this.document.querySelectorAll(".a"))
             .forEach(el => {
                 el.classList.remove("a");
@@ -611,16 +644,204 @@ export abstract class app extends outlook.view{
         //await firebase.auth().signOut();
         // 
         // 
-        //Celar the entore local storage for this (debugging) version
+        //Clear the entire local storage for this (debugging) version
         this.win.localStorage.clear();
+        //
         //Remove the user from the local storege
         //this.win.localStorage.removeItem("user");
         //
         //Restore default home page by replacing the regular
-        //user's welcome message with the visitor's.
+        //user's welcome message with the visitor's one.
         this.paint_welcome("visitor");
-        
    }
+   
+   //
+    //2. Change the subject of this application
+    async change_subject(selector:HTMLSelectElement): Promise<void>{
+       //
+       //2.1 Formulate a subject
+       // Get the dbname
+        const dbname = this.config.app_db
+        //
+        //Get the selected entity
+        const ename = selector.value;
+        //
+        //Compile the new subject
+        const subject : [string,string]=[ename, dbname];
+        //
+        //Get the theme panel
+        const Theme : theme.theme = <theme.theme>this.panels.get("theme");
+        //
+        //Change the theme's subject
+        Theme.subject = subject;
+        //
+        //Clear the existing content in the table
+        this.document.querySelector('thead')!.innerHTML = '';
+        this.document.querySelector('tbody')!.innerHTML = '';
+        //
+        //2.2 Repaint the theme panel
+        Theme.view.top = 0;
+        Theme.view.bottom = 0;
+        await Theme.continue_paint();
+    }
+    
+    //
+    //1. Populate the selector with table names from current database
+    populate_selector():void{
+        //
+        //1.Get the current database: It must EXIST by THIS TIME
+        const dbase = this.dbase;
+        if (dbase === undefined) throw new Error("No current db found");
+        //
+        //2.Get the subject selector
+        const selector = <HTMLSelectElement> this.get_element("selection");
+        //
+        //3.Loop through all the entities of the database
+        //using a for-in statement
+        for (const ename in dbase.entities){
+            //
+            //3.1 Create a selector option
+            const option = this.document.createElement('option');
+            //
+            //  Add the name that is returned when you select
+            option.value = ename;
+            //
+            //3.2 Populate the option
+            option.textContent=ename;
+            //
+            //Set the option as selected if it matches the current subject
+            if (ename === this.subject[0]) option.selected=true;
+            // 
+            //3.3 Add the option to the subject selector
+            selector.appendChild(option);
+        }
+    }
+    
+    //
+    //
+    async relink_user(): Promise<void>{
+        //
+        //0. Yield/get all the replicas (i.e., entities, in the application, that have 
+        //a matching table in the user database) that have a broken link.
+        const links = this.collect_broken_replicas();
+        //
+        //Continue only if there are broken links.
+        if (links.length === 0){
+            alert("The links are well linked");
+            return;
+        }
+        //
+        //Call the server to establish the links.
+        const ok: boolean = 
+            await server.exec("tracker", [], "relink_user", [links]);
+        //
+        //If not ok, alert the user the process has failed.
+        if(!ok){alert("Process failed");}
+        else{alert('Replicas relinked successfully');}
+    }
+    
+    //
+    //Yield both roles and business replicas that are broken.
+    private collect_broken_replicas(): Array<replica>{
+        //
+        //Start with an empty array.
+        let result: Array<replica> = [];
+        //
+        //Get the role replicas.
+        const role = this.dbase!.get_roles();
+        //
+        //Collect the role replicas.
+        const replicas: Array<replica>  = 
+            role.map(role=>{return{ename: role.key, cname: "user"}});
+        //
+        //Collect the business replicas.
+        const ename: string = this.get_business_ename();
+        //
+        //Merge the role and business replicas.
+        replicas.push({ename, cname: "business"});
+        //
+        //For each, merge ...
+        for(let replica of replicas){
+            //
+            //Get the application entity.
+            const entity = this.dbase!.entities[replica.ename];
+            //
+            //Get the application column.
+            const column = entity.columns[replica.cname];
+            //
+            //Test if the user column is an attribute and yield it.
+            if (column instanceof schema.attribute) result.push();
+        };
+        //
+        return result;
+    }
+    //
+    //Retrieve the entity that represents the business in this application.
+    private get_business_ename(): string{
+        //
+        //Get all entities in the database.
+        const entities = Object.values(this.dbase!.entities);
+        //
+        //Select only the entities that have a business column.
+        const businesses = entities.filter(entity=>{
+            //
+            //Get all columns of this entity.
+            const cnames = Object.keys(entity.columns);
+            //
+            //Test if one of the columns is business.
+            return cnames.includes("business");
+        });
+        //
+        //Get the length of the businesses found.
+        const count = businesses.length;
+        //
+        //If there's no entity linked to the business, 
+        //then this model is incomplete.
+        if (count === 0) 
+            throw new schema.mutall_error("Business table missing; incomplete model");
+        //
+        //If there's more than one table with a business link then bring this to
+        //the user's attention.
+        if (count > 1) 
+            throw new schema.mutall_error(`We don't expect more than one business.
+            Found ${JSON.stringify(businesses)}`);
+        //
+        //Return the only entity linked to business.
+        return businesses[0].name;
+    }
+    
+    //
+    //Edit any table in the current system. This feature is available to the
+    //superuser
+    async edit_table(){
+        //
+        //1. Get all the tables from the system as key value pairs
+            //
+            //1.1 Get the application database
+            const dbase = this.dbase!;
+            //
+            //1.2 Use the database to extract the entities
+            const enames = Object.keys(dbase.entities);
+            //
+            //1.3 Map the entities to the required key value pairs needed
+            //by the seletor. Here, the key and value are the same.
+            const pairs = enames.map(ename=>({key:ename, value:ename}));
+        //
+        //2. Use the pairs to create a new choices POPUP that returns a selected
+        //entity name
+        const Choice = new outlook.choices<library.ename>(this.config.general,pairs,"table",null,"#content","single");
+        //
+        //3. Open the POPUP to select a table.
+        const selected = await Choice.administer();
+        //
+        //4. Test whether the selection was aborted or not
+        if (selected === undefined)return;
+        //
+        //5. Use the table to run the CRUD services.
+        const subject:outlook.subject = [selected[0], this.dbname];
+        const verbs: Array<outlook.assets.verb> = ['create','review','update','delete'];
+        this.crud(subject,verbs);
+    }
 }
 //
 //The welcome panel of an app
@@ -703,7 +924,6 @@ export class services extends outlook.panel{
       // 
       //Return the fieldset Element.
       return fs;
-      
   }
   // 
   // 
@@ -724,7 +944,6 @@ export class services extends outlook.panel{
       // Destructure the solution to get the title; its the first component of 
       // the solution tuple
       const {title,id}= solution;
-      
       //
       //1. Convert the service into a (hidden by default) html element.
       const innertext = `<div `
@@ -752,26 +971,53 @@ export class services extends outlook.panel{
 //so that it can be indexed by a role id.
 export class products extends Map<string,outlook.assets.product>{
     //
-    //To initialize this products we begin 
-    constructor(Iproducts: outlook.assets.products){
-        super()
+    constructor(){
         //
-        //Convert the iproduct to a map
-        Object.keys(Iproducts).forEach(id=> this.set(id,Iproducts[id]));
+        //Initialize the parent ap
+        super();
+        //
+        //Collect products shared between all applications
+        const uproducts = app.current.get_products_shared();
+        //
+        //Collect products that are specific to those application
+        //and add them to the shared ones
+        uproducts.concat(app.current.get_products_specific());
+        //
+        //Use the products to initialize this products map
+        for(let uproduct of uproducts){
+            //
+            //Convert the (solution) undexed product to an indexed one
+            let product: outlook.assets.product = {
+                id:uproduct.id,
+                title: uproduct.title,
+                solutions:{},
+                is_global:'yes'
+            };
+            //
+            //Propulate the indexed solutions
+            for (let solution of uproduct.solutions){
+                product.solutions[solution.id] = solution;
+            }
+            //
+            //Use the product id to index the solution indexed product
+            this.set(uproduct.id, product)
+        }
     }
+    
     // 
     //Retrieve more products from the users database to create a more expanded
     //collection of all the products that are available for a particular 
     //application.
     async expand():Promise<void>{
         //   
-        //Get all the products that are for this application 
-        //note the app.php has to be added in export.php
-        const new_products: Array<library.Iproduct> = await 
-            server.exec("app",[app.current.id],"get_products",[]);
+        //Get all the products that can be executed via this application 
+        const new_products: Array<library.Iproduct> = await server.exec(
+            "app",
+            [app.current.id],
+            "get_products",[]
+        );
         // 
-        //Convert the retrived products into outlook complient product 
-        //structure
+        //Add the retrived products to this class object
         new_products.forEach(Iproduct => {
             this.add_product(Iproduct);
         });
@@ -794,7 +1040,7 @@ export class products extends Map<string,outlook.assets.product>{
         const title=Iproduct.solution_title;
         // 
         //Get the string function declaration.
-        const listener:outlook.assets.listener=["post_defined",Iproduct.listener];
+        const listener:outlook.assets.listener=["string",Iproduct.listener];
         //
         //Formulate the solution
         //{id, title,listener}
@@ -808,7 +1054,12 @@ export class products extends Map<string,outlook.assets.product>{
         // 
         //Product does not exist Create a product with empty solutions 
         else{
-            Product={title:Iproduct.title,id:Iproduct.id,solutions:{}};
+            Product={
+                title:Iproduct.title,
+                id:Iproduct.id,
+                solutions:{}, 
+                is_global:Iproduct.is_global
+            };
             // 
             //Add this product to the collection
             this.set(Iproduct.id,Product);
@@ -821,22 +1072,24 @@ export class products extends Map<string,outlook.assets.product>{
         Product.solutions[Iproduct.solution_id]=sol;
     }
     // 
-    //Hides all the products that are not customed to a certain user
+    //Hides all the products that are not customised for the given user
     filter(user:outlook.user):void{
         // 
         //Get all the global products_id
         const prod_ids: Set<string> = new Set();
-        this.forEach(Product => {
-            if (Product.customed === undefined || Product.customed===null || Product.customed?.size === 0 ) {
-                prod_ids.add(Product.id);
-            }
-         });
+        this.forEach(Product =>{ 
+            if (
+                Product.customed === undefined 
+                || Product.customed===null 
+                || Product.customed?.size === 0 
+            ) prod_ids.add(Product.id)
+        });
         // 
-        //Add to the product id the productscustomed for this roles
+        //Add to the product id the products customed for this roles
         this.forEach(Product => {
             if (Product.customed !== undefined) {
                 // 
-                //Test if any of this users role exists in the customed array
+                //Test if any of this user's roles exist in the customed array
                 user.role_ids?.forEach(role_id => {
                     if (Product.customed?.has(role_id)) prod_ids.add(Product.id);
                 })
@@ -863,9 +1116,12 @@ export class products extends Map<string,outlook.assets.product>{
         //
         //Get the ifuel that contains the information required to activate 
         //these products 
-        //Array<{product_id:string,role_id:string}>
-        const updates: Array<{role_id:string,product_id:string}>
-            = await server.exec("app",[app.current.id],"customed_products",[])
+        const updates: Array<{role_id:string,product_id:string}>= await server.exec(
+            "app",
+            [app.current.id],
+            "customed_products",
+            []
+        );
         // 
         //Loop through the updates and update the affected
         updates.forEach(update=>{
@@ -904,7 +1160,7 @@ export class products extends Map<string,outlook.assets.product>{
             switch (sol.listener[0]) {
                 // 
                 //The post defined element have their events as strings
-                case "post_defined":
+                case "string":
                     solution_element.setAttribute("onclick", `${sol.listener[1]}`);
                     break;
                 // 
@@ -937,8 +1193,8 @@ export class products extends Map<string,outlook.assets.product>{
                     break;
                 //
                 //The predefined listeners are set directly
-                case "pre_defined":
-                    solution_element.onclick =()=> sol.listener[1];
+                case "event":
+                    solution_element.onclick =()=> (<((...n: any) => void)>sol.listener[1])();
                     break;
                 // 
                 default: throw new Error(`Listener of type ${sol.listener[0]} is not known`) 
@@ -948,4 +1204,58 @@ export class products extends Map<string,outlook.assets.product>{
             solution_element.classList.add('a');
         });
      }
+ }
+ 
+ //The applications configulation interface
+ export interface Iconfig{
+     //
+    //The database access credentials 
+    username:string;
+    password:string;
+    //
+    //The database for managing users and application that are 
+    //running on this server 
+    login_db:string;
+    //
+    //Title appearing on navigation tab should atc the namespsce
+    id:string;
+    // 
+    //The name of the application's database.
+    app_db:string;
+    //
+    //Subject comprises of the entity name to show in the home page
+    //plus the database it comes from.
+    subject:[string/*ename*/, string/*dbname*/];
+     //
+    //The full trademark name of the application
+    trade:string;
+    //
+    //For advertising purposes
+    tagline:string;
+    //
+    //Name of the applivcation developer
+    developer:string;
+    //
+    //The path from where this application was loaded
+    path:string;
+    // 
+    //This is the general template for displaying the user report 
+    report:string;
+    //
+    //This is the complete path for the login template
+    login:string;
+    //
+    //The complete path of the welcome template 
+    welcome:string;
+        
+    //The crud's template
+    crud:string;
+    // 
+    //This is the general template for collecting simple user data.
+    general:string;
+    // 
+    //The maximum number of records that can be retrieved from 
+    //the server using one single fetch. Its value is used to modify 
+    //the editor sql by  adding a limit clause 
+    limit:number
  }

@@ -5,48 +5,42 @@ import * as schema from "../../../library/v/code/schema.js"
 //
 //Resolve the server method for backend communication
 import * as server from "../../../library/v/code/server.js"
-// 
-//Import the client side configuration setting
-import config from "./config.js";
-    //
-  //Define data types for all our element's ids/name in the login page.
-  //
-  //Group all the available providers and defines a data type for them. This will
-  //allow for handling(Hiding and Showing) the credentials.
- type provider_id = 'google' | 'facebook' | 'outlook';
-  //
-  //types of operations for accesing the application service 
+//
+//Define data types for all our element's ids/name in the login page.
+//
+//Group all the available providers and defines a data type for them. This will
+//allow for handling(Hiding and Showing) the credentials.
+type provider_id = 'google' | 'facebook' | 'outlook';
+//
+//types of operations for accesing the application service 
 type operation_id = "login" | "register";
-
-    
-  //
-  //This is a page used for authenticating users so 
-  //that they can be allowed to access the application 
-  //services. The popup takes in a provider and returns a user
+   
+//
+//This is a page used for authenticating users so 
+//that they can be allowed to access the application 
+//services. The popup takes in a provider and returns a user
 export class page extends popup<user> {
     // 
     //The authentication provider for this page 
     public provider?: provider;
     //
-    constructor(config:config,url:string ) {
+    constructor(url:string ) {
         //
         //Use the config file to get the login url
         //super(app.current.config!.login);
-        super(config,url)
-          
+        super(url)
     }
     
-    //Return the loggein user
+    //Return the logged in user
     async get_result(){
         //
-        //Chek whether the input are valid or not
+        //Check whether the input are valid or not
         //
         //Get the provider
         this.provider = this.retrieve();
         //
         //Authenticate to get the user
         const User:user = await this.provider.authenticate();
-        //const User = new user("kaniu@gmail.com")
         //
         //Compile the login response
         return User;

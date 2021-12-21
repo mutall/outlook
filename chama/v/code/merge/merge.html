@@ -10,6 +10,11 @@
             import merger from "./merge.js";
             //
             window.merger= merger;
+            //
+            //
+            import chama from "../chama.js";
+            //
+            window.chama=chama;
             //import {page_graph from "./page_graph.js";
             //
             //window.page_graph= page_graph;
@@ -38,7 +43,7 @@
                 Enter the SQL for selecting the records to merge:<br/>
                 <textarea id="members" class="name" rows="5" cols="10">select * from member where email like '%kanake%'</textarea>
             </label>
-            <button  id="run" class="button" onclick=" merger.run()">Okay</button>
+            <button  id="run" class="button" onclick=" merger.run()">Run</button>
         </div>
         <div id="resolve" class="conflicts">
             <div id='resolution'></div>

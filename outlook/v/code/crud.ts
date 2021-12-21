@@ -9,7 +9,10 @@ import * as server from "../../../library/v/code/server.js";
 import * as library from "../../../library/v/code/library.js";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
-import * as schema from "../../../library/v/code/schema.js"
+import * as schema from "../../../library/v/code/schema.js";
+//
+//Resolve the questionnaire
+import * as quest from "../../../library/v/code/questionnaire.js";
 //
 //Impor the theme class
 import * as theme from "./theme.js";
@@ -204,8 +207,10 @@ export class page extends outlook.baby<crud_result> {
     check(){return true}
 
     // 
-    //In this verision we are only returning the selection 
-    //component of a crud 
+    //Return from this crud page the current selection. Our original touhgt was 
+    //tthat from a crud page you could return, e.g., what records were deletd, 
+    //which ones were modified and the last selectded one. For this version, 
+    //we return only the last selected one.
     async get_result(): Promise<crud_result>{
         //
         //Get the currently selected tr 
@@ -220,13 +225,14 @@ export class page extends outlook.baby<crud_result> {
             //...otherwise we compile the selection.
             //
             //Destructure the td ignoring the primary key and the friendly 
-            //parts because we will replace them with new edition.
+            //parts because we will replace them with new editions.
             const { position } = this.selection!;
             // 
             //Get the primary key as an auto number
             const pk_selection = tr.getAttribute("pk");
             //
-            //If the pk_selection isnot a string then something must have gone wrong 
+            //If the pk_selection is not a string then something must have gone 
+            //wrong; for instance, perhaps the last save was not successful 
             if (typeof pk_selection !== "string") {
                 throw new schema.mutall_error(`The primary key for a selected tr not found`);
             }
@@ -234,7 +240,7 @@ export class page extends outlook.baby<crud_result> {
             //Convert the primary key from a text to a number.
             const pk = parseInt(pk_selection);
             // 
-            //Get the friendly component 
+            //Get the friendly component; there must be one 
             const friendly = tr.getAttribute("friend")!;
             if (friendly === null) {
                 throw new schema.mutall_error(`The friendly component of tr ${pk} is not found`);
@@ -261,16 +267,16 @@ export class page extends outlook.baby<crud_result> {
         //Stop the current tr from being clicked on.
         this.win.event!.stopPropagation();
         //
-        //Use the button to get the crud page's admistration parameters
+        //Use te button to get the crud page's admistration parameters
         const {subject, verbs, selection}: admin_parameters =
             this.get_admin_parameters(button);
         //
         //Use the admin parameters to create a new crud (baby) page whose
         //mothr is the current page.
-        const baby= this.new_crud(this, subject, verbs, selection);
+         const baby= this.new_crud(this, subject, verbs, selection);
         //
         //Wait for the user to collect crud operation results. The result
-        //is undefined if the user aborts the administration.
+         //is undefiend if teh user aborts the administration.
         const result: crud_result | undefined = await baby.administer();
         // 
         //Use the crud result to update this mother page, if it is defined 
@@ -481,7 +487,7 @@ export class page extends outlook.baby<crud_result> {
     }
 
     //
-    //Button event listener that adds an empty row above
+    //A button event listener that adds an empty row above
     //the current selection.
     create_row(): void {       
         //
@@ -506,28 +512,39 @@ export class page extends outlook.baby<crud_result> {
         this.theme.load_tr_element(tr);
     }
     //
-    //This is a listener for collecting and saving the affected td
+    //This is a listener for collecting and saving the affected tds
     //, i.e., both new records and existing old tds, to the database.
-    // This is the U component of CRUD
+    // This is the U component of the CRUD operations.
     async update_database() {
         //
-        //1.Collect all the edited $inputs, i.e., data and their positions
+        //Collect all the edited $inputs, i.e., data and their positions
         //on the crud page.
-        const inputs: Array<library.label> = [...this.collect_inputs()];
+        const questions:Array<quest.label> = [...this.collect_questions()];
         //
-        //2.Write the $inputs to the server to get back 
-        //the save result.
-        //This is (maziwa) mala interface object.
-        const Imala = await server
-            .exec("record", [], "export", [inputs, "label"])
+        //Write the $inputs to the server database and return the save result, 
+        //Imala.
+        const Imala:quest.Imala = await server.exec(
+            //
+            //Use the new large table load method
+            "questionnaire",
+            //
+            //Data in the Iquestionnare format 
+            [questions], 
+            //
+            //Call the load method -- the one specificlly tailord for CRUD
+            //"load_user_inputs",
+            "load", 
+            //
+            //Use the default xml and html log files and do not summarise
+            //the reult
+            []
+        );
         //
-        //Use the $result to report on the crud page
-        //the status of the save.  
-        this.report(Imala);
         //
-        //Upate the friendly components of the affected rows
-        // 
-        //Remove the current edited tds
+        //Use the $result to report on the crud page to show the status 
+        //of the save.  
+        //this.report(Imala);
+        alert(JSON.stringify(Imala));
     }
     // 
     //To avoid repeating ourselves define the theme of this crud page
@@ -535,14 +552,16 @@ export class page extends outlook.baby<crud_result> {
         return <theme.theme>this.panels.get("theme")!;
     }
     //
-    //Collect all the edited $inputs, i.e., data and its position
-    private * collect_inputs() {
+    //Collect all the edited $inputs, i.e., data and its position, and return 
+    //each one of them as label layout
+    private * collect_questions() {
         //
         //Collect all the tds that have data to be sent to the server.
         const tds = Array.from(
             this.document.querySelectorAll("td.edited"));
         //
-        //Loop through all tds and convert each to a label
+        //Loop through all the edited tds and convert each one of them to a 
+        //questionnaire label.
         for(let td of tds) {
             //
             //Cast the td to a html table cell element
@@ -558,7 +577,7 @@ export class page extends outlook.baby<crud_result> {
             //Get the row position
             const rowindex = tr.rowIndex;
             //
-            //The alias of your data should match the index of your td row
+            //The alias of your data should match the index of your td's row
             const alias = [rowindex];
             //
             //Get the td position
@@ -568,20 +587,30 @@ export class page extends outlook.baby<crud_result> {
             const [ename, dbname] = this.subject;
             // 
             //Get the io that created that td
-            //NB: The Maps array key needs to be converted into a string.
-            const Io = theme.theme.ios.get(String([this.theme.key,rowindex,cellIndex]));
-            // 
+            //NB: The Maps array key needs to be converted into a string because
+            //typescript doesnt seem accept an object as a key -- unlike PHP 
+            const Io = theme.theme.ios.get(
+                String(
+                    //
+                    //This is the index of any td in this theme
+                    [this.theme.key,rowindex,cellIndex]
+                )
+            );
             //
-            if (Io===undefined) {
+            if (Io===undefined)
                 throw new Error("Cannot get the io that created this td");
-            }
             // 
-            //Compile data 
-            let data: library.label =
-                [dbname, ename, alias, cname, [Io.input_value, [rowindex,cellIndex]]];
+            //Compile output question as a questionnaire label 
+            const label: quest.label =[
+                dbname, ename, alias, cname, 
+                //
+                //The desired expression is an atom, a.k.a., scalar with 
+                //position data
+                ["capture\\atom", Io.input_value, rowindex, cellIndex]
+            ];
             
             //Yield the explicit label
-            yield data;             
+            yield label;             
         }
     }
     //
@@ -687,7 +716,7 @@ export class page extends outlook.baby<crud_result> {
         const specs = this.get_popup_window_specs();
         //
         //Use the pairs to create a multiple choice popup
-        const Popup = new outlook.choices(this.config,pairs, "hidden_column",specs);
+        const Popup = new outlook.choices(app.current.config.general, pairs, "hidden_column",specs);
         // 
         //Await for the user to pick the choices of column names.
         const choices = await Popup.administer();
@@ -873,35 +902,43 @@ export class page extends outlook.baby<crud_result> {
     }           
     
     //
-    //This method make the button visible and puts the error in a span
-    //tag. Which allows the user to view the error message.
+    //This method makes the error button visible and puts the error in its 
+    //(the button's) span tag which allows the user to view the Imala report.
     private report(mala: library.Imala): void {
         //
-        //1.1 If syntax alert the error messages.
+        //If syntax alert the error messages.
         if (mala.class_name === "syntax") {
             //
             //Convert the errors to a string.
             const errors = mala.errors!.join("\n");
             //
             //Display the errors.
-            alert(`this is a syntax error ${errors}`);
+            alert(`There this is a syntax error ${errors}`);
             //
             //Stop code execution.
             return;
         }
         //
-        //1.2 If runtime loop through the result array doing 
-        //the following:- 
+        //If runtime loop through the result array to report it. The elements of 
+        //the array has the following structure:-
+        //['error', ans]|['pk', ans, friend]
+        //where 
+        //  ans ={class_name:'scalar', value, position?, operation?}
+        //and 
+        //  position = [rowIndex, colIndex?],
+        //  operation = "insert" 
         mala.result!.forEach(([Iexp, position]) => {
             //
-            //1.2.1 Get the position.
+            //Get the position.
             const [rowIndex, cellIndex] = position;
             //
-            //1.2.2 Get the affected tr.
-            const tr = (<HTMLTableElement> this.document.querySelector("table"))
+            //Get the affected tr.
+            const tr = (<HTMLTableElement> this
+                .document
+                .querySelector("table"))
                 .rows[rowIndex];
             //
-            //1.2.3 Get the affected td.
+            //Get the affected td.
             const td = (<HTMLTableCellElement> tr.cells[cellIndex]);
             //
             //Get the error button at that given position
@@ -911,7 +948,7 @@ export class page extends outlook.baby<crud_result> {
             const errors = <HTMLSpanElement>td.querySelector(".errors"); 
             //
             //If the writting was successful we update the primary key attributes 
-            //and remove highlighs of the edited tds
+            //and remove highlights of the edited tds
             if (Iexp.type === "pk") {
                 //
                 //Get the span for the pk.
@@ -923,7 +960,7 @@ export class page extends outlook.baby<crud_result> {
                 //Update the friend.
                 pk_span.setAttribute("friend", `${Iexp.friend}`);
                 //
-                //Remove the highlight for all sibligs of this tr 
+                //Remove the highlight for all siblings of this tr 
                 Array.from(tr.querySelectorAll("td.edited"))
                     .forEach(td2 => td2.classList.remove("edited"));
                 //
@@ -932,8 +969,6 @@ export class page extends outlook.baby<crud_result> {
                 //
                 //Clear the error messages and hide the containing span
                 errors.textContent = ""; errors.hidden=true;
-                //
-                //
                 //
                 return;
             }
@@ -945,7 +980,7 @@ export class page extends outlook.baby<crud_result> {
             //unhide the error button.
             error_btn.hidden = false;
             //
-            //1.2.4 Get the span and paint its text content.
+            //Get the span and paint its text content.
             errors.textContent = <string>Iexp.value;
         });
     }

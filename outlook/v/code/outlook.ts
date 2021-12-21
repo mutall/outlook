@@ -3,34 +3,33 @@ import * as library from "../../../library/v/code/library.js";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
 import * as schema from "../../../library/v/code/schema.js";
-import outlook_config from "./config.js";
 //
 //These are the components of the subject.
-
 //The ename and dbname are defined in the library.d.ts,
 //so we dont need to re-define them here.
 export type subject=[library.ename, library.dbname];
 
-//This is what the users will see generally. It is the root of 
+//This is the pahe that the users will see generally. It is the root of 
 //all  outlook pages. Application is a view. A page, which extends 
 //a view is used for data collection. A view is not. A view may
-//be carnibalised to feed another view; such view are called templates
+//be carnibalised to feed another view; such views are called templates
 export class view {
     // 
     //The popoup window size and location specification.
     public specs: string | null = null;
     // 
     //This is used for indexing a view object to support implementation of the 
-    //static current property whis isset when this view is pushed to the window state.
+    //static current property ????whis isset when this view is pushed to the window state.
     public key: number;
     // 
     //Lookup storage for all views created by this application.
     static lookup: Map<number, view> = new Map()
     // 
-    //The window active view where the events are wired.????????????
+    //The current active view where the events (on a html page) are wired. E.g.
+    //<button onclick=view.current.open_dbase()>Ok</button>
     static current: view;
     //
-    //A view has a window that is (often) set when the url of a window 
+    //A view has a document that is (typically) set when the url of a window 
     //is opened. 
     protected win__: Window|null=null;
     // 
@@ -54,9 +53,6 @@ export class view {
     public child_nodes:Array<ChildNode>=[]; 
     //
     constructor(
-        // 
-        //The local configuration settings for this view
-        public config:outlook_config,
         //
         //The address  of the page. Some popup pages don`t have 
         //a url that`s why it`s optional.
@@ -174,7 +170,69 @@ export class view {
         //
         //Add the key component
         title.textContent = `${this.id}/${this.key}`;       
-     }    
+     }
+    //
+    //TO ENABLE Lawrence USE THIS METHOD OF CREATING WITHOUT HAVING TO CREATE THE IO.
+    //PMuraya:  added this utility here to enable us create elements anytime anywhere
+    //Create a new element from  the given tagname and attributes 
+    //we assume that the element has no children in this version.
+    static create_element<
+        //
+        //The tagname is the string index of the html map.
+        tagname extends keyof HTMLElementTagNameMap,
+        // 
+        //Collection of attributed values. The typescript Partial  data type
+        //is a short form of
+        //attribute_collection extends {[key in attribute_name]?:HTMLElementTagNameMap[tagname][key]}
+        attribute_collection extends Partial<HTMLElementTagNameMap[tagname]>
+    >(
+        //
+        //The parent of the element to be created
+        anchor:HTMLElement,
+        //
+        //The elements tag name
+        tagname:tagname,
+        //
+        //The attributes of the element
+        attributes:attribute_collection|null
+     ):HTMLElementTagNameMap[tagname]{
+        //
+        //Greate the element holder based on the td's owner documet
+        const element= anchor.ownerDocument.createElement(tagname);
+        //
+        //Attach this element to the anchor 
+        anchor.appendChild(element);
+        //
+        //Loop through all the keys to add the atributes
+        for(let key in attributes){
+            const value:any = attributes[key];
+            // 
+            // JSX does not allow class as a valid name
+            if (key === "className") {
+                // 
+                //Take care of mutiple class values
+                const classes= (<string>value).split(" ");
+                classes.forEach(c=>element.classList.add(c));
+            } 
+            else if (key === "textContent") { 
+                element.textContent= value;
+            } 
+            else if (key.startsWith("on") && typeof attributes[key] === "function") {
+                element.addEventListener(key.substring(2), value);
+            }
+            else {
+                // <input disable />      { disable: true }
+                if (typeof value === "boolean" && value) {
+                    element.setAttribute(key, "");
+                } else {
+                    //
+                    // <input type="text" />  { type: "text"}
+                    element.setAttribute(key, value);
+                }
+            }
+        }
+        return element;
+    }    
     //
     //Return the identified element 
     get_element(id: string): HTMLElement {
@@ -190,6 +248,16 @@ export class view {
             throw new Error(msg);
         }
         return element;
+    }
+    
+    //Show or hide a window panel
+    public show_panel(id:string, show:boolean):void{
+        //
+        //Get the identified element
+        const elem = this.get_element(id);
+        //
+        //Hide the element if the show is not true
+        elem.hidden = !show;
     }
     
     //Open a window, by default, reurns the current window and sets the
@@ -230,7 +298,7 @@ export class view {
         new_view.restore_view(key);
     }
     // 
-    //The default way a quize shows its content is 
+    //The default way a view shows its content is 
     //by looping through all its panels and painting 
     //them. Pages without panels can override this method 
     //to paint their content.
@@ -263,7 +331,7 @@ export abstract class panel extends view{
         public base:view  
     ){
         //The ur is that of the base
-        super(base.config,base.url);
+        super(base.url);
     }
     //
     //Start painting the panel
@@ -315,7 +383,7 @@ export abstract class quiz<o> extends view {
         return this.win!.document;
     }
     //
-    constructor(config:outlook_config, url?: string) {super(config, url);}
+    constructor(url?: string) {super(url);}
 
     //To administer a page is to  managing all the operations from 
     //the  moment a page gets visisble to when a result is closed
@@ -324,8 +392,9 @@ export abstract class quiz<o> extends view {
     //popup pages implement thos methods differently.
     abstract administer():Promise<response|undefined>;
     //
-    //This is the process which makes the page visible waits for 
-    //user to respond and returns the expected response, if not aborted. 
+    //This is the process which makes the page visible, waits for 
+    //user to respond and returns the expected response, if not aborted. NB. The 
+    //return data type is parametric
     public async show(): Promise<o | undefined> {
         // 
         //Initialize the win property by opening a window 
@@ -336,7 +405,7 @@ export abstract class quiz<o> extends view {
         //overide this method with its own.
         await this.show_panels();
         //
-        //Wait for the user to ok or cacel this quiz
+        //Wait for the user to ok or cancel this quiz
         let result = await new Promise<o | undefined>(resolve => {
             //
             //Collect the result on clicking the Ok/go button.
@@ -347,11 +416,11 @@ export abstract class quiz<o> extends view {
                 //any, do not continue the process
                 if (!this.check()) return;
                 //
-                //Grt the primary key and its  friendly name 
+                //Get the primary key and its  friendly name 
                 resolve(await this.get_result());
             };
             // 
-            //Discard the result on Cancel.
+            //Discard the result on Cancel (by returning an undefined value).
             const cancel = <HTMLButtonElement>this.get_element("cancel");
             cancel.onclick =  async () => {
                 let r: o | undefined;
@@ -384,7 +453,7 @@ export abstract class quiz<o> extends view {
 export abstract class baby<o> extends quiz<o>{
     //
     constructor(public mother:view, url?:url){
-        super(mother.config,url);
+        super(url);
     }
 
     //The window of the mother is that same as that of the bay
@@ -401,9 +470,9 @@ export abstract class baby<o> extends quiz<o>{
     async administer():Promise<o|undefined>{
         //
         //Get the baby template
-        const Template = new template(this.config,this.url!);
+        const Template = new template(this.url!);
         //
-        //On the template
+        //Open the template
         const win = await Template.open();
         //
         //Replace the entire current document with that of the template
@@ -412,7 +481,7 @@ export abstract class baby<o> extends quiz<o>{
         //Close the baby template
         win.close();
         //
-        //Ensure the pag'e title is set correctly
+        //Ensure that the page title is set correctly
         this.set_title();
         //
         //Save this initial version of this baby view
@@ -466,8 +535,8 @@ export abstract class baby<o> extends quiz<o>{
 //The way you open it is smilar to  popup. Its flagship method is the copy
 export class template extends view{
     
-    constructor(config:outlook_config,url:string){
-        super(config,url)
+    constructor(url:string){
+        super(url)
     }
     
     //Open a window, by default, reurns the current window and sets the
@@ -509,16 +578,16 @@ export class template extends view{
     
 }
 
-//This class represents the view|popu page that the user sees
+//This class represents the view|popup page that the user sees for collecting
+//inputs
 export abstract class popup<o> extends quiz<o>{
     //
     constructor(
-        config:outlook_config,
         url: string,
         // 
         //The popoup window size and location specification.
         public specs: string|null = null
-    ) { super(config,url); }
+    ) { super(url); }
     
     //
     //Open a pop window returns a brand new window with specified dimensions.
@@ -632,11 +701,11 @@ export namespace assets {
         ["crud", ename, Array<verb>, xor, library.dbname?]
         // 
         //...or a user defined function implemented directly in this code...
-        | ["pre_defined", (...n:any) => void]
+        | ["event", (...n:any) => void]
         // 
         //...or a user defined function specified as a string to be attached
         //to an element using the set attribute
-        | [ "post_defined", string];
+        | [ "string", string];
     // 
     //A solution in a product is implemented as a listener to some
     //executable code. 
@@ -649,7 +718,9 @@ export namespace assets {
     //This is a collection of solutions indexed by an id. 
     export type solutions = {[solution_id:string]:solution}
     // 
-    //A product is a set of named solutions
+    //A product is a set of named solutions. The solutions are indexed to allow 
+    //merging from different sources: shared inbuilts, inbuilt application 
+    //specifics and database asset sub-system
     export interface product{
         //
         //Short name for the product.
@@ -658,12 +729,14 @@ export namespace assets {
         //Longer descriptive name of the product.
         title:title,
         //
-        //Solutions associated with this product.
-        solutions: solutions,
-        //
         //Mark products that are subscribed by a user.
         //They are accessed throught the product-asset-player route.
         is_subscribed ?:boolean,
+        //
+        //Indicated if this is a globally accessible product or not. A product
+        //is global if t is not associated with any application via the 
+        //execution path.
+        is_global:'yes'|'no',
         //
         //Products customized for a specific role.
         //They are accessed through the product-custom-role route of
@@ -672,12 +745,23 @@ export namespace assets {
         //
         //Cost($) of subscribing to this product.
         //Null means it's free.
-        cost ?:number|null
+        cost ?:number|null,
+        //
+        //Solutions associated with this product.
+        solutions: solutions
     }
-    
     //
     //The products are indexed by a product id of type string
-    export type products = { [product_id:string]: product};
+    export type lookup = { [product_id:string]: product};
+    //
+    //A product where the solution is not indexed. This simplifies the
+    //specficication of new products from a users perspective
+    export interface uproduct{
+        id:string,
+        title:string,
+        solutions:Array<assets.solution>
+    };
+
 }
 //This is a general structure for handling  key value pair situations. 
 export type key_value<i>= {key:i, value:string}
@@ -693,7 +777,9 @@ export class choices<i> extends popup<Array<i>>  {
     private output?:Array<i>;
     //
     constructor(
-        config:outlook_config,
+        //
+        //The html file to use for the popup
+        filename:string, 
         // 
         //The key value pairs that are to be painted as checkboxes
         //when we show the panels. 
@@ -701,7 +787,7 @@ export class choices<i> extends popup<Array<i>>  {
         // 
         //This is a short code that is used
         //as an identifier for this general popup
-        public id: string, 
+        public id: string,
         // 
         //The popoup window size and location specification.
         public specs: string|null=null,
@@ -712,9 +798,9 @@ export class choices<i> extends popup<Array<i>>  {
         public css: string = '#content', 
         //
         //Indicate whether multiple or single choices are expected
-        public type :'single'|'multiple' = 'multiple'
+        public type :'single'|'multiple' = 'multiple',
     ) {
-        super(config, config.general, specs);
+        super(filename, specs);
     }
     //
     //Check that the user has selected  at least one of the choices
@@ -787,13 +873,16 @@ export class report extends baby<void>{
         //This popup parent page.
         mother: view,
         // 
-        //The html to report.
-        public html: string
+        //The html text to report.
+        public html: string,
+        //
+        //The html file to use
+        filename:string
     ) {
         // 
         //The general html is a simple page designed to support advertising as 
         //the user interacts with this application.
-        super(mother, mother.config.general);
+        super(mother, filename);
     } 
     // 
     //Reporting does not require checks and has no results to return because 
@@ -849,7 +938,7 @@ export class user {
     public role_ids?: Array<string>;
     // 
     //The products that this user is assigned to.
-    public products?:assets.products
+    public products?:Array<assets.uproduct>
     //
     //The minimum requirement for authentication is a username and 
     //password

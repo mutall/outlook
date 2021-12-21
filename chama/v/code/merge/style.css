@@ -41,7 +41,8 @@ body{
 }
 .conflicts{
     grid-area: conflicts;
-    background-color: white
+    background-color: white;
+    overflow: auto;
 }
 /*Setting the properties for the options*/
 .dbase,.ename{
