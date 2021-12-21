@@ -15,12 +15,12 @@ import * as tree from "./tree.js";
 import * as server from "../../../library/v/code/server.js";
 //
 /*
- * Sample from stack overflow f how to get Typescript typoes from 
+ * Sample from stack overflow of how to get Typescript types from 
  * array of strings
     export const AVAILABLE_STUFF = <const> ['something', 'else'];
     export type Stuff = typeof AVAILABLE_STUFF[number];
  */
-//Types of io bases on the input element
+//Types of io based on the input element
 const input_types = <const> [ "date", "text", "number", "file", "image", "email"];
 type input_type =  typeof input_types[number];
 //
@@ -34,95 +34,6 @@ type other_type =  typeof other_types[number];
 //used to determine the kind of the input used for our
 //column data entry.
 export type io_type = input_type|other_type;
-//
-//Creating an io from the given anchor and column
-export function create_io(
-    // 
-    //The parent of the input/output elements of this io. 
-    anchor:HTMLElement,
-    // 
-    //The column associated with this io. 
-    col: schema.column
-): io{
-    //
-    //Read only collumns will tagged as such.
-    if (col.read_only !== undefined && col.read_only)
-            return new readonly(anchor);
-    //
-    //Characterize the foreign and primary key columns
-    if (col instanceof schema.primary) 
-        return new primary(anchor);
-    if (col instanceof schema.foreign) 
-        return new foreign(anchor);
-    //
-    //Characterize the attributes
-    //
-    //A column is a checkbox if...
-    if (
-        //
-        //... its name prefixed by 'is_'....
-        col.name.startsWith('is_')
-        // 
-        //...or its datatype is a tinyint 
-        || col.data_type === "tinyint"
-    )return new checkbox(anchor);
-    //
-    //If the field length is 1 character, then assume it is a checkbox
-    if (col.length === 1) 
-        return new checkbox(anchor);
-    //
-    //If the length is more than 100 characters, then assume it is a textarea
-    if (col.length! > 100) return new textarea(anchor);
-    //
-    //If the column name is 'description', then its a text area
-    if (col.name === 'description')  new textarea(anchor);
-    //
-    //Time datatypes will be returned as date.
-    if (["timestamp", "date", "time"]
-        .find(dtype => dtype === col.data_type))
-            return  new input("date", anchor);
-    //
-    //The datatypes bearing the following names should be presented as images
-    // 
-    //Images and files are assumed  to be already saved on the 
-    //remote serve.
-    if (["logo", "picture", "profile", "image","photo"]
-        .find(cname => cname === col.name))             
-            return new file(anchor, "image");
-    //
-    if (col.name === ("filename" || "file"))
-            return new file(anchor, "file");
-    //
-    //URL
-    //A column is a url if...
-    if (
-        // 
-        //... its name matches one of the following ...
-        ["website", "url", "webpage"].find(cname => cname === col.name)
-        // 
-        //...or it's taged as url using the comment.
-        || col.url !== undefined
-     )
-                return new url(anchor);
-    //
-    //SELECT 
-    //The io type is select if the select propety is set at the column level
-    //(in the column's comment). 
-    //Select requires column to access the multiple choices.
-    if (col.select !== undefined)         
-        return new select(anchor, <schema.attribute>col);
-    //
-    //String datatypes will be returned as normal text, otherwise as numbers.
-    if (["varchar", "text"]
-        .find(dtype => dtype === col.data_type))
-            return new input("text", anchor);
-    if (["float", "double", "int", "decimal", "serial", "bit", "mediumInt", "real"]
-        .find(dtype => dtype === col.data_type)) 
-            return new input("number", anchor);
-    // 
-    //The default io type is read only 
-    return new readonly(anchor);
-} 
          
 
 //
@@ -140,7 +51,7 @@ export abstract class io {
     //
     constructor(
         //
-        //The parent eelement of this io, e.g., the td of a tabular layout.
+        //The parent element of this io, e.g., the td of a tabular layout.
         public anchor:HTMLElement
     ) {
         // 
@@ -266,7 +177,7 @@ export abstract class io {
     //we assume that the element has no children in this version.
     static create_element1<
         //
-        //The tagname is the string index ofthe html map.
+        //The tagname is the string index of the html map.
         tagname extends keyof HTMLElementTagNameMap,
         // 
         //Collection of attributed values. The typescript Partial  data type
@@ -759,7 +670,7 @@ export class file extends input{
                 //
                 //Paparazzi, please save the folder/files path structure here
                 //after you are done.
-                onclick: async (evt: Event) => await this.browse( evt, String(this.value))
+                onclick: async () => await this.browse( String(this.value))
         });
         
         //
@@ -869,12 +780,6 @@ export class file extends input{
     //This is called by the event listener for initiating the browsing of 
     //files/folders on the remote server.
     public async browse(
-        //
-        //This is the Event that has the element within the td from which this
-        //method was evoked
-        //It is important for tracing the cell where to write back the resulting
-        //file\folder
-        evt:Event,
         //
         //Displaying the initial look of the browser
         initial:tree.path,
@@ -1106,14 +1011,16 @@ export class checkbox extends io{
     }
 }
 
-//The primary key io
+//The primary key io has 2 components: the value and a checkbox
+//to support multi-record selection
 export class primary extends io{
     //
-    //The primary key doubles up as a multi selector
+    //The primary key doubles up as a multi selector. The input
+    //is of type checkbox
     public multi_selector:HTMLInputElement;
     //
-    //Tag where to reporting  runtime errors that arise from a saving the record
-    // (with this primary key to the server)
+    //Tag where to report  runtime errors that arise from a saving the record
+    //(with this primary key) to the server
     public errors:HTMLSpanElement;
     //
     //This will be activated to let the user see the error message.
@@ -1124,18 +1031,27 @@ export class primary extends io{
         //
         //The primary key doubles up as a multi selector
         this.multi_selector =this.create_element(
-            anchor, "input",{type:'checkbox',className:"multi_select"}
+            anchor, "input",{
+                type:'checkbox',
+                //
+                //This is useful for showin/hiding the selector
+                className:"multi_select", 
+                //
+                //This is used for data retrieval, e.g.,
+                //querySelecttorAll("input[name='multi_selector]:checked")
+                name:"multi_select"
+            }
         );
         //
-        //Tag where to reporting  runtime errors that arise from a saving the record
-        // (with this primary key to the server)
+        //Tag where to report runtime errors that arise from a saving the record
+        // (with this primary key) to the server
         this.errors =this.create_element(anchor, `span`,
             //
             //This is to distinguish this span for errors. as well as hiddinging 
             //it initially.
             {className:"errors", hidden:true});
         //
-        //This will is activates to let the user see the error message.
+        //This will be activates to let the user see the error message.
         this.see_error_btn = this.create_element(anchor, `button`,{
             //
             //Helps us to know which button it is
@@ -1186,7 +1102,7 @@ export class primary extends io{
             // 
             //Verify that both the primary key and the friendlly components are defined.
             if (pk === undefined || friend === undefined) {
-                throw new schema.mutall_error(`THe foreign key value '${i}' is not correctly formatted`);
+                throw new schema.mutall_error(`The foreign key value '${i}' is not correctly formatted`);
             }
             //
             //Save the friendly component as an attribute

@@ -116,7 +116,6 @@ export default class chama extends app{
        //
        //4. Respect the business selector to all crud sql's
     }
- 
     //
     //1. Populate the selector with table names from current database
     populate_selector():void{
@@ -144,6 +143,21 @@ export default class chama extends app{
             //3.3 Add the option to the subject selector
             selector.appendChild(option);
         }
+    }
+    //
+    //Show all databases in the server to list tables within each database
+    async show_databases():void{
+        //
+        //Call the server_exec method to return with the database
+        const database= await server.exec("database",["Database"],"get_sql_data",["show databases"]);
+        //
+        //Get the selector 
+        const option = this.get_element("dbase");
+        //
+        //Get the selected database and show the listed tables
+        //Loop through all databases and list the entities
+        
+        //Populate the selector with the options
     }
     //
     //2. Change the subject of this application

@@ -1039,7 +1039,7 @@ export class theme extends outlook.panel {
         const col = this.dbase!.entities[ename].columns[col_name];
         //
         //Create and return the io for this column.
-        const Io = io.create_io(td, col);
+        const Io = this.create_io(td, col);
         // 
         //Save the io to aid in data retrieval.
         //NB: Remember to stringify the position
@@ -1048,6 +1048,98 @@ export class theme extends outlook.panel {
         return Io;
     }
     
+    //
+    //Creating an io from the given anchor and column. In future, 
+    //consider redefining this as a schema.column methods, rather
+    //than a standalone method.
+    create_io(
+        // 
+        //The parent of the input/output elements of this io. 
+        anchor:HTMLElement,
+        // 
+        //The column associated with this io. 
+        col: schema.column
+    ): io.io{
+        //
+        //Read only collumns will be tagged as such.
+        if (col.read_only !== undefined && col.read_only)
+                return new io.readonly(anchor);
+        //
+        //Atted to the foreign and primary key columns
+        if (col instanceof schema.primary) 
+            return new io.primary(anchor);
+        if (col instanceof schema.foreign) 
+            return new io.foreign(anchor);
+        //
+        //Attend the attributes
+        //
+        //A column is a checkbox if...
+        if (
+            //
+            //... its name prefixed by 'is_'....
+            col.name.startsWith('is_')
+            // 
+            //...or its datatype is a tinyint 
+            || col.data_type === "tinyint"
+        )return new io.checkbox(anchor);
+        //
+        //If the field length is 1 character, then assume it is a checkbox
+        if (col.length === 1) 
+            return new io.checkbox(anchor);
+        //
+        //If the length is more than 100 characters, then assume it is a textarea
+        if (col.length! > 100) return new io.textarea(anchor);
+        //
+        //If the column name is 'description', then its a text area
+        if (col.name === 'description')  new io.textarea(anchor);
+        //
+        //Time datatypes will be returned as date.
+        if (["timestamp", "date", "time"]
+            .find(dtype => dtype === col.data_type))
+                return  new io.input("date", anchor);
+        //
+        //The datatypes bearing the following names should be presented as images
+        // 
+        //Images and files are assumed  to be already saved on the 
+        //remote serve.
+        if (["logo", "picture", "profile", "image","photo"]
+            .find(cname => cname === col.name))             
+                return new io.file(anchor, "image");
+        //
+        if (col.name === ("filename" || "file"))
+                return new io.file(anchor, "file");
+        //
+        //URL
+        //A column is a url if...
+        if (
+            // 
+            //... its name matches one of the following ...
+            ["website", "url", "webpage"].find(cname => cname === col.name)
+            // 
+            //...or it's taged as url using the comment.
+            || col.url !== undefined
+         )
+                    return new io.url(anchor);
+        //
+        //SELECT 
+        //The io type is select if the select propety is set at the column level
+        //(in the column's comment). 
+        //Select requires column to access the multiple choices.
+        if (col.select !== undefined)         
+            return new io.select(anchor, <schema.attribute>col);
+        //
+        //String datatypes will be returned as normal text, otherwise as numbers.
+        if (["varchar", "text"]
+            .find(dtype => dtype === col.data_type))
+                return new io.input("text", anchor);
+        if (["float", "double", "int", "decimal", "serial", "bit", "mediumInt", "real"]
+            .find(dtype => dtype === col.data_type)) 
+                return new io.input("number", anchor);
+        // 
+        //The default io type is read only 
+        return new io.readonly(anchor);
+    } 
+  
     //
     //Select the row whose primary key is the given one.
     //and makes sure that it is in the view 

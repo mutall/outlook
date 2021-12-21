@@ -14,7 +14,7 @@
             }
         </style>
         <!--
-        To support mananagement of table columns.
+        To support management of table columns.
         we shall have as many rules as we have data columns-->
         <style id="columns">
         </style>
@@ -90,8 +90,11 @@
             Save all the affected records in bulk-->
             <button onclick="crud.page.current.update_database()">Save</button>
             <!--
-            -->
+                Show/hide the multi-record selector check boxes-->
             <button onclick="crud.page.current.multi_select(this)">Multi select</button>
+            <!-- 
+            Merge the selected records-->
+            <button onclick="crud.page.current.merge()">Merge</button>
             <!--            
             The go button is part of the quiz structure its event 
             listener is added programatically-->
