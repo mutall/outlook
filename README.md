@@ -1,8 +1,11 @@
 # The outlook framework core files
-outlook
-library
+- OUTLOOK - The front end to the application
+- LIBRARY - The backend to the application
 ## The currently active applications
-School
-chama
-tracker
-Kentionary
+- School
+- Chama
+- tracker
+- Kentionary
+### Completed Modules
+- MERGE
+- LARGE TABLE LOAD
