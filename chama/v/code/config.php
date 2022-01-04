@@ -1,30 +1,43 @@
 <?php
-//Create a connection class to the database.
 //
-class dbase{
+//This has to be the first statement in a file
+namespace chama;
+//
+//Resolve class \config using the library
+include_once "../../../library/v/code/config.php";
+//
+//The local config file extends the one in the libary
+class config extends \config{
     //
-    //Define database credentials.
-    public $host = 'localhost';
-    public $dbname = 'mutall_chama';
-    public $username = 'root';
-    public $password = '';
-    public $connection;
-    //    
-    //Once this class is instantiated, try creating a connection to the database.
-    public function __construct() {
+    //Title appearing on navigation tab should match the current namespace
+    public string $id =__NAMESPACE__;
+    // 
+    //The name of the application's database.
+    public string $app_db = "mutall_chama"; 
+    //
+    //Subject comprises of the entity name to show in the home page
+    //plus the database it comes from.
+    public string $subject_ename="group";
+    public array $subject;
+    //
+    //The full trademark name of the application
+    public string $trade = "UNIFY CHAMA";
+    //
+    //For advertising purposes
+    public string $tagline= "Bringing together all chama needs";
+    //
+    //Name of the application developer
+    public string $developer = "Peter Kamau";
+    //
+    //The path from where this application was loaded
+    public string $path=__DIR__;
+    //
+    function __construct(){
         //
-        //Define data source name which contains the server and the database.
-        $dsn = "mysql:host=$this->host;dbname=$this->dbname";
-        try{
-            $this->connection = new PDO($dsn, $this->username, $this->password);
-            //
-            //Set the errormode incase PDO connection isn`t successful. 
-            $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            //
-            } catch (PDOException $ex) {
-            die('Could not connect..'.$ex->getMessage());
-        }
-       
+        parent::__construct();
+        //
+        //Subject comprises of the entity name to show in the home page
+        //plus the database it comes from.
+        $this->subject= [$this->subject_ename, $this->app_db];
     }
 }
- 

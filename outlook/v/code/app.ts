@@ -1136,7 +1136,7 @@ export class products extends Map<string,outlook.assets.product>{
     //Activate the product with the given id 
     activate(product_id: string): void {
         // 
-        //If no product exists with the given in id throw an error 
+        //If no product exists with the given id throw an exception
         if (!(this.has(product_id))) {
             throw new Error(`The product with id ${product_id} was not found`);
         }
@@ -1156,7 +1156,8 @@ export class products extends Map<string,outlook.assets.product>{
             //Get the solution element.
             const solution_element = <HTMLElement>fs.querySelector(`.${id}`)!;
             // 
-            //Set the listener based on the type which the first parameter of the listener
+            //Set the listener based on its type; It is the first parameter 
+            //of the solutions listener
             switch (sol.listener[0]) {
                 // 
                 //The post defined element have their events as strings

@@ -1,6 +1,7 @@
 #Folders
 /Insuredge
 /accounting
+/kentionary/
 /metavisuo
 /pictures
 /tracker/v/tests/test.php
@@ -21,3 +22,5 @@ outlook/v/code/*.js
 #files
 *.js
 *.txt
+/chama/v/v/code/nbproject/private/
+/kentionary/nbproject/private/
