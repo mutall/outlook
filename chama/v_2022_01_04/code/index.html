@@ -1,0 +1,83 @@
+<html>
+    <head>
+        <!-- 
+        The tile of your project -->
+        <title>Unify Chama</title>
+        <!-- 
+        Styling the index page in terms of grids -->
+        <link rel="stylesheet" href="index.css"/>
+        
+        <script type="module">
+            //
+            //Importing this file boot straps the outlook applicaton
+            import chama from "./chama.js";
+            window.chama=chama;
+            //
+            //This import resolves the app class reference
+            import {app} from "../../../outlook/v/code/app.js";
+            // 
+            //Make the app public to resolve the onclick listener 
+            //at the login button.
+            window.app=app;
+            //
+            //Resolve the crud namespace reference required by the 
+            //crud page.
+            import * as crud from "../../../outlook/v/code/crud.js"
+            //
+            //Make the namespace public 
+            window.crud=crud;  
+        </script>
+        
+        
+        <!-- Marker for styling columns -->
+        <style id="columns"></style>
+      
+    </head>
+    
+    <body>
+      <div class="header">
+          <!--
+          Company logo -->
+          <div id="logo">
+              <img src="img/chama.jpg" height="50" width="50"/>
+          </div>
+          <div id="company">
+              UNIFY CHAMA
+          </div>
+          <br>
+          <select id="selection" onchange="chama.current.change_subject(this)">
+          </select>
+        </div>
+      <div id="services">Services
+      </div>
+      <div id="content">
+            Content
+            <table>
+                <thead></thead>
+                <tbody></tbody>    
+            </table>
+      </div>
+      <div id="welcome">
+          
+          Please <button onclick="app.current.login()">login</button> to access 
+          various services
+          
+      </div>
+      <div id="whatsup">Whatsup</div>
+      <div class="footer">
+          <div id="developer">
+              <img src="img/mutall/Peter Kamau.jpg" alt="developer's image" class="img_dev">
+          </div>
+          <div id="signature">
+                Created by: <a href="https://drive.google.com/file/d/1aaTOoTtp7UrZ59L_LXT5DCAsgeR8L6Kv/view?usp=sharing">
+              Peter Kamau
+              </a>
+            </div>
+          <div id="about">
+              Powered by: <a href="https://mutall.co.ke/mutall_data/home.php">
+              Mutall Data Managers
+              </a>
+            </div>
+      </div>
+    </body>
+</html>

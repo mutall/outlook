@@ -1,0 +1,604 @@
+<?php
+//
+include_once $_SERVER['DOCUMENT_ROOT']."/chama/v/config.php";
+//
+//Use trait for a connection that can be accessed by all classes.
+trait connection{
+    function connect(){
+        //
+        $conn = new dbase();
+        return $conn->connection;
+    }
+}
+//Chamas supports management of multiple social groups 
+class chamas {
+ 
+    use connection;
+    public $groups;
+    //
+    public function __construct() {
+        //
+        $this->groups = [];
+        //
+        //Initialize the groups in this database.
+        $this->set_groups();
+    }
+
+    //Initialize the groups of this database 
+    function set_groups() {
+        //
+        //Fomulate the group selection sql statement, includong is primary key
+        $sql = "select * from `group`";
+        //
+        
+        //Execute the statement on this database.
+        $result = $this->connect()->query($sql);
+        //
+        //Retrieve the returned groups from the query result.
+        foreach ($result->fetchAll(PDO::FETCH_CLASS, 'group') as $group) {
+            //
+            //Get every group by Primary Key and save it into groups array.
+            $this->groups[$group->group] = $group;
+        }
+    }
+
+    //Display the market pace for all chamas
+    function show() {
+        
+        //Invitation
+        
+        //Register chamas
+        foreach ($this->groups as $group) {
+             echo "
+            <div class='group' id='$group->name'>
+                <p> $group->name</p>
+                <img src='img/$group->name/$group->logo'  alt=''/>
+                <p>$group->website</p>
+                <a href='group_bronchure.php?group=$group->group' id='disabled_link'>Show more details...</a>    
+            </div>
+                   ";
+        }
+        
+        //Echo invitation
+   }
+
+}
+//With all groups set,
+//start modelling the chama......
+class group{
+    //
+    //Define properties in class group.
+    //A group has a name, website, email, vision and an Id.
+    public $name;
+    public $website;
+    public $email;
+    public $vision;
+    public $mission;
+    public $id;
+    //
+    //Get the connection to the database for querying purpose.
+    //In this case a trait that executes a db connect.
+    use connection;
+    //
+    //Establishing a link between group and member
+    public $members = [];
+    //
+    //Establish a link between group and officials.
+    //
+    public $officials = [];
+    //
+    public function __construct(){
+        //
+        //Once this class is Instantiated, set the members as well as other group details
+        //such as objectives, events, officials.
+        $this->set_members();
+    }
+    //
+    //Set the group members using the database (rather than using the constructor arguments)
+    function set_members(){
+        //
+        //Retrieve the members
+        //$sql = "SELECT * FROM member where member.`group` = $group";
+        $sql = "SELECT * FROM member";
+        // Run the statement in the database.
+        $results = $this->connect()->query($sql);
+        //
+        //Populate the member collection.
+       $members = $results->fetchAll(PDO::FETCH_CLASS, "member");
+    }
+    function set_officials(){
+
+    }
+    function set_objectives(){
+
+    }
+    function set_events(){
+
+    }
+}
+
+//     //
+    
+// //    //Define the constructor and the parameters it accepts, 
+// //    //in this case, the properties defined.
+//   public function __construct($this) {
+//     $this->group
+// //        
+// //        $this->set_officials();
+        
+//            set_members();
+// //        $this->set_events();
+// //        $this->set_objectives();
+
+// //    }
+// //
+// //  
+
+//
+//    function set_objectives() {
+//        //
+//        //Retrieve Objectives.
+//        $sql = "select * from objective where objective.`group` = $this->group";
+//        //
+//        //Run the statement in the database.
+//        $result = $this->connect()->query($sql);
+//        //
+//        //Populate the objectives collection.
+//        $this->objectives = $result->fetchAll(PDO::FETCH_CLASS, "objective");
+//    }
+
+  
+
+//
+//    function show_bronchure() {
+//        //
+//        //display group details in a printable format for a bronchure.
+//        //develop sections using a grid layout.
+//
+//        echo
+//        "
+//            <div class='head'>
+//            <div class='logo'><img src='img/$this->name/$this->logo'></div>
+//            </div>
+//            <div class='logo_nm'><p>$this->name</p></div>
+//            <div class='statement'>
+//                <div>Vission:</div><div>{$this->Vision}</div>
+//                <div class='mission'>Mission:</div><div>{$this->Mission}</div>
+//            </div>";
+//       
+//        $this->show_objectives();
+//        //
+//        $this->show_events();
+//        //
+//        $this->show_officials();
+//        //
+//        $this->show_members();
+//    }
+//
+//    function show_advert() {
+//        //create a good looking marketplace page. 
+//    }
+//
+//    function set_officials() {
+//        //
+//        //Retrieve Officials.
+//        $sql = "select official.*, member.*"
+//                . "from "
+//                . "official "
+//                . "inner join member on official.member=member.member "
+//                . "where official.`group` = $this->group";
+//        //
+//        //Run the statement in the database.
+//        $results = $this->connect->query($sql);
+//        //
+//        //Populate the official collection.
+//        $this->officials = $results->fetchAll(PDO::FETCH_CLASS, "official");
+//    }
+//
+//    function set_events() {
+//        //
+//        //Retrieve events.
+//        $sql = "select * from event where event.`group` = $this->group";
+//        //
+//        //Run the statement in the database.
+//        $result = $this->connect->query($sql);
+//        //
+//        //Populate the events collection.
+//        $this->events = $result->fetchAll(PDO::FETCH_CLASS, "event");
+//    }
+//    
+//    function show_objectives() {
+//        //
+//        echo "<div class='objectives'><p>Objectives</p>";
+//        foreach ($this->objectives as $objective) {
+//            echo "<div class='objective_des'><li>$objective->description</li></div>";
+//            $themes = $objective->theme;
+//            foreach ($themes as $theme) {
+//                echo "<div class='objective_theme'><p>theme</p>$theme->description</div>";
+//            }
+//        }
+//        echo "</div>";
+//    }
+//
+//    function show_events() {
+//        //
+//        echo "<div class='events'><p>Events</p>";
+//        foreach ($this->events as $event) {
+//            echo "<li>$event->name</li>";
+//        }
+//        echo "</div>";
+//    }
+//
+//    function show_officials() {
+//        //
+//        echo "<div class='offe'><div class='off'>Officials</div>";
+//        echo "<div class='office'>";
+//        foreach ($this->officials as $official) {
+//            $member = $official->member-1;
+//            $official->source = $official->type ."_service.php";
+//            if($official->type == 'Vice Chairman'){
+//            
+//                $official->source = "Chairman_service.php";
+//            }    
+//            echo "<div class='official'><img src='img/$this->name/$official->picture'><br>"
+//                . "<div>"
+//                    . "<a href='{$official->source}?group=$this->group&member=$member'>$official->type</a>"
+//                . "</div>"
+//                . "</div>";
+//                             
+//        }
+//        echo "</div></div>";
+//    }
+//
+//    function show_members() {
+//        //
+//        echo "<div class='membr'><div class='mem'>Members</div>";
+//        echo "<div class='members'>";
+//       
+//        foreach ($this->members as $member) {
+//        //
+//        $member_ = $member->member-1;    
+//        if(empty($member->picture)){
+//            echo "<div class='member'><img src='img/$this->name/user.png'>"
+//                . "<div>"
+//                     . "<a href='member_service.php?group=$this->group&member=$member_'>$member->username</a>"
+//                . "</div>"
+//                . "</div>";
+//            
+//        } else {
+//            echo "<div class='member'><img src='img/$this->name/$member->picture'>"
+//                . "<div>"
+//                    . " <a href='member_service.php?group=$this->group&member=$member_'> $member->username</a>"
+//                . "</div>"
+//                ."</div>";  
+//                   
+//        }
+//        //
+//        "</div></div>";
+////        $contribution = $member->contribution;
+////        foreach ($contribution as $contr){
+////            echo "<div>$contr->amount</div>";
+////        }
+//        }
+//     
+//    }
+////    function show_contribution(){
+////        foreach ($this->members as $member){
+////            echo "$member->username $member->contribution";
+////            $contribution = $member->contribution;
+////            foreach ($contribution as $contr){
+////            echo "<div>$contr->amount</div><div>$contr->type</div>";
+////            }
+////        }
+////    }
+//   
+//   }
+// }
+class member {
+   use connection;
+   //
+   //Link the member table to official.
+   public $office;
+   public $journal = [];
+   public $resume = [];
+
+   //
+   //
+   public function __construct() {
+    //    $this->set_office();
+    //    $this->set_contribution();
+    //    $this->set_resume();
+   }
+}
+//    
+//    function set_office() {
+//        
+//        //
+//        //Retrieve Officials.
+//        $sql = "select * from official where official.`member` = $this->member";
+//        //
+//        //Run the statement in the database.
+//        $results = $this->connect->query($sql);
+//        //
+//        //Set the office. 
+//        $records = $results->fetchAll(PDO::FETCH_OBJ);
+//        //
+//        // loop over the results and get their type inorder to set the 
+//        // member's office accordingly.
+//        foreach ($records as $record) {
+//            //
+//            //Set the office to the record type.
+//            $this->office = $record->type;
+//        }
+//        //
+//        // check if there are members whose office is null, set them to ordinary
+//        // members.
+//        if ($this->office === null) {
+//            //
+//            //Set the office to ordinary member.
+//            $this->office = 'Ordinary Member';
+//        }
+//    }
+//    function set_contribution(){
+//        //
+//        //Retrieve contributions.
+//        $sql = "select "
+//                    //get the contribution amount, date, type and the member
+//                    . "journal.amount, "
+//                    . "journal.date, "
+//                    . "journal.ref "
+//                    . "from "
+//                . "journal";
+//        //
+//        //Run the statement in the database.
+//        $results = chamas::$current->query($sql);
+//        //
+//        $this->journal = $results->fetchAll(PDO::FETCH_CLASS, "journal");
+//        
+//    }
+//    function set_resume(){
+//        //
+//        //Retrieve resume.
+//        $sql = "select "
+//                . "resume.profession, "
+//                . "resume.skills, "
+//                . "resume.interests, "
+//                . "resume.about, "
+//                . "resume.contact, "
+//                . "resume.portfolio,"
+//                . "member.username as name "
+//                . "From resume inner join "
+//                . "member on resume.member=member.member"
+//                //
+//                . " where resume.`member` = $this->member";
+//        //
+//        //Run the statement.
+//        $results = chamas::$current->query($sql);
+////        //
+//       $this->resume = $results->fetchAll(PDO::FETCH_CLASS, "resume");
+//        
+//    }
+//    
+//     function show_contribution(){
+//         
+//        foreach ($this->journal as $contribution){
+//            echo "$contribution->description<br>$contribution->amount<br>$contribution->date<br>";
+//        }
+//    }
+//    function show_resume(){
+//        
+//        //get each member`s resume.
+//        foreach ($this->resume as $resume){
+//            echo "<fieldset><legend><p>Profession</p></legend>$resume->profession</fieldset>
+//                <fieldset><legend><p>Skills</p></legend> $resume->skills</fieldset>
+//                <fieldset><legend><p>Interests</p></legend> $resume->interests</fieldset>
+//                <fieldset><legend><p>About</p></legend>$resume->about</fieldset>
+//                <fieldset><legend><p>Portfolio</p></legend> $resume->portfolio</fieldset> 
+//                <fieldset><legend><p>Contact</p></legend>$resume->contact</fieldset>";
+//        }
+//    }
+//
+//}
+//
+//class official {
+//    use connection;
+//    //
+//    public function __construct() {
+//        
+//    }
+//
+//}
+//
+//class objective {
+//    use connection;
+//    //
+//    //Establish the link between objective and theme.
+//    public $theme;
+//
+//    public function __construct() {
+//        //set themes.
+//        $this->set_theme();
+//    }
+//
+//    function set_theme() {
+//        //
+//        //Retrieve all the themes from the database.
+//        $sql = "select * from theme where theme.`objective` = $this->objective";
+//        //
+//        //Run the statement in the database.
+//        $result = $this->connect->query($sql);
+//        //
+//        //Set the theme.
+//        $this->theme = $result->fetchAll(PDO::FETCH_CLASS, "theme");
+//    }
+//
+//}
+//
+//class journal {
+//    use connection;
+//    //
+//    //Establish a link between journal and contribution.
+//    public $contribution = [];
+//    //
+//    //Establish a link between journal and opening balance.
+//    public $openinng_balance = [];
+//    //
+//    //Establish a link between journal and expense.
+//    public $expense = [];
+//    //
+//    //Establish a link between journal and income.
+//    public $income = [];
+//
+//    //
+//    public function __construct() {
+//        //
+//        $this->set_contribution();
+//        //
+//        $this->set_opening_balance();
+//        //
+//        $this->set_expense();
+//        //
+//        $this->set_income();
+//    }
+//
+//    function set_contribution() {
+//        
+//    }
+//
+//    function set_opening_balance() {
+//        
+//    }
+//
+//    function set_expense() {
+//        
+//    }
+//
+//    function set_income() {
+//        
+//    }
+//
+//}
+//
+//class event {
+//    use connection;
+//    //
+//    //Establish a link between event and agm.
+//    public $agm;
+//
+//    //
+//    public function __construct() {
+//        //
+//        $this->set_agm();
+//    }
+//
+//    function set_agm() {
+//        //
+//        //Retrieve the agm from the database.
+//        $sql = "select * from agm where agm.`event` = $this->event";
+//        //
+//        //Run the statement in the database.
+//        $result = $this->connect()->query($sql);
+//        //
+//        //Set the agm.
+//        $this->agm = $result->fetchAll(PDO::FETCH_CLASS, "agm");
+//    }
+//
+//}
+//
+//class theme {
+//    use connection;
+//    //
+//    //Establish a link between the theme and the message.
+//    public $messages = [];
+//
+//    public function __construct() {
+//        //
+//        //$this->set_message();
+//    }
+//
+//    function set_message() {
+//        //
+//        //Retrieve all the messages from the database.
+//        $sql = "select * from message where message.`theme` = $this->theme";
+//        //
+//        //Run the statement in the database.
+//        $result = $this->connect()->query($sql);
+//        //
+//        //Populate the messages collection.
+//        $this->theme = $result->fetchAll(PDO::FETCH_CLASS, "message");
+//    }
+//
+//}
+//
+//class message {
+//    use connection;
+//    //
+//    //Establish a link between the message and the member.
+//    public $member;
+//
+//    public function __construct() {
+//        //
+//        //$this->set_member();
+//    }
+//
+//    function set_member() {
+//        //
+//        //GEt the member that sent the message.
+//        $sql = "select * from mer where message.`member` = $this->message";
+//        //
+//        //Run the statement in the database.
+//        $result = $this->connect()->query($sql);
+//        //
+//        //set the member.
+//        $this->member = $result->fetchAll(PDO::FETCH_CLASS, "member");
+//    }
+//
+//}
+//
+//class agm {
+//    use connection;
+//    //
+//    //Establish a link between agm and minutes.
+//    public $minutes = [];
+//
+//    public function __construct() {
+//        //
+//        $this->set_minutes();
+//    }
+//
+//    function set_minutes() {
+//        //
+//        //Retrieve the minutes from the db.
+//        $sql = "select * from minute where minute.`agm` = $this->agm";
+//        //
+//        //Run the statement in the database.
+//        $result = $this->connect()->query($sql);
+//        //
+//        //Populate the minutes collection.
+//        $this->minutes = $result->fetchAll(PDO::FETCH_CLASS, "minute");
+//    }
+//
+//}
+//
+//class minute {
+//    use connection;
+//    //
+//    public function __construct() {
+//        
+//    }
+//
+//}
+//class contribution{
+//    use connection;
+//    //
+//    public function __construct() {
+//        
+//    }
+//}
+//class resume{
+//    use connection;
+//    //
+//    public function __construct() {
+//        
+//    }
+//}
