@@ -58,12 +58,13 @@ span{
 table{
     border-collapse: collapse;
     border:grey 2px solid;
-    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif ;
     letter-spacing: 1px;
-    font-size: 0.9em;
+    font-size: 0.5em;
+    font-weight: bold;
 }
+th{background-color: gold;}
 th,td{
-    border:inherit(table);
+    border: grey 2px solid;
     padding: 10px 10px;
 }
 

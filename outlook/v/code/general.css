@@ -71,7 +71,17 @@ span{
     margin:0 auto;
     padding:20px 15px;
 }
-
+table{
+    border-collapse: collapse;
+    border:grey 2px solid;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif ;
+    letter-spacing: 1px;
+    font-size: 0.9em;
+}
+th,td{
+    border:inherit(table);
+    padding: 10px 10px;
+}
 
 
 

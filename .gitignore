@@ -7,8 +7,16 @@
 /tracker/v/tests/test.php
 /test/
 /svg/
+/mutall_data/
+/outlook/v_2022_01_05
+/chama/v_2022_01_04
 /carpack/
 /.vscode/
+#library files
+/library/*.php
+/library/*.js
+/library/*.css
+/library/*.xsl
 # sub folders
 /chama/nbproject
 /library/nbproject
@@ -24,3 +32,4 @@ outlook/v/code/*.js
 *.txt
 /chama/v/v/code/nbproject/private/
 /kentionary/nbproject/private/
+/mutall_data/nbproject/private/

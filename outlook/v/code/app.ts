@@ -846,35 +846,40 @@ export abstract class app extends outlook.view{
 //
 //The welcome panel of an app
 export class services extends outlook.panel{
-  //
-  //The products to be displayed in the services panel 
-  public products:products|null;
-  // 
-  // 
-  constructor(base:outlook.view, Products:products|null=null){
-      super("#services",base);
-      this.products=Products;
-  }
-  //
-  //Use the products to complete the painting of the services panel
+    //
+    //The products to be displayed in the services panel 
+    public products:products|null;
+    // 
+    // 
+    constructor(base:outlook.view, Products:products|null=null){
+        super("#services",base);
+        this.products=Products;
+    }
+    //
+    //Use the products to complete the painting of the services panel
     async continue_paint() {
         //
-        //Get the services panel element where we`ll do the painting.
+        //Get the services panel element where we will do the painting.
         const panel = this.get_element("services");
         // 
         //Get the products to paint
-        const prods=this.products===null? 
-            (<app> this.base).products : this.products
+        const prods=this.products===null
+            //
+            // Use the products defined at the root application level
+            ?(<app> this.base).products 
+            //
+            // Use the products defined at the local application level
+            : this.products;  
         // 
         //
         //Step through the products to paint each one of them.
-        prods.forEach((product, key) => {
+        prods.forEach((product) => {
             //
-            //Paint the product and return to a field set 
+            //Paint the product and return a field set 
             const fs: HTMLFieldSetElement = this.paint_products(panel, product);
             // 
             //Loop through the solutions of this product appending them 
-            //as children  of this fs
+            //as children of the field set
             Object.keys(product.solutions).forEach(id => {
                 // 
                 //Get the solution to paint
@@ -973,7 +978,7 @@ export class products extends Map<string,outlook.assets.product>{
     //
     constructor(){
         //
-        //Initialize the parent ap
+        //Initialize the parent map
         super();
         //
         //Collect products shared between all applications
@@ -981,10 +986,10 @@ export class products extends Map<string,outlook.assets.product>{
         //
         //Collect products that are specific to those application
         //and add them to the shared ones
-        uproducts.concat(app.current.get_products_specific());
+        const all_uproducts= uproducts.concat(app.current.get_products_specific());
         //
         //Use the products to initialize this products map
-        for(let uproduct of uproducts){
+        for(let uproduct of all_uproducts){
             //
             //Convert the (solution) undexed product to an indexed one
             let product: outlook.assets.product = {
@@ -1136,7 +1141,7 @@ export class products extends Map<string,outlook.assets.product>{
     //Activate the product with the given id 
     activate(product_id: string): void {
         // 
-        //If no product exists with the given id throw an exception
+        //If no product exists with the given in id throw an error 
         if (!(this.has(product_id))) {
             throw new Error(`The product with id ${product_id} was not found`);
         }
@@ -1156,8 +1161,7 @@ export class products extends Map<string,outlook.assets.product>{
             //Get the solution element.
             const solution_element = <HTMLElement>fs.querySelector(`.${id}`)!;
             // 
-            //Set the listener based on its type; It is the first parameter 
-            //of the solutions listener
+            //Set the listener based on the type which the first parameter of the listener
             switch (sol.listener[0]) {
                 // 
                 //The post defined element have their events as strings
