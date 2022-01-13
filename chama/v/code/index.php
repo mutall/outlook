@@ -1,8 +1,8 @@
 <?php
 //
 //This is the application's namespace
-namespace kentionary;
-
+namespace chama;
+//
 include "config.php";
 $config = new config();
 ?>
@@ -10,7 +10,7 @@ $config = new config();
     <head>
         <!-- 
         The tile of your project -->
-        <title><?php echo $config->title; ?></title>
+        <title><?php echo $config->title;?>.</title>
         <!-- 
         Styling the index page in terms of grids -->
         <link rel="stylesheet" href="index.css"/>
@@ -51,7 +51,7 @@ $config = new config();
                 //Complete the creatio of 'main' by evoking the asynchronous 
                 //methods (which are not callable ffrom th constructor)
                 await window.Main.initialize();
-            }
+            };
         </script>
         
         <!-- Marker for styling columns -->
@@ -64,11 +64,9 @@ $config = new config();
           <!--
           Company logo -->
           <div id="logo">
-                <div>
-                    <img src="../images/logo.png" height="50" width="100">
-                </div>
-                <select id="selection" onchange="app.current.change_subject(this)">
-                </select>
+            <div>
+                <img src="img/chama.jpg" height="50" width="50"/>
+            </div>
           </div>
           <div id="company">
               <?php
@@ -76,8 +74,11 @@ $config = new config();
                    .$config->tagline;
               ?>    
           </div>
+          <div class="selection">
+              <select id="selection" onchange="app.current.change_subject(this)">
+                </select>
+          </div>
       </div>
-      <div id="why">Why</div>
       <div id="services">Services
       </div>
       <div id="content">
@@ -94,10 +95,14 @@ $config = new config();
       <div id="whatsup">Whatsup</div>
       <div class="footer">
           <div id="developer">
-              <img src="../images/me.jpg" alt="developer's image" class="img_dev">
+              <img class="img_dev" src="img/mutall/Peter Kamau.jpg" alt="developer's image">
           </div>
-          <div id="signature">Developed by: <?php echo $config->developer; ?></div>
-          <div id="company">Mutall Data Co.</div>
+          <div id="signature">
+              Developed by:<?php echo $config->developer; ?>
+          </div>
+          <div id="about">
+                Mutall Data Company
+          </div>
       </div>
     </body>
 </html>
