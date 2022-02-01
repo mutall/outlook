@@ -7,6 +7,7 @@ import * as app from "../../../outlook/v/code/app.js";
 //
 //Resolve the reference to the server class
 import * as server from "../../../library/v/code/server.js";
+import { input } from '../../../outlook/v/code/io.js';
 //
 //
 //
@@ -60,60 +61,40 @@ export default class main extends app.app {
                         title: "Tabulate Contributions",
                         id: "cross_tab",
                         listener: ["event", () => this.cross_tab()]
+                    },
+                    {
+                        title: "Merge Contributions",
+                        id: "merge_contribution",
+                        listener: ["event", () => this.merge_contributions()]
                     }
                 ]
             }
         ]
     }
     //
+    //
+    async merge_contributions(): Promise<void> {
+        //
+        //
+        const consolidate = new merge_contrib(this,"merge.html");
+        //
+        await consolidate.get_data();
+        //
+        //Get the merge button and add an event to it
+        const button= <HTMLSelectElement>this.get_element("merge");
+        button.onclick= ()=>consolidate.merge();
+        //
+        await consolidate.administer();
+    }
+    //
     //Display the member contributions for all the group events
     async cross_tab(): Promise<void> {
-        //
-        //Obtain the contribution values from the database
-        //
-        //Formulate the query to obtain the values
-        const sql = `
-                select
-                    member.email,
-                    json_objectagg(event.id,contribution.amount) as events
-                from 
-                    contribution
-                    INNER JOIN member on contribution.member= member.member
-                    INNER JOIN event on contribution.event= event.event
-                group by email`;
-        //
-        //Execute the query
-        const values: Array<{ email: string, events: string }> =
-            await server.exec("database", ["mutall_chama"], "get_sql_data", [sql]);
-        //
-        //Expected output
-        //  [{ email:"Aisha Gatheru",
-        //   events: {carol:500},
-        //            {ndegwa:100},
-        //            {mwihaki_dad:1000}
-        //           ]
-        //  }]
-        //Define the suitable output of the data 
-        const results: Array<{ email: string, events: { [index: string]: number } }> =
-            values.map(value => {
-                //
-                //
-                const { email, events } = value;
-                //
-                //Convert the events string to an event array
-                const events_array: { [index: string]: number } = JSON.parse(events);
-                //
-                //
-                return { email, events: events_array };
-            });
-        //
-        //Obtain the header values
-        const headers: Array<{ name: string }> = await server.exec("database", ["mutall_chama"], "get_sql_data",
-            ["select event.id as name from event order by date"]);
+        
         //
         //Create the view where we want to display the table
-        const view: sql_viewer = new sql_viewer(this, this.config.general, results, headers);
+        const view: sql_viewer = new sql_viewer(this, this.config.general);
         //
+        await view.get_data();
         //
         await view.administer();
     }
@@ -197,10 +178,16 @@ export default class main extends app.app {
         }
     }
 }
+
 // 
 //This is a view is used for displaying sql data in a table
 class sql_viewer extends outlook.baby<void>{
-    // 
+    //
+    //
+    //
+    public input?: Array<{ email: string, events: { [index: string]: number } }>;
+    //
+    public headers?: Array<{ name: string }>;
     //
     constructor(
         // 
@@ -208,11 +195,7 @@ class sql_viewer extends outlook.baby<void>{
         mother: outlook.view,
         //
         //The html file to use
-        filename: string,
-        //
-        public input: Array<{ email: string, events: { [index: string]: number } }>,
-        //
-        public headers: Array<{ name: string }>
+        filename: string
     ) {
         // 
         //The general html is a simple page designed to support advertising as 
@@ -253,7 +236,7 @@ class sql_viewer extends outlook.baby<void>{
         this.create_element(th, 'th', { textContent: "email" });
         //
         //Populate the events th
-        this.headers.forEach(header => {
+        this.headers!.forEach(header => {
             //
             //events:{[index:string]:number}
             //Destructure the header
@@ -265,7 +248,7 @@ class sql_viewer extends outlook.baby<void>{
         });
         //
         //Add the values as rows to the table's body
-        this.input.forEach(row => {
+        this.input!.forEach(row => {
             //
             //Destructure the row
             const { email, events } = row;
@@ -274,13 +257,23 @@ class sql_viewer extends outlook.baby<void>{
             const tr = this.create_element(tbody, 'tr', {});
             //
             //Populate the email td
-            this.create_element(tr, 'td', { textContent: email });
+            const pk =this.create_element(tr, 'td', { textContent: email });
+            //
+            //Add the input buton at this point and it should be hidden by default
+            //
+            //Create an input button before the tr
+            const btn = document.createElement('input');
+            btn.setAttribute('type','checkbox');
+            pk.appendChild(btn);
+            //
+            //Add the input button before the email td's
+            //.unshift('<input type="checkbox"> </input>');
             //
             //Populating the events
-            this.headers.forEach(header => {
+            this.headers!.forEach(header => {
                 //
                 //Destructure the header
-                const {name}= header;
+                const { name } = header;
                 //
                 //
                 const value = String(events[name] == undefined ? "" : events[name]);
@@ -290,6 +283,74 @@ class sql_viewer extends outlook.baby<void>{
             });
         });
     }
+    async get_data():Promise<void>{
+     //
+        //Obtain the contribution values from the database
+        //
+        //Formulate the query to obtain the values
+        const sql = `
+                select
+                    member.email,
+                    json_objectagg(event.id,contribution.amount) as events
+                from 
+                    contribution
+                    INNER JOIN member on contribution.member= member.member
+                    INNER JOIN event on contribution.event= event.event
+                group by email`;
+        //
+        //Execute the query
+        const values: Array<{ email: string, events: string }> =
+            await server.exec("database", ["mutall_chama"], "get_sql_data", [sql]);
+        //
+        //Expected output
+        //  [{ email:"Aisha Gatheru",
+        //   events: {carol:500},
+        //            {ndegwa:100},
+        //            {mwihaki_dad:1000}
+        //           ]
+        //  }]
+        //Define the suitable output of the data 
+        this.input=
+            values.map(value => {
+                //
+                //
+                const { email, events } = value;
+                //
+                //Convert the events string to an event array
+                const events_array: { [index: string]: number } = JSON.parse(events);
+                //
+                //
+                return { email, events: events_array };
+            });
+        //
+        //Obtain the header values
+        this.headers = <Array<{ name: string }>> await server.exec("database", ["mutall_chama"], "get_sql_data",
+            ["select event.id as name from event order by date"]);   
+    }
 }
+//
+//Merging the group contributions
+class merge_contrib extends sql_viewer {
+    //
+    //
+    constructor(
+        // 
+        //This popup parent page.
+        mother: outlook.view,
+        //
+        //The html file to use
+        filename: string
+    ) {
+        // 
+        //The general html is a simple page designed to support advertising as 
+        //the user interacts with this application.
+        super(mother, filename);
+        //
+    }
+    async merge():Promise<void>{
+        //
+        //
+    }
+}   
 
 

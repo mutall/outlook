@@ -59,6 +59,7 @@ body {
   background-color:whitesmoke;
   overflow: scroll;
   overflow-x: hidden;
+  line-break: strict;
 }
 #whatsup {
   grid-area: whatsup;

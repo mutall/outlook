@@ -6,7 +6,7 @@ import * as outlook from "./outlook.js";
 import * as server from "../../../library/v/code/server.js";
 // 
 //This is the problem we have of solving that.
-import * as library from "../../../library/v/code/library.js";
+import * as library from "../../../library/v/code/library";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
 import * as schema from "../../../library/v/code/schema.js";
@@ -14,10 +14,11 @@ import * as schema from "../../../library/v/code/schema.js";
 //Resolve the questionnaire
 import * as quest from "../../../library/v/code/questionnaire.js";
 //
-//Impor the theme class
+//Import the theme class
 import * as theme from "./theme.js";
-// 
-import { io } from "./io.js";
+//
+//There is only one class in this file:merger; its the default export 
+import merger from "../../../outlook/v/code/merger.js";
 // 
 import {app} from './app.js'
 // 
@@ -129,9 +130,6 @@ export class page extends outlook.baby<crud_result> {
         //Get the sorting clause from the user.
         const clause = (<HTMLInputElement> this.get_element("sort")).value; 
         //
-        //Do not continue if there are no review inputs.
-        if(clause === "" && condition === "")return;
-        //
         //B. Complete the where and sorting clauses.
         const where = condition === ""?"":`where ${condition}`;
         //
@@ -146,7 +144,7 @@ export class page extends outlook.baby<crud_result> {
             ?` order by  ${ename}.${ename}  Asc`
             //
             //Otherwise the user overrides the default value.
-            :`order by ${clause}`;
+            :` order by ${clause}`;
         //
         //C. Use the original sql to formulate a new working version assuming 
         //it has no where or ordering clause.
@@ -796,6 +794,65 @@ export class page extends outlook.baby<crud_result> {
         //2.2 Change the display property to none
         declaration.setProperty("display", "none");
     }
+    
+    //Merge the currently checked records
+    public async merge():Promise<void>{
+        //
+        //1. Collect the Imerge data
+        //
+        //1.1 Destructre the subject reveal the database and reference table
+        //components
+        const [ename, dbname] = this.subject;
+        //
+        //1.2 Collect the checked records' primary keys
+        const nodelist = this.document.querySelectorAll(
+            "input[name='multi_select']:checked"
+        );
+        //Convert the nodelist keys to array of key values
+        const keys = (Array.from(nodelist)).map(
+            element=>(<HTMLInputElement>element).value
+        );
+        //
+        //There must be at least 2 keys to merge
+        if (keys.length<2){
+            alert(`There must be at least 2 records to merge. Found ${keys.length}`);
+            return;
+        }
+        //
+        //1.3 Formulate the sql (from the checked records) to retrieve
+        //the members to merge
+        //
+        //Convert the names to backquote enclosed strings
+        const dbname_str = "`" + dbname + "`";
+        const ename_str = "`" + ename + "`";
+        //
+        const members = 
+            `select
+                ${dbname_str}.${ename_str}.${ename_str} as member 
+            from 
+                ${dbname_str}.${ename_str}
+            where 
+                ${dbname_str}.${ename_str}.${ename_str} in (${keys.join(', ')})`; 
+        //
+        //Run the merging operation                
+        //
+        //2. Compile the imerger structure
+        const imerger = {ename, dbname, members};
+        //
+        //Create the merging page as a baby of the current curd page
+        const Merger = new baby_merger(imerger, this);
+        //
+        //Open the baby window to complete the constructor 
+        //methods that are asynchronous
+        await Merger.open();
+        //
+        //3. Wait for the merging process to finish
+        const principal:number|undefined = await Merger.administer();
+        //
+        //4. Use the principal to update the page by highlighting it
+        
+    }
+    
     //
     //Toggles the checkbox at the primary td allowing user to do multiple 
     //tr selection. 
@@ -986,6 +1043,50 @@ export class page extends outlook.baby<crud_result> {
     }
     
 }
+
+/*
+ * This is a page support merge operations within outlook and when
+ * administered returns a primary key of the principal member that received
+ * all the consolidatiion data, i.e., the result of the merge operation 
+ */
+ class baby_merger extends outlook.baby<number>{
+    // 
+    constructor(public imerge:library.Imerge, mother:outlook.view){
+        //
+        //Initialize the baby view
+        super(mother, app.current.config.general);
+    }
+    //
+    //The baby merger returns the primary key of the principal
+    //memberreturn
+    public get_result():Promise<number>{
+        //
+        //Get the principal that received all the consolidations
+        const principal = this.imerge.principal!;
+        //
+        //Convert the principal to a number (to conform with the required
+        //output
+        const result:number = Number(principal);
+        //
+        return new Promise(resolve=>resolve(result)); 
+    }
+    //
+    //The baby merger page has no checks to do
+    public check():boolean{return true; }
+    //
+    //Paint the general page with merger specific elements
+    public async show_panels():Promise<void>{
+        //
+        //Create the merger view
+        const Merger = new merger(this.imerge,this);
+        //
+        //Open the Merger view to complete the asynchronous initializations
+        await Merger.open();
+        //
+        //Execute the merger process
+         await Merger.execute();
+    }
+ }
 
 //
 //Modelling the tr as the basic unit for CRUD operations. The cud.page
