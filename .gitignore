@@ -13,14 +13,14 @@
 /chama/v_2022_01_04/
 /carpack/
 /.vscode/
-#library files
-/library/*.php
-/library/*.js
-/library/*.css
-/library/*.xsl
+#schema files
+/schema/*.php
+/schema/*.js
+/schema/*.css
+/schema/*.xsl
 # sub folders
 /chama/nbproject
-/library/nbproject
+/schema/nbproject
 /outlook/nbproject
 /tracker/nbproject
 /school/nbproject
