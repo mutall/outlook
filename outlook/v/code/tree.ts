@@ -1,6 +1,6 @@
 //
 //Resolving the static node structure 
-import * as library from "../../../library/v/code/library.js";
+import * as library from "../../../schema/v/code/library.js";
 // 
 //Resolve the popup class used by the browser popup window 
 import * as outlook from "./outlook.js";

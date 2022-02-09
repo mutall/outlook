@@ -1,7 +1,7 @@
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
-import * as schema from "../../../library/v/code/schema.js";
-import * as library from "../../../library/v/code/library.js";
+import * as schema from "../../../schema/v/code/schema.js";
+import * as library from "../../../schema/v/code/library.js";
 import * as crud from "./crud.js";
 //
 //Added to allow access to a view
@@ -12,7 +12,7 @@ import * as crud from "./crud.js";
 import * as tree from "./tree.js";
 // 
 //Resolve the server functionality
-import * as server from "../../../library/v/code/server.js";
+import * as server from "../../../schema/v/code/server.js";
 //
 /*
  * Sample from stack overflow of how to get Typescript types from 

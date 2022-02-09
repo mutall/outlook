@@ -1,8 +1,8 @@
 //
-import * as library from "../../../library/v/code/library.js";
+import * as library from "../../../schema/v/code/library.js";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
-import * as schema from "../../../library/v/code/schema.js";
+import * as schema from "../../../schema/v/code/schema.js";
 //
 //These are the components of the subject.
 //The ename and dbname are defined in the library.d.ts,
@@ -812,7 +812,7 @@ export class choices<i> extends popup<Array<i>>  {
         //Cast this result into the desired output
         this.output = <Array<i>>result;
         //
-        //The output is ok if the choices are not empty.
+        //The ouput is ok if the choices are not empty.
         const ok = this.output.length > 0;
         if (!ok) {
             alert(`Please select at least one ${this.id}`);
