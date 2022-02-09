@@ -9,7 +9,7 @@ import * as schema from "../../../library/v/code/schema.js";
 //so we dont need to re-define them here.
 export type subject = [library.ename, library.dbname];
 
-//This is the pahe that the users will see generally. It is the root of 
+//This is the panel that the users will see generally. It is the root of 
 //all  outlook pages. Application is a view. A page, which extends 
 //a view is used for data collection. A view is not. A view may
 //be carnibalised to feed another view; such views are called templates
@@ -23,7 +23,7 @@ export class view {
     public key: number;
     // 
     //Lookup storage for all views created by this application.
-    static lookup: Map<number, view> = new Map()
+    static lookup: Map<number, view> = new Map();
     // 
     //The current active view where the events (on a html page) are wired. E.g.
     //<button onclick=view.current.open_dbase()>Ok</button>
@@ -812,7 +812,7 @@ export class choices<i> extends popup<Array<i>>  {
         //Cast this result into the desired output
         this.output = <Array<i>>result;
         //
-        //The ouput is ok if the choices are not empty.
+        //The output is ok if the choices are not empty.
         const ok = this.output.length > 0;
         if (!ok) {
             alert(`Please select at least one ${this.id}`);

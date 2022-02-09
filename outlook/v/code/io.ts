@@ -202,7 +202,6 @@ export abstract class io {
             this[name] = new_element;
         }
     }
-
 }
 // 
 //This io class models a single choice selector from an enumerated list that is
