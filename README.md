@@ -1,6 +1,6 @@
 # The outlook framework core files
-- OUTLOOK - The front end to the application
-- LIBRARY - The backend to the application
+- OUTLOOK - The front end to the framework
+- SCHEMA - The backend to the frameowork
 ## The currently active applications
 - School
 - Chama
