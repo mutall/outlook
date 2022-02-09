@@ -1,13 +1,13 @@
 import * as outlook from "./outlook.js";
 //
 //Allows methods on this page to talk to the server
-import * as server from "../../../library/v/code/server.js";
+import * as server from "../../../schema/v/code/server.js";
 // 
 //This is the problem we have of solving that.
-import * as library from "../../../library/v/code/library.js";
+import * as library from "../../../schema/v/code/library.js";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
-import * as schema from "../../../library/v/code/schema.js";
+import * as schema from "../../../schema/v/code/schema.js";
 //
 import * as io from "./io.js";
 // 

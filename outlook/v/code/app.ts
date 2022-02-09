@@ -1,15 +1,15 @@
 //
-import * as library from "../../../library/v/code/library.js";
-import * as server from "../../../library/v/code/server.js";
+import * as library from "../../../schema/v/code/library.js";
+import * as server from "../../../schema/v/code/server.js";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
-import * as schema from "../../../library/v/code/schema.js"
+import * as schema from "../../../schema/v/code/schema.js"
 // 
 import * as outlook from "./outlook.js";
 import * as crud from "./crud.js";
 import * as theme from "./theme.js";
 import * as login from "./login.js";
-import * as quest from "../../../library/v/code/questionnaire.js"
+import * as quest from "../../../schema/v/code/questionnaire.js"
 
 //
 //A column on the application database that is linked to a corresponding one
@@ -134,6 +134,10 @@ export abstract class app extends outlook.view {
             this.user = JSON.parse(user_str.trim());
             this.login(this.user);
         }
+         //
+        //Populate the subject selector with all the entities of the
+        //application.
+        this.populate_selector();
     }
     //     
     //Return true/false depending on whether the named entity is linked to 
@@ -179,11 +183,13 @@ export abstract class app extends outlook.view {
         this.dbase = new schema.database(idbase);
     }
     //
-    //Authenticate a new user that wants to access the 
-    //services of this application. 
-    //This the parameter user is usered when this method is called 
-    //by the constructor is a user is found already existing in the local 
-    //storage hence no loging in is required. 
+    //This method authenticates a new user that wants to access the 
+    //services of this application.
+    //There are two ways of calling this method, with or without the User
+    // Parameter.
+    //If there was a previous login, the User must have been provided and saved
+    //in the local storage, otherwise, the user details will be provided via
+    //a dialog box.
     async login(User?: outlook.user) {
         //
         //If no user exists at the local storage get the user through a login 
@@ -198,7 +204,7 @@ export abstract class app extends outlook.view {
             this.user = <outlook.user>await Login.administer();
         }
         //
-        //Continue only if the user id defined
+        //Continue only if the user is defined
         if (this.user === undefined) return;
         //
         //3.Use the server to check whether the user is registered with 
@@ -410,11 +416,11 @@ export abstract class app extends outlook.view {
     abstract get_products_specific(): Array<outlook.assets.uproduct>;
 
     //
-    //Register the user and return the role ids for which the 
-    //user has registered.
+    //Register the user and return the roles which this user can play
+    // in this application.
     async register(): Promise<Array<string> | undefined> {
         //
-        //Collect from the user the minimum registration requirement 
+        //1.Collect from the user the minimum registration requirement. 
         //The minimum requirement are the roles
         //
         // 
@@ -444,24 +450,22 @@ export abstract class app extends outlook.view {
         //
         //1.Collect the data needed for a successful 'first level' registartion.
         //e.g., username, application name, user_roles, email.
-        // The data has the following structure "[cname, ename, simple, alias]".
+        // The data has the following structure "[dbname, ename, simple, alias]".
         const login_db_data: Array<quest.label> = this.get_subscription_data();
         //
         //2. Write the data into the database and return an array of error messages.
         //User.export_data(login_db_data):Promise<Array<string>>;
-        const result: quest.Imala = await server.exec(
+        const html: string = await server.exec(
             "questionnaire",
             [login_db_data],
-            "load",
+            "load_common",
             ["log.xml"]
         );
         //
         //3.Verify that writing to db was successful
-        //and report to the user and throw an exception.
-        const { is_error, html } = app.get_report(result)
-        // 
+        //and report to the user otherwise throw an exception. 
         //Show the report if the saving was not successfull 
-        if (is_error) {
+        if (html !== "Ok") {
             const Report = new outlook.report(<outlook.view>app.current, html!, this.config.general);
             await Report.administer();
             // 
@@ -471,65 +475,6 @@ export abstract class app extends outlook.view {
         //
         // The registration was successful so, return the role ids  
         return this.user!.role_ids;
-    }
-    // 
-    //Report the  runtime or syntax errors
-    static get_report(imala: quest.Imala): { is_error: boolean, html?: string } {
-        // 
-        // Define the structure of the report to be returned
-        //  
-        let html: string;
-        //
-        //Prepare to compile the error messages 
-        let msgs: Array<library.basic_value> = [];
-        // 
-        //The type of error message 
-        let report_type: string | undefined;
-        // 
-        //Syntax errors occur if ...
-        if (
-            //... the class name matches syntax...
-            imala.class_name === "syntax"
-        ) {
-            // 
-            //Reporting syntax errors
-            report_type = "syntax";
-            //
-            //Format the errors into a html
-            msgs = imala.errors;
-        }
-        // 
-        //Report runtime errors
-        /// 
-        //A runtime error exists if ... 
-        else if (
-            // 
-            //...the class name is tagged as syntax
-            imala.class_name === "runtime"
-            // 
-            //... and there are indeed matching error messages 
-            && (imala.label_errors.length + imala.table_errors.length > 0)
-        ) {
-            // 
-            //Reporting syntax errors 
-            report_type = "runtime";
-            //
-            //Report the raw Imala
-            msgs = [JSON.stringify(imala)];
-        }
-        // 
-        //Report the error messages if any. 
-        if (report_type === undefined) return { is_error: false };
-        // 
-        //Compile the error message
-        html =
-            `<p> Error Type: ${report_type}</p>`
-            + msgs
-                .map(msg => `<p>${msg}</p>`)
-                .join("<br/>");
-        // 
-        //Return the full report if report type is dfeiend
-        return { is_error: report_type !== undefined, html }
     }
     //
     // Return the data needed for a successful 'first level' registartion, 
@@ -687,7 +632,7 @@ export abstract class app extends outlook.view {
 
     //
     //1. Populate the selector with table names from current database
-    populate_selector(): void {
+    private populate_selector(): void {
         //
         //1.Get the current database: It must EXIST by THIS TIME
         const dbase = this.dbase;
@@ -716,10 +661,11 @@ export abstract class app extends outlook.view {
             selector.appendChild(option);
         }
     }
+
     //
-    //Establish the links between the user and application databases e.g., In
-    // tracker, we link the developers, CEO's, and staff to the user. It also 
-    // links organizations to businesses.
+    //Establish the links between the user database and application database
+    //e.g In tracker we link developers, CEO's, staff to the users 
+    //and organization to the business.
     async relink_user(): Promise<void> {
         //
         //0. Yield/get all the replicas (i.e., entities, in the application, that have 
@@ -740,7 +686,7 @@ export abstract class app extends outlook.view {
         if (!ok) { alert("Process failed"); }
         else { alert('Replicas relinked successfully'); }
     }
-
+    
     //
     //Yield both roles and business replicas that are broken.
     private collect_broken_replicas(): Array<replica> {

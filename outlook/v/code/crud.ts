@@ -3,16 +3,16 @@
 import * as outlook from "./outlook.js";
 //
 //Allows methods on this page to talk to the server
-import * as server from "../../../library/v/code/server.js";
+import * as server from "../../../schema/v/code/server.js";
 // 
 //This is the problem we have of solving that.
-import * as library from "../../../library/v/code/library";
+import * as library from "../../../schema/v/code/library";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
-import * as schema from "../../../library/v/code/schema.js";
+import * as schema from "../../../schema/v/code/schema.js";
 //
 //Resolve the questionnaire
-import * as quest from "../../../library/v/code/questionnaire.js";
+import * as quest from "../../../schema/v/code/questionnaire.js";
 //
 //Import the theme class
 import * as theme from "./theme.js";
@@ -520,29 +520,27 @@ export class page extends outlook.baby<crud_result> {
         const questions:Array<quest.label> = [...this.collect_questions()];
         //
         //Write the $inputs to the server database and return the save result, 
-        //Imala.
-        const Imala:quest.Imala = await server.exec(
+        //as Imala of the library (rather than quest) variation.
+        const Imala:library.Imala = await server.exec(
             //
-            //Use the new large table load method
+            //Use the new large table load method; the data is laid out in a 
+            //questionnaire format
             "questionnaire",
             //
-            //Data in the Iquestionnare format 
+            //Data in the Iquestionnare format, specifically, collection of labels 
             [questions], 
             //
-            //Call the load method -- the one specificlly tailord for CRUD
-            //"load_user_inputs",
-            "load", 
+            //Use the load method -- the one specificlly tailor made for CRUD
+            "load_user_inputs",
             //
-            //Use the default xml and html log files and do not summarise
-            //the reult
+            //Use the default xml and html log files 
             []
         );
         //
         //
         //Use the $result to report on the crud page to show the status 
         //of the save.  
-        //this.report(Imala);
-        alert(JSON.stringify(Imala));
+        this.report(Imala);
     }
     // 
     //To avoid repeating ourselves define the theme of this crud page
@@ -566,7 +564,7 @@ export class page extends outlook.baby<crud_result> {
             //to eliminate typescript errors.
             const td_element = <HTMLTableCellElement> td;
             //
-            //Get the cname
+            //Get the column's name, cname
             const cname = this.theme.col_names![td_element.cellIndex];
             //
             //Get the tr
@@ -581,32 +579,34 @@ export class page extends outlook.baby<crud_result> {
             //Get the td position
             const cellIndex= td_element.cellIndex;
             //
-            //Destructure the subject.
+            //Destructure the subject to reveal the entity amd database names.
             const [ename, dbname] = this.subject;
             // 
             //Get the io that created that td
-            //NB: The Maps array key needs to be converted into a string because
-            //typescript doesnt seem accept an object as a key -- unlike PHP 
+            //NB: The this.ios Map array keys needs to be converted into a 
+            //string because typescript doesn't seem to accept an object as a 
+            //key -- unlike PHP. (Observed by Lawrence)
             const Io = theme.theme.ios.get(
                 String(
                     //
                     //This is the index of any td in this theme
-                    [this.theme.key,rowindex,cellIndex]
+                    [this.theme.key, rowindex, cellIndex]
                 )
             );
             //
+            //Use the td's io to get get its value (expression)
+            //
+            //Ensure that the io exists
             if (Io===undefined)
                 throw new Error("Cannot get the io that created this td");
+            //
+            //The expression to be associated with the cname is a simple basic
+            //value        
+            const exp = Io.input_value;    
             // 
-            //Compile output question as a questionnaire label 
-            const label: quest.label =[
-                dbname, ename, alias, cname, 
-                //
-                //The desired expression is an atom, a.k.a., scalar with 
-                //position data
-                ["capture\\atom", Io.input_value, rowindex, cellIndex]
-            ];
-            
+            //Compile output questions as i  the (questionnaire) label format 
+            const label: quest.label =[dbname, ename, alias, cname, exp];
+            //
             //Yield the explicit label
             yield label;             
         }
@@ -961,23 +961,26 @@ export class page extends outlook.baby<crud_result> {
     //
     //This method makes the error button visible and puts the error in its 
     //(the button's) span tag which allows the user to view the Imala report.
+    //It also updates the primary key field with a "friend", when it is not 
+    //erroneous
     private report(mala: library.Imala): void {
         //
-        //If syntax alert the error messages.
+        //If there are syntax errors, report them; there cannot be other
+        //types of errors, so, abort the process after the report.
         if (mala.class_name === "syntax") {
             //
             //Convert the errors to a string.
             const errors = mala.errors!.join("\n");
             //
             //Display the errors.
-            alert(`There this is a syntax error ${errors}`);
+            alert(`${ mala.errors!.length} syntax errors:\n ${errors}`);
             //
-            //Stop code execution.
+            //Abort the reporting, as there cannot be other types of errors.
             return;
         }
         //
-        //If runtime loop through the result array to report it. The elements of 
-        //the array has the following structure:-
+        //If there are runtime errors through the result array to report them
+        //The elements of the array have the following structure:-
         //['error', ans]|['pk', ans, friend]
         //where 
         //  ans ={class_name:'scalar', value, position?, operation?}

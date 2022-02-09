@@ -1,13 +1,13 @@
 //
 //Resolving the static node structure 
-import * as library from "../../../schema/v/code/library.js";
+import * as library from "./library.js";
 // 
 //Resolve the popup class used by the browser popup window 
-import * as outlook from "./outlook.js";
+import * as outlook from "outlook/v/code/outlook.js";
 // 
 //Export all the classes in this module 
 export {node, branch, leaf };
-
+//
 //Modelling branches and leaves as nodes
 abstract class node {
     //
@@ -66,19 +66,21 @@ abstract class node {
         return new leaf(Inode, parent);
     }
     //
-    //Highlights the selected node on the navigation panel and updates
-    //the content panel (depending on the node type)
-    static select(elem: HTMLElement) {
-        // 
-        //Get the navigation panel which has the tree directory.
-        const nav = document.querySelector('#nav')!;
+    //Highlights the selected node on the navigation panel and updates the content
+    // panel (depending on the node type)
+    static select(elem: Element) {
+        //
+        //0. Ensure the selection was done from the navigation panel
+        //
+        const nav = document.querySelector('#nav');
         //
         //1. Highlight the selected element
         //
-        //1.1 Remove whatever was selected before, assuming that there can 
-        //be only 1 selection        
+        //1.1 Remove whatever was selected before, assuming that there can be only 1 selection
         //
-        //Get the current selected element.
+        if (nav === null) throw Error('Navigation panel not found');
+        //
+        //Get the current selected element
         const selection = nav.querySelector('.selected');
         //
         //Remove the selection, if any
@@ -88,24 +90,7 @@ abstract class node {
         elem.classList.add('selected');
         //
         //2. Update the content panel, dependig on the node type.
-        this.show_content_panel(elem)
-    }
-    // 
-    //Paint the content with the folder or file html
-    // given the selected element
-    static show_content_panel(selected: HTMLElement): void{
-        // 
-        //Get the file/folder node id 
-        const id = selected.dataset.id!;
-        // 
-        //Get the html node element from the navigator
-        const nav = document.getElementById(id)!;
-        // 
-        //Get the content panel 
-        const content = document.getElementById("content")!;
-        // 
-        //Set the html of this content to that of the navigator 
-        content.innerHTML = nav.innerHTML;
+        this.show_content_panel()
     }
 
 
@@ -191,10 +176,7 @@ abstract class node {
                         <button  
                             onclick="branch.toggle('${this.name}')"
                             class="btn">+</button>
-                        <div
-                            data-id="${this.path}"
-                            onclick="node.select(this)
-                        >
+                        <div onclick="node.select(this)>
                             <img src="images/${this.icon}"/>
                             <span>${this.name}</span>
                         </div>
@@ -237,12 +219,7 @@ class leaf extends node {
     //The htl code for a leaf
     get_html(): string {
         return `
-            <div
-                id="${this.path}"
-                class="file container"
-                onclick="node.select(this)
-                data-id="${this.path}"
-            >
+            <div id="${this.name}" class="file container" onclick="node.select(this)>
                 <span>${this.name}</span>
             </div>
             `;
@@ -290,7 +267,7 @@ export class browser extends outlook.popup<path>{
         const selected_div = this.document.querySelector(".selected");
         //
         //Reject this promise if no node is currently selected
-        if (selected_div === (undefined||null)) {
+        if (selected_div === undefined) {
             // 
             //Alert the user 
             alert(`Please select a ${this.target}`) 
@@ -302,7 +279,7 @@ export class browser extends outlook.popup<path>{
         //Get the corresponding node 
         const selected_node = node.members.get(selected_div.id);
         //Get its full name 
-        this.full_name = selected_node!.path;
+        this.full_name = selected_node.path;
         // 
         //A successful selection
         return true;
@@ -330,20 +307,15 @@ export class browser extends outlook.popup<path>{
         //Change the inner html 
         nav.innerHTML = html;
         // 
-        //Open the initial path on the navigation panel 
-        //and return the logical path node. 
-        const logical_path_node = this.open_initial_path();
+        //Open the initial path on the navigation panel and return the node to 
+        //select on the navigation tree. 
+        const path_node = this.open_initial_path();
         // 
-        const id = logical_path_node!.path;
-        //Get the html path node 
-        const html_path_node = this.get_element(id)
         //
-        //Get the element to be marked as selected.
-        const element =<HTMLElement> html_path_node.querySelector(`div[data-id='${id}']`)!;
-        //
-        //Select the initial path that also paints the content panel.
-        node.select(element);
-
+        // 
+        //Select the initial path.
+        //(hopefully this paints the content panel)
+        Node.show_content_panel();
     }
     // 
     //Unhide the children of the rich folders(branches). 
@@ -353,11 +325,11 @@ export class browser extends outlook.popup<path>{
         //when are one.
         if (this.initial === undefined) return null;
         // 
-        //Get the initial node.
-        let path_node: node = node.members.get(this.initial)!;
-        // 
-        // Initialize the while loop 
-        let Node: node | null= path_node;
+        //Get the initial (logical) node.
+        const path_node: node = node.members.get(this.initial);
+        //
+        // Initialize the while loop.
+        let Node: node | null = path_node; 
         //
         //Loop through all the rich folders using this 
         //initial path and unhide their children.
@@ -378,8 +350,9 @@ export class browser extends outlook.popup<path>{
             }
             // 
             //Update the looping node to its parent
-            Node = Node.parent;           
+            Node = Node.parent;
         } 
+        //
         return path_node;
     }
 }

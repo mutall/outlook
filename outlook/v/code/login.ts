@@ -1,10 +1,10 @@
 import {popup,user,view} from "./outlook.js";
 //
 //Resolve the schema classes, viz.:database, columns, mutall e.t.c. 
-import * as schema from "../../../library/v/code/schema.js"
+import * as schema from "../../../schema/v/code/schema.js"
 //
 //Resolve the server method for backend communication
-import * as server from "../../../library/v/code/server.js"
+import * as server from "../../../schema/v/code/server.js"
 //
 //Define data types for all our element's ids/name in the login page.
 //
