@@ -7,9 +7,12 @@ import * as app from "../../../outlook/v/code/app.js";
 //
 //Resolve the reference to the server class
 import * as server from "../../../library/v/code/server.js";
-import { input } from '../../../outlook/v/code/io.js';
 //
+//Resolve the reference to the imerge structure
+import * as lib from "../../../library/v/code/library";
 //
+//Resolve the reference to the merger class
+import merger from "../../../outlook/v/code/merger.js";
 //
 //Main application
 export default class main extends app.app {
@@ -66,30 +69,37 @@ export default class main extends app.app {
                         title: "Merge Contributions",
                         id: "merge_contribution",
                         listener: ["event", () => this.merge_contributions()]
+                    },
+                    {
+                        title: "Merge General",
+                        id: "merge_general",
+                        listener: ["event", async () => {
+                            //Create a new object
+                            const consolidate = new merge_general(this, "merge_general.html");
+                            //
+                            await consolidate.administer();
+                        }]
                     }
                 ]
             }
         ]
     }
     //
-    //
+    //Merge the contributions
     async merge_contributions(): Promise<void> {
         //
+        //Create a new object
+        const consolidate = new merge_contrib(this, "merge_contribution.html");
         //
-        const consolidate = new merge_contrib(this,"merge.html");
-        //
+        //Get the contribution data to paint it to the viewing area
         await consolidate.get_data();
         //
-        //Get the merge button and add an event to it
-        const button= <HTMLSelectElement>this.get_element("merge");
-        button.onclick= ()=>consolidate.merge();
-        //
         await consolidate.administer();
+
     }
     //
     //Display the member contributions for all the group events
     async cross_tab(): Promise<void> {
-        
         //
         //Create the view where we want to display the table
         const view: sql_viewer = new sql_viewer(this, this.config.general);
@@ -184,9 +194,10 @@ export default class main extends app.app {
 class sql_viewer extends outlook.baby<void>{
     //
     //
-    //
+    //This is the structure of the cross tabulation records.
     public input?: Array<{ email: string, events: { [index: string]: number } }>;
     //
+    //The headers to populate the cross tab table with their headings
     public headers?: Array<{ name: string }>;
     //
     constructor(
@@ -195,7 +206,9 @@ class sql_viewer extends outlook.baby<void>{
         mother: outlook.view,
         //
         //The html file to use
-        filename: string
+        filename: string,
+        //
+
     ) {
         // 
         //The general html is a simple page designed to support advertising as 
@@ -207,7 +220,11 @@ class sql_viewer extends outlook.baby<void>{
     // it is not used for data entry.
     check(): boolean { return true; }
     async get_result(): Promise<void> { }
-    // 
+    //
+    //Add the input buttons to each email column. Here, providing the checks is
+    //dependent on whether the popup window has a merge button
+    checks(pk: HTMLTableCellElement): boolean { return false; }
+    //
     //Display the report 
     async show_panels() {
         // 
@@ -257,14 +274,12 @@ class sql_viewer extends outlook.baby<void>{
             const tr = this.create_element(tbody, 'tr', {});
             //
             //Populate the email td
-            const pk =this.create_element(tr, 'td', { textContent: email });
+            const pk = this.create_element(tr, 'td', { textContent: email });
             //
             //Add the input buton at this point and it should be hidden by default
             //
-            //Create an input button before the tr
-            const btn = document.createElement('input');
-            btn.setAttribute('type','checkbox');
-            pk.appendChild(btn);
+            //Create an input button before the tr ***
+            this.checks(pk);
             //
             //Add the input button before the email td's
             //.unshift('<input type="checkbox"> </input>');
@@ -283,8 +298,8 @@ class sql_viewer extends outlook.baby<void>{
             });
         });
     }
-    async get_data():Promise<void>{
-     //
+    async get_data(): Promise<void> {
+        //
         //Obtain the contribution values from the database
         //
         //Formulate the query to obtain the values
@@ -310,7 +325,7 @@ class sql_viewer extends outlook.baby<void>{
         //           ]
         //  }]
         //Define the suitable output of the data 
-        this.input=
+        this.input =
             values.map(value => {
                 //
                 //
@@ -324,14 +339,16 @@ class sql_viewer extends outlook.baby<void>{
             });
         //
         //Obtain the header values
-        this.headers = <Array<{ name: string }>> await server.exec("database", ["mutall_chama"], "get_sql_data",
-            ["select event.id as name from event order by date"]);   
+        this.headers = <Array<{ name: string }>>await server.exec("database", ["mutall_chama"], "get_sql_data",
+            ["select event.id as name from event order by date"]);
     }
 }
 //
 //Merging the group contributions
 class merge_contrib extends sql_viewer {
     //
+    //The email column obtained from the cross tab data
+    public pk?: HTMLTableCellElement;
     //
     constructor(
         // 
@@ -340,6 +357,8 @@ class merge_contrib extends sql_viewer {
         //
         //The html file to use
         filename: string
+        //
+        //The primary key columns,i,e the first records in the eHTMLTableCellElement
     ) {
         // 
         //The general html is a simple page designed to support advertising as 
@@ -347,10 +366,124 @@ class merge_contrib extends sql_viewer {
         super(mother, filename);
         //
     }
-    async merge():Promise<void>{
+    //
+    //Execute the merge process by first obtaining the merger data from the
+    // current panel. i.e.,from the processed values. 
+    async merge(): Promise<void> {
         //
+        //Get the database name
+        const dbname= "mutall_chama";
+        //
+        //Get the entity name
+        const ename ="member";
+        //
+        //Construct the members by reading off the checked values
+        //Get the checked values
+        const values =;
+        //
+        //Define the members
+        const members= `select member.member from where in (${values});
+                        `
+        //
+        //Construct the imerge object
+        const imerge:lib.Imerge ={dbname,ename, members};
+        //Construct the merger object
+        const Merger:merger = new merger(imerge,this);
+        //
+        //Execute the merge operation
+        await Merger.execute();
+
+    }
+    //
+    //Over ride the previously created checks method that adds input buttons to
+    // email row.
+    checks(pk: HTMLTableCellElement): boolean {
+        //
+        //Resolve the call to the inherited checks method
+        super.checks(pk);
+        //
+        //Obtain the html file with the merge button***
+        //
+        //Check for the merge button
+        const btn = this.get_element("merge");
+        //
+        //Attach the input button
+        if (btn !== null) {
+            //
+            //Create an input button before the tr
+            const btn = document.createElement('input');
+            btn.setAttribute('type', 'checkbox');
+            pk.appendChild(btn);
+        }
+        //
+        // The return value is the element is not null
+        return true;
+    }
+    //
+    //Over ride the show panels to attach an event that triggers the merge class
+    // for the merging process.
+    async show_panels(): Promise<void> {
+        //
+        await super.show_panels();
+        //
+        //Get the merge button and add an event to it
+        const button = <HTMLSelectElement>this.get_element("merge");
+        button.onclick = () => this.merge();
+    }
+}
+//
+//
+//
+//Merging the group contributions
+class merge_general extends outlook.baby<void>  {
+    //
+    constructor(
+        // 
+        //This popup parent page.
+        mother: outlook.view,
+        //
+        //The html file to use
+        filename: string
+        //
+        //The primary key columns,i,e the first records in the eHTMLTableCellElement
+    ) {
+        // 
+        //The general html is a simple page designed to support advertising as 
+        //the user interacts with this application.
+        super(mother, filename);
         //
     }
-}   
+    //
+    //Merging the general records
+    async merge():Promise<void>{
+        //
+        //Get the merger data
+        //Get the database name
+        const dbname = (<HTMLInputElement>document.getElementById("dbname")).value;
+        //Get the entity name
+        const ename = (<HTMLInputElement>document.getElementById("ename")).value;
+        //
+        const members = (<HTMLInputElement>document.getElementById("members")).value;
+        //
+        //Construct the imerge object
+        const imerge:lib.Imerge ={dbname,ename, members};
+        //Construct the merger object
+        const Merger:merger = new merger(imerge,this);
+        //
+        //Execute the merge operation
+        await Merger.execute();
+    }
+    //
+    //Over ride the show panels to attach an event that triggers the merge class
+    // for the merging process.
+    async show_panels(): Promise<void> {
+        //
+        await super.show_panels();
+        //
+        //Get the merge button and add an event to it
+        const button = <HTMLSelectElement>this.get_element("merge");
+        button.onclick = () => this.merge();
+    }
+}
 
 

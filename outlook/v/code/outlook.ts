@@ -812,7 +812,7 @@ export class choices<i> extends popup<Array<i>>  {
         //Cast this result into the desired output
         this.output = <Array<i>>result;
         //
-        //The ouput is ok if the choices are not empty.
+        //The output is ok if the choices are not empty.
         const ok = this.output.length > 0;
         if (!ok) {
             alert(`Please select at least one ${this.id}`);

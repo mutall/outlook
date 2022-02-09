@@ -7,31 +7,33 @@
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&family=Poppins:wght@400&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="./style.css"/>
         <script type="module">
-            import merger from "./merge.js";
             //
+            import merger from "../../../outlook/v/code/merger.js";
+            //
+            // Make the merger class visible outside the module
             window.merger= merger;
             //
+            //Resolve the reference to the main class
+            import main from "./main.js";
             //
-            import chama from "../main.js";
-            //
-            window.chama=chama;
+            //Make the main class visible outside the module
+            window.main = main;
         </script>
     </head>
     <body>
         <div class="header">
-            <!-- comment -->
             MERGING DATA
         </div>
         <div class="query">
             <label>
                 Database:
-                <select  id="dbase" class="dbase" onchange="page_graph.changedb()" placeholder="database">
+                <select  id="dbase" class="dbase">
                     <option>mutall_chama</option><br>
                 </select>
             </label>
             <label>
                 Reference Entity Name:
-                <select  id="ename" class="ename" onchange="page_graph.display_entity()" placeholder="entity">
+                <select  id="ename" class="ename">
                     <option>member</option>
                 </select>
             </label>
@@ -40,7 +42,7 @@
                 Enter the SQL for selecting the records to merge:<br/>
                 <textarea id="members" class="name" rows="5" cols="10">select * from member where email like '%kanake%'</textarea>
             </label>
-            <button  id="run" class="button" onclick="merger.run()">Run</button>
+            <button  id="run" class="button" onclick="main.merge_general()">Run</button>
         </div>
         <div id="resolve" class="conflicts">
             <div id='resolution'></div>

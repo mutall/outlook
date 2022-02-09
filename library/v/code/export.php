@@ -44,6 +44,9 @@ try{
     //Methods for activating products are found in the app class
     include_once  $path.'app.php';
     //
+    //To support the merging operation
+    include_once  $path.'merger.php';
+    //
     //Register the class autoloader 
     //Why is the callback written as a string when the data type clearly 
     //states that it is a callable?

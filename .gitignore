@@ -9,7 +9,8 @@
 /svg/
 /mutall_data/
 /outlook/v_2022_01_05
-/chama/v_2022_01_04
+/outlook/v_2022_01_13
+/chama/v_2022_01_04/
 /carpack/
 /.vscode/
 #library files
@@ -25,6 +26,9 @@
 /school/nbproject
 /chama/v/data
 /chama/v/test
+# Application specific subfolders
+/tracker/v_2022_02_07
+/tracker/v/code/Images
 #subdirectories
 outlook/v/code/*.js
 #files

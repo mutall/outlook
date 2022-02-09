@@ -716,9 +716,10 @@ export abstract class app extends outlook.view {
             selector.appendChild(option);
         }
     }
-
     //
-    //
+    //Establish the links between the user and application databases e.g., In
+    // tracker, we link the developers, CEO's, and staff to the user. It also 
+    // links organizations to businesses.
     async relink_user(): Promise<void> {
         //
         //0. Yield/get all the replicas (i.e., entities, in the application, that have 
