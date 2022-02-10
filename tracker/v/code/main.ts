@@ -6,7 +6,7 @@ import * as outlook from '../../../outlook/v/code/outlook.js';
 import * as app from "../../../outlook/v/code/app.js";
 //
 //Resolve the reference to the server class
-//import * as server from "../../../library/v/code/server.js";
+//import * as server from "../../../schema/v/code/server.js";
 //import { input } from '../../../outlook/v/code/io.js';
 //
 //
@@ -103,6 +103,6 @@ export default class main extends app.app {
             selector.appendChild(option);
         }
     }
-}  
+}
 
 

@@ -6,10 +6,10 @@ import * as outlook from '../../../outlook/v/code/outlook.js';
 import * as app from "../../../outlook/v/code/app.js";
 //
 //Resolve the reference to the server class
-import * as server from "../../../library/v/code/server.js";
+import * as server from "../../../schema/v/code/server.js";
 //
 //Resolve the reference to the imerge structure
-import * as lib from "../../../library/v/code/library";
+import * as lib from "../../../schema/v/code/library";
 //
 //Resolve the reference to the merger class
 import merger from "../../../outlook/v/code/merger.js";
@@ -372,23 +372,27 @@ class merge_contrib extends sql_viewer {
     async merge(): Promise<void> {
         //
         //Get the database name
-        const dbname= "mutall_chama";
+        const dbname = "mutall_chama";
         //
         //Get the entity name
-        const ename ="member";
+        const ename = "member";
         //
         //Construct the members by reading off the checked values
+        //
+        //The checked values are needed once the state of the input buttons
+        //changes.These values are then compiled in an array and later returned
+        //as a string in the sql to define the members
         //Get the checked values
-        const values =;
+        const values = document.querySelector('input');
         //
         //Define the members
-        const members= `select member.member from where in (${values});
-                        `
+        const members = `select member.member from where in (${values});
+                       `
         //
         //Construct the imerge object
-        const imerge:lib.Imerge ={dbname,ename, members};
+        const imerge: lib.Imerge = { dbname, ename, members };
         //Construct the merger object
-        const Merger:merger = new merger(imerge,this);
+        const Merger: merger = new merger(imerge, this);
         //
         //Execute the merge operation
         await Merger.execute();
@@ -426,6 +430,9 @@ class merge_contrib extends sql_viewer {
         //
         await super.show_panels();
         //
+        //
+        //Add the input buttons
+        //this.checks(pk);
         //Get the merge button and add an event to it
         const button = <HTMLSelectElement>this.get_element("merge");
         button.onclick = () => this.merge();
@@ -453,9 +460,10 @@ class merge_general extends outlook.baby<void>  {
         super(mother, filename);
         //
     }
+    check(): boolean { return true; }
     //
     //Merging the general records
-    async merge():Promise<void>{
+    async merge(): Promise<void> {
         //
         //Get the merger data
         //Get the database name
@@ -466,9 +474,9 @@ class merge_general extends outlook.baby<void>  {
         const members = (<HTMLInputElement>document.getElementById("members")).value;
         //
         //Construct the imerge object
-        const imerge:lib.Imerge ={dbname,ename, members};
+        const imerge: lib.Imerge = { dbname, ename, members };
         //Construct the merger object
-        const Merger:merger = new merger(imerge,this);
+        const Merger: merger = new merger(imerge, this);
         //
         //Execute the merge operation
         await Merger.execute();

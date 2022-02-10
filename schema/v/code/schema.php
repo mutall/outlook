@@ -1535,7 +1535,7 @@ abstract class entity extends schema implements expression {
         //
         parent::__construct($name);
     }
-
+    //
     //The primary key column of any entity is teh column named the
     //same as the view
     function pk():column{
@@ -1550,7 +1550,7 @@ abstract class entity extends schema implements expression {
         //Return the column
         return $this->columns[$name];
     }
-    
+    //
     //Set the columns of this entity. It is illegal to try to access the columns 
     //before calling this method.
     public function set_columns(): void{
@@ -1859,7 +1859,7 @@ class table extends entity {
     public $comment;
     //
     //The unique indices of this table, used for identification of record
-    //in the table. Ensure that his property is set before
+    //in the table. Ensure that this property is set before
     //using it
     public array /*<index>*/$indices;
 

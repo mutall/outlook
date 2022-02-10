@@ -1,34 +1,36 @@
 <?php
 //
-//This has to be the first statement in a file
-namespace tracker;
+//This has to be teh first statement in a file
+namespace rentize;
 //
-//Resolve class \config using the library
+//Resolve the library config file
 include_once "../../../schema/v/code/config.php";
 //
-//The local config file extends the one in the libary
+//The local config file extends the config in the libary
 class config extends \config
 {
     //
-    //Title appearing on navigation tab should match the current namespace
+    //Title appearing on navigation tab should be the same as the namespace 
+    //of this application.
     public string $id = __NAMESPACE__;
     // 
     //The name of the application's database.
-    public string $app_db = "mutall_tracker";
+    public string $app_db = "mutall_rental";
+
     //
     //Subject comprises of the entity name to show in the home page
     //plus the database it comes from.
-    public string $subject_ename = "developer";
+    public string $subject_ename = "tenant";
     public array $subject;
     //
     //The full trademark name of the application
-    public string $trade = "TRACKER";
+    public string $trade = "Managing rental services";
     //
     //For advertising purposes
-    public string $tagline = "Helping us run our day to day activities";
+    public string $tagline = "Delivering easier housing and management";
     //
     //Name of the application developer
-    public string $developer = "Daniel Kaniu";
+    public string $developer = "James Ndichu";
     //
     //The path from where this application was loaded
     public string $path = __DIR__;
