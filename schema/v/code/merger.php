@@ -3,7 +3,7 @@
 include_once $_SERVER['DOCUMENT_ROOT'].'/schema/v/code/schema.php';
 //
 include_once $_SERVER['DOCUMENT_ROOT'].'/schema/v/code/sql.php';
-
+//
 //The merger class needs to extend the schema object so that we can access
 //the method for opening databases. This is particularly important when dealing
 //with pointers in a multi-database context.
@@ -231,7 +231,7 @@ class merger extends schema{
         //
         return $sql;
     }
-    
+    //
     //Return consolidates as the data that takes part in conflict
     //resolution. It comprises of both clean and conflicting values
     function get_consolidation():stdClass/*:{clean:interventions, dirty:conflicts}*/{

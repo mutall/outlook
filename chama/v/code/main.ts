@@ -85,7 +85,7 @@ export default class main extends app.app {
         ]
     }
     //
-    //Merge the contributions
+    //Merging the users that contributed the various amounts to the events.
     async merge_contributions(): Promise<void> {
         //
         //Create a new object
@@ -381,10 +381,9 @@ class merge_contrib extends sql_viewer {
         //
         //The checked values are needed once the state of the input buttons
         //changes.These values are then compiled in an array and later returned
-        //as a string in the sql to define the members
+        //as a string in the sql to define the members.
         //Get the checked values
         const values = document.querySelector('input');
-        //
         //Define the members
         const members = `select member.member from where in (${values});
                        `
