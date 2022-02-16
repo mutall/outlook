@@ -4,7 +4,7 @@
 namespace chama;
 //
 //Resolve class \config using the library
-include_once "../../../library/v/code/config.php";
+include_once "../../../schema/v/code/config.php";
 //
 //The local config file extends the one in the libary
 class config extends \config{

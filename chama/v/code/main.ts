@@ -6,10 +6,10 @@ import * as outlook from '../../../outlook/v/code/outlook.js';
 import * as app from "../../../outlook/v/code/app.js";
 //
 //Resolve the reference to the server class
-import * as server from "../../../library/v/code/server.js";
+import * as server from "../../../schema/v/code/server.js";
 //
 //Resolve the reference to the imerge structure
-import * as lib from "../../../library/v/code/library";
+import * as lib from "../../../schema/v/code/library";
 //
 //Resolve the reference to the merger class
 import merger from "../../../outlook/v/code/merger.js";
@@ -121,7 +121,7 @@ export default class main extends app.app {
         const enames = Object.keys(dbase.entities);
         //
         //1.3 Map the entities to the required key value pairs
-        const pairs = enames.map(ename => ({ key: ename, value: ename }));
+        const pairs = enames.map(ename => ({key: ename, value: ename}));
         //
         //2. Use the pairs to create a new choices POPUP that returns a selected
         //table
@@ -147,7 +147,7 @@ export default class main extends app.app {
             ["select `name` from `group`"]);
         //
         //Set the slected groups to accept multiple values
-        const pairs = chama.map(pair => { return { key: "name", value: String(pair.name) } });
+        const pairs = chama.map(pair => {return {key: "name", value: String(pair.name)}});
         //
         // 1.1 Use the listed chamas to create a popup
         const Choice = new outlook.choices<string>("general", pairs, "chama", null, "#content", "single");
@@ -161,14 +161,14 @@ export default class main extends app.app {
     }
     //
     //1. Populate the selector with table names from current database
-    populate_selector(): void {
+    /*populate_selector(): void {
         //
         //1.Get the current database: It must EXIST by THIS TIME
         const dbase = this.dbase;
         if (dbase === undefined) throw new Error("No current db found");
         //
         //2.Get the subject selector
-        const selector = <HTMLSelectElement>this.get_element("selection");
+        const selector = <HTMLSelectElement> this.get_element("selection");
         //
         //3.Loop through all the entities of the database
         //using a for in statement
@@ -186,7 +186,7 @@ export default class main extends app.app {
             //3.3 Add the option to the subject selector
             selector.appendChild(option);
         }
-    }
+    }*/
 }
 
 // 
@@ -195,10 +195,10 @@ class sql_viewer extends outlook.baby<void>{
     //
     //
     //This is the structure of the cross tabulation records.
-    public input?: Array<{ email: string, events: { [index: string]: number } }>;
+    public input?: Array<{member:number,email: string, events: {[index: string]: number}}>;
     //
     //The headers to populate the cross tab table with their headings
-    public headers?: Array<{ name: string }>;
+    public headers?: Array<{name: string}>;
     //
     constructor(
         // 
@@ -218,12 +218,12 @@ class sql_viewer extends outlook.baby<void>{
     // 
     //Reporting does not require checks and has no results to return because 
     // it is not used for data entry.
-    check(): boolean { return true; }
-    async get_result(): Promise<void> { }
+    check(): boolean {return true;}
+    async get_result(): Promise<void> {}
     //
     //Add the input buttons to each email column. Here, providing the checks is
     //dependent on whether the popup window has a merge button
-    checks(pk: HTMLTableCellElement): boolean { return false; }
+    add_check_box(td: HTMLTableCellElement, member:number): void {}
     //
     //Display the report 
     async show_panels() {
@@ -250,17 +250,17 @@ class sql_viewer extends outlook.baby<void>{
         const th = this.create_element(thead, 'tr', {});
         //
         //Populate the email th
-        this.create_element(th, 'th', { textContent: "email" });
+        this.create_element(th, 'th', {textContent: "email"});
         //
         //Populate the events th
         this.headers!.forEach(header => {
             //
             //events:{[index:string]:number}
             //Destructure the header
-            const { name } = header;
+            const {name} = header;
             //
             //Create a header associated with each event
-            this.create_element(th, 'th', { textContent: name });
+            this.create_element(th, 'th', {textContent: name});
             //
         });
         //
@@ -268,18 +268,18 @@ class sql_viewer extends outlook.baby<void>{
         this.input!.forEach(row => {
             //
             //Destructure the row
-            const { email, events } = row;
+            const {member,email, events} = row;
             //
             //Use the row to create a tr
             const tr = this.create_element(tbody, 'tr', {});
             //
             //Populate the email td
-            const pk = this.create_element(tr, 'td', { textContent: email });
+            const td = this.create_element(tr, 'td', {textContent: email});
             //
             //Add the input buton at this point and it should be hidden by default
             //
             //Create an input button before the tr ***
-            this.checks(pk);
+            this.add_check_box(td, member);
             //
             //Add the input button before the email td's
             //.unshift('<input type="checkbox"> </input>');
@@ -288,13 +288,13 @@ class sql_viewer extends outlook.baby<void>{
             this.headers!.forEach(header => {
                 //
                 //Destructure the header
-                const { name } = header;
+                const {name} = header;
                 //
                 //
                 const value = String(events[name] == undefined ? "" : events[name]);
                 //
                 //Use this header to create a td
-                this.create_element(tr, 'td', { textContent: value });
+                this.create_element(tr, 'td', {textContent: value});
             });
         });
     }
@@ -305,20 +305,23 @@ class sql_viewer extends outlook.baby<void>{
         //Formulate the query to obtain the values
         const sql = `
                 select
+                    member.member,
                     member.email,
                     json_objectagg(event.id,contribution.amount) as events
                 from 
                     contribution
                     INNER JOIN member on contribution.member= member.member
                     INNER JOIN event on contribution.event= event.event
-                group by email`;
+                group by member`;
         //
         //Execute the query
-        const values: Array<{ email: string, events: string }> =
+        const values: Array<{member:number,email: string, events: string}> =
             await server.exec("database", ["mutall_chama"], "get_sql_data", [sql]);
         //
         //Expected output
-        //  [{ email:"Aisha Gatheru",
+        //  [{
+        //  member:125, 
+        //    email:"Aisha Gatheru",
         //   events: {carol:500},
         //            {ndegwa:100},
         //            {mwihaki_dad:1000}
@@ -329,17 +332,17 @@ class sql_viewer extends outlook.baby<void>{
             values.map(value => {
                 //
                 //
-                const { email, events } = value;
+                const {member,email, events} = value;
                 //
                 //Convert the events string to an event array
-                const events_array: { [index: string]: number } = JSON.parse(events);
+                const events_array: {[index: string]: number} = JSON.parse(events);
                 //
                 //
-                return { email, events: events_array };
+                return {member,email, events: events_array};
             });
         //
         //Obtain the header values
-        this.headers = <Array<{ name: string }>>await server.exec("database", ["mutall_chama"], "get_sql_data",
+        this.headers = <Array<{name: string}>> await server.exec("database", ["mutall_chama"], "get_sql_data",
             ["select event.id as name from event order by date"]);
     }
 }
@@ -371,53 +374,60 @@ class merge_contrib extends sql_viewer {
     // current panel. i.e.,from the processed values. 
     async merge(): Promise<void> {
         //
-        //Get the database name
-        const dbname= "mutall_chama";
+        //Set the database name
+        const dbname = "mutall_chama";
         //
-        //Get the entity name
-        const ename ="member";
+        //Set the entity name
+        const ename = "member";
         //
-        //Construct the members by reading off the checked values
-        //Get the checked values
-        const values =;
+        //Construct the members by reading off the checked values.
+        //The checked values are needed to form the list of members to be merged.
+        // These values are compiled in a structure and returned as values when 
+        // we form the members list to complete the imerge structure.
+        //Get the checked values by identifying the text boxes associated with 
+        //the entry of each member.
+        const inputs = document.querySelectorAll('input[type="checkbox]:checked');
         //
-        //Define the members
-        const members= `select member.member from where in (${values});
-                        `
+        //Introduce the container to store the records once they are fetched
+        //let results: Array<Array<String>> = [];
         //
-        //Construct the imerge object
-        const imerge:lib.Imerge ={dbname,ename, members};
-        //Construct the merger object
-        const Merger:merger = new merger(imerge,this);
-        //
-        //Execute the merge operation
-        await Merger.execute();
-
+        // Attach an event listener to the button to compile all members to be merged
+        //document.getElementById("merge")?.addEventListener('click', async () => {
+            //
+            //Move through each input button to check on whether it is clicked or not, 
+            inputs.forEach(values => {
+                //
+                const {member}= values;
+                //
+                //
+                const members_array:{member: number}= JSON.parse(member)
+            });
+            //
+            //Define the members sql
+            const members = `
+                            select member.member 
+                            from member 
+                            where member.member 
+                            in(${results.toString})
+                            `;
+            //
+            //Construct the imerge object
+            const imerge: lib.Imerge = {dbname, ename, members};
+            //Construct the merger object
+            const Merger: merger = new merger(imerge, this);
+            //
+            //Execute the merge operation
+            await Merger.execute();
     }
     //
-    //Over ride the previously created checks method that adds input buttons to
-    // email row.
-    checks(pk: HTMLTableCellElement): boolean {
+    //Add a check box to the given td
+    add_check_box(td: HTMLTableCellElement,member:number): void {
         //
         //Resolve the call to the inherited checks method
-        super.checks(pk);
+        super.add_check_box(td, member);
         //
-        //Obtain the html file with the merge button***
-        //
-        //Check for the merge button
-        const btn = this.get_element("merge");
-        //
-        //Attach the input button
-        if (btn !== null) {
-            //
-            //Create an input button before the tr
-            const btn = document.createElement('input');
-            btn.setAttribute('type', 'checkbox');
-            pk.appendChild(btn);
-        }
-        //
-        // The return value is the element is not null
-        return true;
+        //Create an input button before
+        this.create_element(td,'input',{type:"checkbox",value:String(member)});
     }
     //
     //Over ride the show panels to attach an event that triggers the merge class
@@ -427,7 +437,7 @@ class merge_contrib extends sql_viewer {
         await super.show_panels();
         //
         //Get the merge button and add an event to it
-        const button = <HTMLSelectElement>this.get_element("merge");
+        const button = <HTMLSelectElement> this.get_element("merge");
         button.onclick = () => this.merge();
     }
 }
@@ -453,22 +463,27 @@ class merge_general extends outlook.baby<void>  {
         super(mother, filename);
         //
     }
+    // 
+    //Reporting does not require checks and has no results to return because 
+    // it is not used for data entry.
+    check(): boolean {return true;}
+    async get_result(): Promise<void> {}
     //
     //Merging the general records
-    async merge():Promise<void>{
+    async merge(): Promise<void> {
         //
         //Get the merger data
         //Get the database name
-        const dbname = (<HTMLInputElement>document.getElementById("dbname")).value;
+        const dbname = (<HTMLInputElement> document.getElementById("dbname")).value;
         //Get the entity name
-        const ename = (<HTMLInputElement>document.getElementById("ename")).value;
+        const ename = (<HTMLInputElement> document.getElementById("ename")).value;
         //
-        const members = (<HTMLInputElement>document.getElementById("members")).value;
+        const members = (<HTMLInputElement> document.getElementById("members")).value;
         //
         //Construct the imerge object
-        const imerge:lib.Imerge ={dbname,ename, members};
+        const imerge: lib.Imerge = {dbname, ename, members};
         //Construct the merger object
-        const Merger:merger = new merger(imerge,this);
+        const Merger: merger = new merger(imerge, this);
         //
         //Execute the merge operation
         await Merger.execute();
@@ -481,7 +496,7 @@ class merge_general extends outlook.baby<void>  {
         await super.show_panels();
         //
         //Get the merge button and add an event to it
-        const button = <HTMLSelectElement>this.get_element("merge");
+        const button = <HTMLSelectElement> this.get_element("merge");
         button.onclick = () => this.merge();
     }
 }
