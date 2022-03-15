@@ -37,6 +37,7 @@ export default class merger extends outlook.baby<void> implements lib.Imerge{
     get principal():number|undefined {return this.imerge.principal; };
     get minors():lib.sql|undefined{return this.imerge.minors};
     //
+    //Describt the imerge and mother here****
     constructor(imerge:lib.Imerge, mother:outlook.view){
         //
         //The merger uses the general template
@@ -88,7 +89,7 @@ export default class merger extends outlook.baby<void> implements lib.Imerge{
             ename:this.ename,
             members:this.members
         };
-        //Stop if the key is alray in the stack
+        //Stop if the key is array in the stack
         if (merger.stack.includes(key)){
             //
             //Compile message

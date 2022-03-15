@@ -1,1 +1,1 @@
-{"url":"http:\/\/localhost\/rentize\/v\/code\/","class":"editor","cargs":"[\"client\",\"mutall_rental\"]","method":"describe","margs":"[]"}
+{"url":"http:\/\/localhost\/chama\/v\/code\/?id=chama&key=0&len=7","class":"app","cargs":"[\"chama\"]","method":"available_products","margs":"[\"camilus@gmail.com\"]"}

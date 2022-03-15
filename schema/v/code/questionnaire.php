@@ -37,7 +37,7 @@ namespace {
         //Allow this questionnaire to be accessible from anywhere
         static questionnaire $current;
         //
-        //Keep track of log errors from captue tables
+        //Keep track of log errors from the capture tables
         static $log_errors = 0;
         //
         //A questionnaire is characaterised by milk (data) organized as such.
@@ -50,7 +50,7 @@ namespace {
             $this->artefacts = new \Ds\Map();
             $this->tables = new \Ds\Map();
             //
-            //We don't have a special way of identifying a qustionnaire because 
+            //We don't have a special way of identifying a questionnaire because 
             //there is only one in the system -- unlike databases, entities, and 
             //other shema objects
             parent::__construct('_');
@@ -58,7 +58,7 @@ namespace {
             //Set this questionnaire as the current one to allow global access
             self::$current = $this;
             //
-            //Initialize the current )and only) barrel to be usd for savebg
+            //Initialize the current )and only) barrel to be used for saving
             //milk tables
             capture\barrel::$current = new \capture\barrel();
         }

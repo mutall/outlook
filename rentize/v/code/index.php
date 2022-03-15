@@ -1,8 +1,8 @@
 <?php
 //
 //This is the application's namespace
-namespace kentionary;
-
+namespace rentize;
+//
 include "config.php";
 $config = new config();
 ?>
@@ -65,7 +65,7 @@ $config = new config();
           Company logo -->
           <div id="logo">
                 <div>
-                    <img src="../images/logo.png" height="50" width="100">
+                    <img src="pictures/rentize.png" height="50" width="100">
                 </div>
                 <select id="selection" onchange="app.current.change_subject(this)">
                 </select>
@@ -94,7 +94,7 @@ $config = new config();
       <div id="whatsup">Whatsup</div>
       <div class="footer">
           <div id="developer">
-              <img src="../images/me.jpg" alt="developer's image" class="img_dev">
+              <img src="pictures/james.jpg" alt="developer's image" class="img_dev">
           </div>
           <div id="signature">Developed by: <?php echo $config->developer; ?></div>
           <div id="company">Mutall Data Co.</div>
