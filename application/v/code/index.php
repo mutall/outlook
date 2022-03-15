@@ -1,7 +1,15 @@
 <?php
+/**
+ * This is the page that displays what your application is all about,namely
+ * the LOGO,name of the APPLICATION and TRADE MARK,the entities in the database,
+ * the SERVICES, the CONTENT, the LOGIN page, the EVENTS for your application,
+ * the MESSAGES, the DEVELOPER IMAGE, the NAME OF THE DEVELOPER, and the name of
+ * the company.
+ * 
+ */
 //
 //This is the application's namespace
-namespace chama;
+namespace broker;
 //
 include "config.php";
 $config = new config();
@@ -66,7 +74,7 @@ $config = new config();
           Company logo -->
         <div id="logo">
             <div>
-                <img src="../images/<?php echo $config->logo; ?>" height="50" width="50" />
+                <img src="../images/<?php echo $config->logo;?>" height="50" width="50" />
             </div>
         </div>
         <div id="company">
@@ -93,12 +101,12 @@ $config = new config();
         Please <button onclick="app.current.login()">login</button> to access
         various services
     </div>
-    <div id="event">events</div>
-    <div id="message">message
+    <div id="whatsup">Events</div>
+    <div id="messenger">Messenger <br>
     </div>
     <div class="footer">
         <div id="developer">
-            <img class="img_dev" src="../images/mutall/<?php echo $config->image; ?>" alt="developer's image">
+            <img class="img_dev" src="../images/mutall/<?php echo $config->image;?>" alt="developer's image">
         </div>
         <div id="signature">
             Developed by:<?php echo $config->developer; ?>
