@@ -8,7 +8,7 @@
 /test/
 /svg/
 /mutall_data/
-/carpack/
+/carpark/
 /.vscode/
 #schema files
 /schema/*.php
@@ -28,7 +28,7 @@
 /tracker/v_2022_02_07
 /tracker/v/code/Images
 /outlook/v_2022_01_05
-/outlook/v_2022_01_13
+/outlook/v_2022_03_28
 /chama/v_2022_01_04/
 /kentionary/v_2022_02_16
 #subdirectories

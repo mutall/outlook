@@ -80,6 +80,23 @@ export default class main extends app.app {
                             await consolidate.administer();
                         }]
                     }
+                    
+                ]
+            },
+            {
+                id: "svg",
+                title: "SVG development",
+                solutions: [
+                    {
+                        title: "SVG",
+                        id: "svg_development",
+                        listener: ["event", async () => {
+                            //Create a new object
+                            const consolidate = new svg(this, "svg.html");
+                            //
+                            await consolidate.administer();
+                        }]
+                    }
                 ]
             }
         ]
@@ -550,6 +567,34 @@ class merge_general extends outlook.baby<void>  {
         //Get the merge button and add an event to it
         const button = <HTMLSelectElement> this.get_element("merge");
         button.onclick = () => this.merge();
+    }
+}
+class svg extends outlook.baby<void>{
+    //
+    //
+        //
+    constructor(
+        // 
+        //This popup parent page.
+        mother: outlook.view,
+        //
+        //The html file to use
+        filename: string
+        //
+        //The primary key columns,i,e the first records in the eHTMLTableCellElement
+    ) {
+        // 
+        //The general html is a simple page designed to support advertising as 
+        //the user interacts with this application.
+        super(mother, filename);
+        //
+    }
+    check():boolean{return true;}
+    async get_result():Promise<void>{}
+    //
+    //
+    async show_panels():Promise<void>{
+        
     }
 }
 

@@ -768,6 +768,8 @@ class database extends schema {
         //the user with the given email 
         $sql = "select password "
                 . "from user "
+                //
+                //Include the business as part of the authentication
                 . "where email= '$email' ";
         //
         //Execute the query and retrieve the password
@@ -796,6 +798,7 @@ class database extends schema {
         //the user with the given email 
         $sql = "select password "
                 . "from user "
+                /*register the name of the organization here*/
                 . "where email= '$email' ";
         //
         //Execute the query and retrieve the password
@@ -1016,8 +1019,8 @@ class database extends schema {
             $this->entities[$ename] = $entity;
         }
     }
-
-    //Retyrn all th tables of this database from the nformation schema
+    //
+    //Return all th tables of this database from the information schema
     private function get_entities(): array/* [dbname, ename, comment][] */ {
         //
         //Let $sql be the statement for for retrieving the entities of this
@@ -1097,7 +1100,7 @@ class database extends schema {
         //usage of the information schema
         $this->activate_foreign_keys();
     }
-
+    //
     //Get all the columns for all the tables in this database
     private function get_columns(): array/**/ {
         //

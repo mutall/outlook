@@ -271,6 +271,7 @@ export abstract class app extends outlook.view {
         //without logging in.
         window.localStorage.setItem("user", JSON.stringify(this.user));
     }
+    //**
     //
     //On successful login, welcome the definite user, i.e., regular or visitor 
     //and not anonymous,  to the homepage by painting the matching message.
@@ -418,6 +419,7 @@ export abstract class app extends outlook.view {
     //
     //Register the user and return the roles which this user can play
     // in this application.
+    //
     async register(): Promise<Array<string> | undefined> {
         //
         //1.Collect from the user the minimum registration requirement. 
