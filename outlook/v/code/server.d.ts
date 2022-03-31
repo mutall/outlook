@@ -121,6 +121,7 @@ declare namespace php_fn{
         //
         //Returns the roles, as saved in a database, played by 
         //the logged in user
+        //**//
         static get_roles(email: string, app_id: string): Array<string>;
         //
         //Exports the given milk (data) to  database and rturns a html text

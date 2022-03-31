@@ -8,6 +8,7 @@ include_once $_SERVER['DOCUMENT_ROOT'].'/schema/v/code/schema.php';
 //an application.
 class app extends database{
     //
+    //
     //The application id whose.
     public string $id;
     // 

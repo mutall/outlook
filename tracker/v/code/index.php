@@ -6,17 +6,20 @@ namespace tracker;
 include "config.php";
 $config = new config();
 ?>
+            
 <html>
     <head>
         <!-- 
         The tile of your project -->
-        <title><?php echo $config->title;?>.</title>
+        <title><?php echo $config->title; ?></title>
         <!-- 
         Styling the index page in terms of grids -->
         <link rel="stylesheet" href="index.css"/>
         <!-- 
         Styling the theme panel-->
         <link id="theme_css" rel="stylesheet" href="../../../outlook/v/code/theme.css"/>
+            <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
         <!--
         Expose the main application to HTML pages-->
           <script type="module">
@@ -51,9 +54,8 @@ $config = new config();
                 //Complete the creatio of 'main' by evoking the asynchronous 
                 //methods (which are not callable ffrom th constructor)
                 await window.Main.initialize();
-            };
-        </script>
-        
+            }
+        </script>        
         <!-- Marker for styling columns -->
         <style id="columns"></style>
       
@@ -64,9 +66,11 @@ $config = new config();
           <!--
           Company logo -->
           <div id="logo">
-            <div>
-                 <img src="Images/mutall_tracker_logo.png" height="50" width="100">
-            </div>
+                <div>
+                    <img src="../images/<?php echo $config->logo; ?>" height="50" width="100">
+                </div>
+                <select id="selection" onchange="app.current.change_subject(this)">
+                </select>
           </div>
           <div id="company">
               <?php
@@ -74,35 +78,40 @@ $config = new config();
                    .$config->tagline;
               ?>    
           </div>
-          <div class="selection">
-              <select id="selection" onchange="app.current.change_subject(this)">
-                </select>
-          </div>
       </div>
+      <!--<div id="why">Why</div>-->
       <div id="services">Services
-      </div>
+      </div> 
       <div id="content">
             Content
             <table>
                 <thead></thead>
                 <tbody></tbody>    
             </table>
+            
       </div>
       <div id="welcome">
           Please <button onclick="app.current.login()">login</button> to access 
           various services
       </div>
-      <div id="whatsup">Whatsup</div>
+      <div id="whatsup">Events</div>
+      <div id="messenger">Messenger <br>
+          <button>
+            <a href="https://api.whatsapp.com/send?phone=--your phone--&text=--your text--" target="_blank">Existing User </a> <br>
+            </button><br>
+            <!-- For non existing phone numbers:  -->
+            <button>
+            <a href="https://api.whatsapp.com/send?group=--your phone--&text=--your text--" target="_blank">New user </a>
+            </button>
+      </div>
+      
       <div class="footer">
           <div id="developer">
-              <img src="Images/me.jpg" alt="developer's image" class="img_dev">>
+              <img src="../images/<?php echo $config->developer_image; ?>" alt="developer's image" class="img_dev">
           </div>
-          <div id="signature">
-              Developed by:<?php echo $config->developer; ?>
-          </div>
-          <div id="about">
-                Mutall Data Company
-          </div>
+          <div id="signature">Developed by: <?php echo $config->developer; ?></div>
+          <div id="company">Mutall Data Co.</div>
       </div>
+      <script src="drag.js"></script>
     </body>
 </html>
