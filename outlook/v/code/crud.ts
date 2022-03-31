@@ -174,6 +174,7 @@ export class page extends outlook.baby<crud_result> {
         //
         //4.1. Update the maximum records.
         //
+        ///*Highligthed for possible use*/
         //Get the number of records as Ifuel.
         const count = await server.exec(
             "database", 

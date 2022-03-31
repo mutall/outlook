@@ -24,13 +24,13 @@
 /rentize/nbproject
 /chama/v/images
 /chama/v/document
+chama/v/twilio
 # Application specific subfolders
 /tracker/v_2022_02_07
 /tracker/v/code/Images
 /outlook/v_2022_01_05
 /outlook/v_2022_03_28
 /chama/v_2022_01_04/
-/kentionary/v_2022_02_16
 #subdirectories
 outlook/v/code/*.js
 #files

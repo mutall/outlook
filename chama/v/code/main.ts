@@ -80,7 +80,7 @@ export default class main extends app.app {
                             await consolidate.administer();
                         }]
                     }
-                    
+
                 ]
             },
             {
@@ -93,6 +93,22 @@ export default class main extends app.app {
                         listener: ["event", async () => {
                             //Create a new object
                             const consolidate = new svg(this, "svg.html");
+                            //
+                            await consolidate.administer();
+                        }]
+                    }
+                ]
+            },
+            {
+                id: "msg",
+                title: "Twilio Messaging",
+                solutions: [
+                    {
+                        title: "send a message",
+                        id: "create_sms",
+                        listener: ["event", async () => {
+                            //Create a new object
+                            const consolidate = new message(this, "sms.html");
                             //
                             await consolidate.administer();
                         }]
@@ -116,7 +132,7 @@ export default class main extends app.app {
                     `;
         //
         //Get the messages
-        const msgs: Array<{date: string, sender: string, text: string}>
+        const msgs: Array<{ date: string, sender: string, text: string }>
             = await server.exec("database", ["mutall_chama"], "get_sql_data", [query]);
         //
         //Get the section to paint the messages
@@ -125,13 +141,13 @@ export default class main extends app.app {
         for (let msg of msgs) {
             //
             //Destructure the msg array
-            const {date, sender, text} = msg;
+            const { date, sender, text } = msg;
             //
             //Create the label to hold the messages panel as shown below.
-            const texts = this.create_element(panel, 'div', {className: 'msg'});
-            this.create_element(texts, 'div', {className: 'date', textContent: date});
-            this.create_element(texts, 'div', {className: 'sender', textContent: sender});
-            this.create_element(texts, 'div', {className: 'text', textContent: text});
+            const texts = this.create_element(panel, 'div', { className: 'msg' });
+            this.create_element(texts, 'div', { className: 'date', textContent: date });
+            this.create_element(texts, 'div', { className: 'sender', textContent: sender });
+            this.create_element(texts, 'div', { className: 'text', textContent: text });
         }
     }
     async populate_events(): Promise<void> {
@@ -158,23 +174,23 @@ export default class main extends app.app {
             `
         //
         //Get the events
-        const events:Array<{date:string, name:string}>= await server.exec("database",["mutall_chama"],"get_sql_data",[sql]);
+        const events: Array<{ date: string, name: string }> = await server.exec("database", ["mutall_chama"], "get_sql_data", [sql]);
         //
         //Get the panel to paint the events
         const evt = this.get_element("event")
         //
         //Paint the events panel with the events as they arrive
-        for(let event of events){
+        for (let event of events) {
             //
             //Destructure the events array
-            const {date,name}=event;
+            const { date, name } = event;
             //
             //Create a label to paint the messages to messages panel
-            const occasion = this.create_element(evt,'div',{className:'event'});
-                this.create_element(occasion, 'div', {className: 'date', textContent: date});
-                this.create_element(occasion, 'div', {className: 'name', textContent: name});
+            const occasion = this.create_element(evt, 'div', { className: 'event' });
+            this.create_element(occasion, 'div', { className: 'date', textContent: date });
+            this.create_element(occasion, 'div', { className: 'name', textContent: name });
         }
-        
+
     }
     //
     //Merge the contributions
@@ -213,7 +229,7 @@ export default class main extends app.app {
         const enames = Object.keys(dbase.entities);
         //
         //1.3 Map the entities to the required key value pairs
-        const pairs = enames.map(ename => ({key: ename, value: ename}));
+        const pairs = enames.map(ename => ({ key: ename, value: ename }));
         //
         //2. Use the pairs to create a new choices POPUP that returns a selected
         //table
@@ -239,7 +255,7 @@ export default class main extends app.app {
             ["select `name` from `group`"]);
         //
         //Set the slected groups to accept multiple values
-        const pairs = chama.map(pair => {return {key: "name", value: String(pair.name)}});
+        const pairs = chama.map(pair => { return { key: "name", value: String(pair.name) } });
         //
         // 1.1 Use the listed chamas to create a popup
         const Choice = new outlook.choices<string>("general", pairs, "chama", null, "#content", "single");
@@ -273,10 +289,10 @@ class sql_viewer extends outlook.baby<void>{
     //
     //
     //This is the structure of the cross tabulation records.
-    public input?: Array<{member: number, email: string, events: {[index: string]: number}}>;
+    public input?: Array<{ member: number, email: string, events: { [index: string]: number } }>;
     //
     //The headers to populate the cross tab table with their headings
-    public headers?: Array<{name: string}>;
+    public headers?: Array<{ name: string }>;
     //
     constructor(
         // 
@@ -296,12 +312,12 @@ class sql_viewer extends outlook.baby<void>{
     // 
     //Reporting does not require checks and has no results to return because 
     // it is not used for data entry.
-    check(): boolean {return true;}
-    async get_result(): Promise<void> {}
+    check(): boolean { return true; }
+    async get_result(): Promise<void> { }
     //
     //Add the input buttons to each email column. Here, providing the checks is
     //dependent on whether the popup window has a merge button
-    add_check_box(td: HTMLTableCellElement, member: number): void {}
+    add_check_box(td: HTMLTableCellElement, member: number): void { }
     //
     //Display the report 
     async show_panels() {
@@ -328,17 +344,17 @@ class sql_viewer extends outlook.baby<void>{
         const th = this.create_element(thead, 'tr', {});
         //
         //Populate the email th
-        this.create_element(th, 'th', {textContent: "email"});
+        this.create_element(th, 'th', { textContent: "email" });
         //
         //Populate the events th
         this.headers!.forEach(header => {
             //
             //events:{[index:string]:number}
             //Destructure the header
-            const {name} = header;
+            const { name } = header;
             //
             //Create a header associated with each event
-            this.create_element(th, 'th', {textContent: name});
+            this.create_element(th, 'th', { textContent: name });
             //
         });
         //
@@ -346,13 +362,13 @@ class sql_viewer extends outlook.baby<void>{
         this.input!.forEach(row => {
             //
             //Destructure the row
-            const {member, email, events} = row;
+            const { member, email, events } = row;
             //
             //Use the row to create a tr
             const tr = this.create_element(tbody, 'tr', {});
             //
             //Populate the email td
-            const td = this.create_element(tr, 'td', {textContent: email});
+            const td = this.create_element(tr, 'td', { textContent: email });
             //
             //Add the input buton at this point and it should be hidden by default
             //
@@ -366,13 +382,13 @@ class sql_viewer extends outlook.baby<void>{
             this.headers!.forEach(header => {
                 //
                 //Destructure the header
-                const {name} = header;
+                const { name } = header;
                 //
                 //
                 const value = String(events[name] == undefined ? "" : events[name]);
                 //
                 //Use this header to create a td
-                this.create_element(tr, 'td', {textContent: value});
+                this.create_element(tr, 'td', { textContent: value });
             });
         });
     }
@@ -393,7 +409,7 @@ class sql_viewer extends outlook.baby<void>{
                 group by member`;
         //
         //Execute the query
-        const values: Array<{member: number, email: string, events: string}> =
+        const values: Array<{ member: number, email: string, events: string }> =
             await server.exec("database", ["mutall_chama"], "get_sql_data", [sql]);
         //
         //Expected output
@@ -410,17 +426,17 @@ class sql_viewer extends outlook.baby<void>{
             values.map(value => {
                 //
                 //
-                const {member, email, events} = value;
+                const { member, email, events } = value;
                 //
                 //Convert the events string to an event array
-                const events_array: {[index: string]: number} = JSON.parse(events);
+                const events_array: { [index: string]: number } = JSON.parse(events);
                 //
                 //
-                return {member, email, events: events_array};
+                return { member, email, events: events_array };
             });
         //
         //Obtain the header values
-        this.headers = <Array<{name: string}>> await server.exec("database", ["mutall_chama"], "get_sql_data",
+        this.headers = <Array<{ name: string }>>await server.exec("database", ["mutall_chama"], "get_sql_data",
             ["select event.id as name from event order by date"]);
     }
 }
@@ -467,7 +483,7 @@ class merge_contrib extends sql_viewer {
         const inputs = document.querySelectorAll('input[type="checkbox]:checked');
         //
         //Move through each input button to check on whether it is clicked or not, 
-        const values: Array<number> = inputs.forEach(selected => {selected.value;});
+        const values: Array<number> = inputs.forEach(selected => { selected.value; });
         //
         //Pass the collected members as an array
         const players = values.join();
@@ -481,7 +497,7 @@ class merge_contrib extends sql_viewer {
                             `;
         //
         //Construct the imerge object
-        const imerge: lib.Imerge = {dbname, ename, members};
+        const imerge: lib.Imerge = { dbname, ename, members };
         //Construct the merger object
         const Merger: merger = new merger(imerge, this);
         //
@@ -496,7 +512,7 @@ class merge_contrib extends sql_viewer {
         super.add_check_box(td, member);
         //
         //Create an input button before
-        this.create_element(td, 'input', {type: "checkbox", value: String(member)});
+        this.create_element(td, 'input', { type: "checkbox", value: String(member) });
     }
     //
     //Over ride the show panels to attach an event that triggers the merge class
@@ -506,7 +522,7 @@ class merge_contrib extends sql_viewer {
         await super.show_panels();
         //
         //Get the merge button and add an event to it
-        const button = <HTMLSelectElement> this.get_element("merge");
+        const button = <HTMLSelectElement>this.get_element("merge");
         button.onclick = () => this.merge();
     }
 }
@@ -535,22 +551,22 @@ class merge_general extends outlook.baby<void>  {
     // 
     //Reporting does not require checks and has no results to return because 
     // it is not used for data entry.
-    check(): boolean {return true;}
-    async get_result(): Promise<void> {}
+    check(): boolean { return true; }
+    async get_result(): Promise<void> { }
     //
     //Merging the general records
     async merge(): Promise<void> {
         //
         //Get the merger data
         //Get the database name
-        const dbname = (<HTMLInputElement> document.getElementById("dbname")).value;
+        const dbname = (<HTMLInputElement>document.getElementById("dbname")).value;
         //Get the entity name
-        const ename = (<HTMLInputElement> document.getElementById("ename")).value;
+        const ename = (<HTMLInputElement>document.getElementById("ename")).value;
         //
-        const members = (<HTMLInputElement> document.getElementById("members")).value;
+        const members = (<HTMLInputElement>document.getElementById("members")).value;
         //
         //Construct the imerge object
-        const imerge: lib.Imerge = {dbname, ename, members};
+        const imerge: lib.Imerge = { dbname, ename, members };
         //Construct the merger object
         const Merger: merger = new merger(imerge, this);
         //
@@ -565,14 +581,14 @@ class merge_general extends outlook.baby<void>  {
         await super.show_panels();
         //
         //Get the merge button and add an event to it
-        const button = <HTMLSelectElement> this.get_element("merge");
+        const button = <HTMLSelectElement>this.get_element("merge");
         button.onclick = () => this.merge();
     }
 }
 class svg extends outlook.baby<void>{
     //
     //
-        //
+    //
     constructor(
         // 
         //This popup parent page.
@@ -589,13 +605,40 @@ class svg extends outlook.baby<void>{
         super(mother, filename);
         //
     }
-    check():boolean{return true;}
-    async get_result():Promise<void>{}
+    check(): boolean { return true; }
+    async get_result(): Promise<void> { }
     //
     //
-    async show_panels():Promise<void>{
+    async show_panels(): Promise<void> {
+
+    }
+}
+class message extends outlook.baby<void>{
+    //
+    //
+    //
+    constructor(
+        // 
+        //This popup parent page.
+        mother: outlook.view,
+        //
+        //The html file to use
+        filename: string
+        //
+        //The primary key columns,i,e the first records in the eHTMLTableCellElement
+    ) {
+        // 
+        //The general html is a simple page designed to support advertising as 
+        //the user interacts with this application.
+        super(mother, filename);
+        //
+    }
+    check(): boolean { return true; }
+    async get_result(): Promise<void> { }
+    //
+    //
+    async show_panels(): Promise<void> {
         
     }
 }
-
 
