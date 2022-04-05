@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery form</title>
+            <link rel="stylesheet" href="index.css"/>
+
+    
+</head>
+
+<body>
+    <form>
+        <p>
+            <center>Delivery Form</center>
+        </p>
+        <label>Merchant:
+        <!-- Use select to create a drop down list -->
+            <input list="merchant" name="merchant">
+            <datalist id="merchant">
+                <option value="Maasai">
+                <option value="Rooftop">
+                <option value="Destiny">
+                <option value="Quickmart">
+                </datalist>
+        </label>
+        <br>
+        <label>
+            Reference number:
+            <input id="ref" type="text" name="ref" />
+        </label>
+        <br>
+        <label>
+            Date:
+            <input id="ref" type="date" name="ref" />
+        </label>
+        <!-- This is a horizontal line break -->
+        <hr>
+        <caption> Tea services</caption>
+        <!-- A data entry table styled to be 100%  -->
+        <table>
+
+            <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Amount</th>
+            </tr>
+
+            <tbody>
+                <tr>
+                    <td> <input type="text" id="snack"></td>
+                    <td><input type="number" id="snack1"></td>
+                    <td><input type="number" id="snack1"></td>
+                </tr>
+                <tr>
+                    <td> <input type="text" id="office"></td>
+                    <td><input type="number" id="office1"></td>
+                    <td><input type="number" id="snack1"></td>
+                </tr>
+                <tr>
+                    <td> <input type="text" id="others"></td>
+                    <td><input type="number" id="others1"></td>
+                    <td><input type="number" id="snack1"></td>
+                </tr>
+            </tbody>
+        </table>
+        <hr>
+        <input type="submit" id="go" value="OK">
+    </form>
+</body>
+
+</html>

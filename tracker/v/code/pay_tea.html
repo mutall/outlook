@@ -1,0 +1,28 @@
+<html>
+    <head>
+        <title>Tea Payment</title>
+    </head>
+    <body>
+        <div id="form">
+            <form action="" class="form">
+                <label>Merchant 
+                    <input list="merchants" name="Merchant"></input>
+                </label>
+                <datalist id="merchants">
+                    <option value="Quickmart">
+                    <option value="Destiny Mart">
+                    <option value="Masai Cafe">
+                    <option value="Rooftop">
+                    <option></option>
+                    <option></option>
+                </datalist>
+                <label>Date
+                    <input type='date' value='<?php echo date('Y-m-d');?>
+                    </input>
+                </label>
+                
+                <input type="submit" id="go" value="OK">
+            </form>
+        </div>
+    </body>
+</html>

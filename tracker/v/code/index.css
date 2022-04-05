@@ -1,66 +1,95 @@
 html {
-  height: 100%;
+    height: 100%;
 }
+
+
 /*Grid design and styling procedure*/
+
 body {
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  padding: 5px;
-  display: grid;
-  gap: 5px;
-  grid-template-columns: 20% 60% 20%;
-  grid-template-rows: 10% 35% 40% 15%;
-  grid-template-areas:
-    "header header header"
-    "services content welcome"
-    "services content whatsup"
-    "footer footer footer";
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    padding: 5px;
+    display: grid;
+    gap: 5px;
+    grid-template-columns: 1fr 4fr 1fr;
+    grid-template-rows: 0.1fr 4fr 4fr 4fr 0.1fr;
+    grid-template-areas: "header header header" "services content welcome" "services content whatsup" "services content messenger" "footer footer footer";
 }
+
 .header {
-  grid-area: header;
-  display: grid;
-  grid-template-columns: 30% 70%;
-  background-color: lightgoldenrodyellow;
+    grid-area: header;
+    display: grid;
+    grid-template-columns: 30% 70%;
+    background-color: lightgoldenrodyellow;
 }
-#company{
+
+#company {
     grid-row: header;
     font-weight: bold;
     font-size: 35px;
     place-self: center;
     padding-right: 50%;
 }
+
 #logo {
-  grid-row: header;
-  padding-left: 5%;
+    grid-row: header;
+    padding-left: 5%;
 }
+
 .heading {
-  grid-row: header;
+    grid-row: header;
 }
+
 #welcome {
-  grid-area: welcome;
-  overflow: scroll;
-  overflow-x: hidden;
+    grid-area: welcome;
+    overflow: scroll;
+    overflow-x: hidden;
 }
-#why {
-  grid-area: why;
-  background-color: thistle;
-}
+
+/*#why {
+    grid-area: why;
+    background-color: thistle;
+}*/
+
 #services {
-  grid-area: services;
-  background-color: lightgoldenrodyellow;
-  overflow: scroll;
-  overflow-x: hidden;
+    grid-area: services;
+    background-color: lightgoldenrodyellow;
+     overflow: auto;
+    resize: horizontal;
+    /* allows one to resize the grid area horizontally */
+    min-width: 215px;
+    
 }
+
 #content {
-  grid-area: content;
-  background-color:lightcyan;
-  overflow:scroll;
+    grid-area: content;
+    background-color: lightcyan;
+    overflow: auto;
+    resize: horizontal;
+    /* allows one to resize the grid area horizontally */
+    min-width: min-content;
 }
+
 #whatsup {
-  grid-area: whatsup;
-  background-color: lightblue;
+    grid-area: whatsup;
+    background-color: lightblue;
+    overflow: auto;
+    resize: both;
+    /* allows one to resize the grid area horizontally */
+    min-width: min-content;
 }
+
+#messenger {
+    grid-area: messenger;
+    background-color: lightblue;
+    overflow: auto;
+    resize: both;
+    /* allows one to resize the grid area horizontally */
+    min-width: min-content;
+    max-height: 585px;
+}
+
 
 /*
 * Test1
@@ -68,66 +97,88 @@ body {
 * Anchor link for logging in...
 *
 * ...Below shows a normal, unvisited link. */
-.a{
+
+.a {
     text-decoration: underline;
     color: blue;
     font-weight: bold;
 }
+
+
 /* 
 Convert the cursor to a pointer. */
-.a:hover{
+
+.a:hover {
     cursor: pointer;
 }
 
 .footer {
-  grid-area: footer;
-  display: grid;
-  grid-template-columns: 30% 60% 10%;
-  background-color: lightblue;
+    grid-area: footer;
+    display: grid;
+    grid-template-columns: 25% 50% 25%;
+    background-color: lightblue;
+    min-height: 80px;
 }
+
 #developer {
-  grid-row: footer;
-  padding-left: 10px;
-  padding-bottom: 10px;
+    grid-row: footer;
+    padding-left: 10px;
+    padding-bottom: 10px;
 }
+
 #signature {
-  grid-row: footer;
-  place-self: center;
-  font-weight: bold;
-  padding-bottom: 50px;
+    grid-row: footer;
+    float: left;
+    font-weight: bold;
+    padding-top: 35px;
+    padding-bottom: 50px;
 }
+
 #company {
-  grid-row: footer;
-  place-self: center;
-  font-size: 20px;
-  padding-bottom: 50px;
+    grid-row: footer;
+    place-self: center;
+    font-size: 20px;
+    padding-bottom: 50px;
 }
+
 #login {
-  text-decoration: none;
-  width: 100px;
-  height: 30px;
+    text-decoration: none;
+    width: 100px;
+    height: 30px;
 }
+
 .img_dev {
-  width: 25%;
-  max-height: 100%;
-  margin-left: 0;
-  margin-bottom: 0;
-  padding: 0;
+    width: 25%;
+    max-height: 100%;
+    margin-left: 0;
+    margin-bottom: 0;
+    padding: 0;
 }
+
+
 /*
 
 Specify border for the table*/
-th,td{
+
+th,
+td {
     border: 1px solid black;
 }
+
+
+
 /*
 By default the applications theme table is displayed in the 
 normal mode*/
-.edit{
+
+.edit {
     display: none;
 }
+
+
 /*
 Tame select tag's properties */
-#selection{
+
+#selection {
     width: 25%;
 }

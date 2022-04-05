@@ -249,7 +249,7 @@ export class view {
         }
         return element;
     }
-
+    //
     //Show or hide a window panel
     public show_panel(id: string, show: boolean): void {
         //
